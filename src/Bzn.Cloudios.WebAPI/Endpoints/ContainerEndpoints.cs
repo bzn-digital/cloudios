@@ -1,0 +1,109 @@
+using Bzn.Cloudios.Application.Services;
+using Bzn.Cloudios.Domain.Dto;
+
+namespace Bzn.Cloudios.WebAPI.Endpoints;
+
+public static class ContainerEndpoints
+{
+    public static void MapContainerEndpoints(this WebApplication app)
+    {
+        var group = app.MapGroup("/api/realms/{realmId:guid}/containers")
+            .RequireAuthorization("RequireRealmMember");
+
+        // List containers in realm
+        group.MapGet("/", async (Guid realmId, ContainerCrudService service, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+        {
+            var result = await service.ListByRealmAsync(realmId, page, pageSize, ct);
+            return Results.Ok(result);
+        });
+
+        // Get container detail
+        group.MapGet("/{id:guid}", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            var result = await service.GetByIdAsync(id, ct);
+            return result is null ? Results.NotFound() : Results.Ok(result);
+        });
+
+        // Create container (not deployed yet)
+        group.MapPost("/", async (Guid realmId, CreateContainerRequest request, ContainerCrudService service, CancellationToken ct) =>
+        {
+            var (container, error) = await service.CreateAsync(realmId, request, ct);
+            if (error is not null) return Results.Conflict(new { error });
+            return Results.Created($"/api/realms/{realmId}/containers/{container!.Id}", container);
+        });
+
+        // Deploy container (create + start in Docker)
+        group.MapPost("/{id:guid}/deploy", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await service.DeployAsync(id, ct);
+                return Results.Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { error = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return Results.Problem(ex.Message);
+            }
+        });
+
+        // Start container
+        group.MapPost("/{id:guid}/start", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await service.StartAsync(id, ct);
+                return Results.Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // Stop container
+        group.MapPost("/{id:guid}/stop", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await service.StopAsync(id, ct);
+                return Results.Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // Restart container
+        group.MapPost("/{id:guid}/restart", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            try
+            {
+                var result = await service.RestartAsync(id, ct);
+                return Results.Ok(result);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.BadRequest(new { error = ex.Message });
+            }
+        });
+
+        // Delete container
+        group.MapDelete("/{id:guid}", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        {
+            try
+            {
+                await service.DeleteAsync(id, ct);
+                return Results.NoContent();
+            }
+            catch (InvalidOperationException ex)
+            {
+                return Results.NotFound(new { error = ex.Message });
+            }
+        });
+    }
+}
