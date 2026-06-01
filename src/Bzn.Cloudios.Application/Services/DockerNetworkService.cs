@@ -12,7 +12,7 @@ using System.Text.Json;
 
 namespace Bzn.Cloudios.Application.Services;
 
-public sealed class DockerNetworkService
+public sealed class DockerNetworkService : IDockerNetworkService
 {
     private readonly ILogger<DockerNetworkService> _logger;
     private readonly string _socketPath;
@@ -59,6 +59,123 @@ public sealed class DockerNetworkService
         {
             _logger.LogError(ex, "Failed to ensure Docker network cloudios_internal");
         }
+    }
+
+    public async Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var containers = await SendRequestAsync<List<JsonElement>>("GET", "/containers/json", ct: ct);
+            if (containers is null) return [];
+
+            var managedContainers = containers.Where(c =>
+            {
+                if (!c.TryGetProperty("Labels", out var labels)) return false;
+                if (!labels.TryGetProperty("cloudios.managed", out var managed)) return false;
+                return managed.GetString() == "true";
+            }).ToList();
+
+            var stats = new List<ContainerStats>();
+            foreach (var container in managedContainers)
+            {
+                var id = container.GetProperty("Id").GetString() ?? "";
+                var name = container.GetProperty("Names")[0].GetString() ?? "";
+                var statsResponse = await SendRequestAsync<JsonElement?>("GET", $"/containers/{id}/stats?stream=false", ct: ct);
+                if (statsResponse is null) continue;
+
+                if (!statsResponse.Value.TryGetProperty("cpu_stats", out var cpuStatsObj)) continue;
+                if (cpuStatsObj.ValueKind == JsonValueKind.Null) continue;
+                if (!statsResponse.Value.TryGetProperty("memory_stats", out var memoryStatsObj)) continue;
+                if (memoryStatsObj.ValueKind == JsonValueKind.Null) continue;
+
+                var cpuStats = cpuStatsObj;
+                var memoryStats = memoryStatsObj;
+                var preCpuStats = statsResponse.Value.TryGetProperty("precpu_stats", out var pcs) && pcs.ValueKind != JsonValueKind.Null ? pcs : (JsonElement?)null;
+                var networkStats = statsResponse.Value.TryGetProperty("networks", out var nets) && nets.ValueKind != JsonValueKind.Null ? nets : (JsonElement?)null;
+                var blockStats = statsResponse.Value.TryGetProperty("blkio_stats", out var blk) && blk.ValueKind != JsonValueKind.Null ? blk : (JsonElement?)null;
+
+                var cpuPercent = CalculateCpuPercent(cpuStats, preCpuStats);
+                var memoryUsed = memoryStats.GetProperty("usage").GetInt64();
+                var networkRx = 0L;
+                var networkTx = 0L;
+                var blockRead = 0L;
+                var blockWrite = 0L;
+
+                if (networkStats.HasValue)
+                {
+                    foreach (var net in networkStats.Value.EnumerateObject())
+                    {
+                        var rx = net.Value.TryGetProperty("rx_bytes", out var r) ? r.GetInt64() : 0;
+                        var tx = net.Value.TryGetProperty("tx_bytes", out var t) ? t.GetInt64() : 0;
+                        networkRx += rx;
+                        networkTx += tx;
+                    }
+                }
+
+                if (blockStats.HasValue)
+                {
+                    var ioService = blockStats.Value.TryGetProperty("io_service_bytes_recursive", out var io) && io.ValueKind != JsonValueKind.Null ? io : (JsonElement?)null;
+                    if (ioService.HasValue)
+                    {
+                        foreach (var entry in ioService.Value.EnumerateArray())
+                        {
+                            var op = entry.TryGetProperty("op", out var o) ? o.GetString() : "";
+                            var value = entry.TryGetProperty("value", out var v) ? v.GetInt64() : 0;
+                            if (op == "Read") blockRead += value;
+                            if (op == "Write") blockWrite += value;
+                        }
+                    }
+                }
+
+                stats.Add(new ContainerStats
+                {
+                    ContainerId = id,
+                    ContainerName = name,
+                    CpuPercent = cpuPercent,
+                    MemoryUsedBytes = memoryUsed,
+                    NetworkRxBytes = networkRx,
+                    NetworkTxBytes = networkTx,
+                    BlockReadBytes = blockRead,
+                    BlockWriteBytes = blockWrite
+                });
+            }
+
+            return stats;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get container stats");
+            return [];
+        }
+    }
+
+    private static double CalculateCpuPercent(JsonElement cpuStats, JsonElement? preCpuStats)
+    {
+        if (!cpuStats.TryGetProperty("cpu_usage", out var cpuUsage)) return 0;
+        if (!cpuUsage.TryGetProperty("total_usage", out var totalUsage)) return 0;
+        if (!cpuStats.TryGetProperty("system_cpu_usage", out var systemUsage)) return 0;
+
+        long preTotalUsage = 0;
+        long preSystemUsage = 0;
+
+        if (preCpuStats.HasValue)
+        {
+            if (preCpuStats.Value.TryGetProperty("cpu_usage", out var preCpuUsage) &&
+                preCpuUsage.TryGetProperty("total_usage", out var preTotal))
+            {
+                preTotalUsage = preTotal.GetInt64();
+            }
+            if (preCpuStats.Value.TryGetProperty("system_cpu_usage", out var preSystem))
+            {
+                preSystemUsage = preSystem.GetInt64();
+            }
+        }
+
+        var cpuDelta = totalUsage.GetInt64() - preTotalUsage;
+        var systemDelta = systemUsage.GetInt64() - preSystemUsage;
+
+        if (systemDelta <= 0) return 0;
+        return (cpuDelta / (double)systemDelta) * 100.0;
     }
 
     internal async Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
