@@ -291,4 +291,5 @@ public class MockDockerNetworkService : IDockerNetworkService
     public Task EnsureNetworkAsync(CancellationToken ct = default) => Task.CompletedTask;
     public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default) => Task.FromResult(new List<ContainerStats>());
     public Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default) => Task.FromResult(default(T));
+    public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default) => Task.FromResult(new List<ContainerLogEntry>());
 }

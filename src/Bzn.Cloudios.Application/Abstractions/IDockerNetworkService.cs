@@ -1,3 +1,5 @@
+using Bzn.Cloudios.Domain.Dto;
+
 namespace Bzn.Cloudios.Application.Abstractions;
 
 public sealed record ContainerStats
@@ -17,4 +19,5 @@ public interface IDockerNetworkService
     Task EnsureNetworkAsync(CancellationToken ct = default);
     Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default);
     Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default);
+    Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default);
 }

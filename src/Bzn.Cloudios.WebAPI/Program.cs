@@ -141,6 +141,7 @@ app.MapRealmEndpoints();
 app.MapUserEndpoints();
 app.MapContainerEndpoints();
 app.MapContainerConfigEndpoints();
+app.MapContainerLogsEndpoints();
 app.MapMetricsEndpoints();
 app.MapBillingEndpoints();
 

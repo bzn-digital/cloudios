@@ -1,5 +1,6 @@
 using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Services;
+using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
@@ -246,5 +247,10 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
     public Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
     {
         return Task.FromResult(default(T));
+    }
+
+    public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default)
+    {
+        return Task.FromResult(new List<ContainerLogEntry>());
     }
 }
