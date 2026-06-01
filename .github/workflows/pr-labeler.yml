@@ -1,0 +1,40 @@
+name: PR Auto-Labeler
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+
+jobs:
+  label:
+    name: Apply Branch Label
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+
+    steps:
+      - name: Label based on branch name
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const headRef = context.payload.pull_request.head.ref;
+            const labelMap = {
+              'feature/': 'feature',
+              'fix/': 'bugfix',
+              'hotfix/': 'hotfix',
+              'release/': 'release'
+            };
+
+            for (const [prefix, label] of Object.entries(labelMap)) {
+              if (headRef.startsWith(prefix)) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: context.payload.pull_request.number,
+                  labels: [label]
+                });
+                break;
+              }
+            }
