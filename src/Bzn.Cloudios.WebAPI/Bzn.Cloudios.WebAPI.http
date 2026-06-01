@@ -1,0 +1,6 @@
+@Bzn.Cloudios.WebAPI_HostAddress = http://localhost:5021
+
+GET {{Bzn.Cloudios.WebAPI_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###
