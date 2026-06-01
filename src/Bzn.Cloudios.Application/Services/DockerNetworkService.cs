@@ -178,7 +178,7 @@ public sealed class DockerNetworkService : IDockerNetworkService
         return (cpuDelta / (double)systemDelta) * 100.0;
     }
 
-    internal async Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
+    public async Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
     {
         using var socket = new Socket(AddressFamily.Unix, SocketType.Stream, ProtocolType.IP);
         var endpoint = new UnixDomainSocketEndPoint(_socketPath);
