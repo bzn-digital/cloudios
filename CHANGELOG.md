@@ -28,7 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `DatabaseSeeder` creating system realm and PlatformAdmin user on first run
 - Docker/Podman compose with named volume `cloudios-data` for persistent SQLite databases
 
-## [Unreleased]
+## [0.2.0] - 2026-06-01
 
 ### Added
 - JWT authentication: `POST /api/auth/login` endpoint with symmetric key validation
@@ -84,3 +84,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 ### Security
+
+## [Unreleased]
+
+### Added
