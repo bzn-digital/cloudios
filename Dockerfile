@@ -9,6 +9,7 @@ COPY src/Bzn.Cloudios.Infrastructure/Bzn.Cloudios.Infrastructure.csproj src/Bzn.
 COPY src/Bzn.Cloudios.Application/Bzn.Cloudios.Application.csproj src/Bzn.Cloudios.Application/
 COPY src/Bzn.Cloudios.WebAPI/Bzn.Cloudios.WebAPI.csproj src/Bzn.Cloudios.WebAPI/
 COPY src/Bzn.Cloudios.WebApp/Bzn.Cloudios.WebApp.csproj src/Bzn.Cloudios.WebApp/
+COPY src/Bzn.Cloudios.WebPlatform/Bzn.Cloudios.WebPlatform.csproj src/Bzn.Cloudios.WebPlatform/
 RUN dotnet restore Bzn.Cloudios.slnx
 
 # Copy full source
@@ -22,6 +23,10 @@ WORKDIR /app
 
 # Non-root user for security
 RUN adduser --disabled-password --gecos "" appuser
+
+# Data directory for SQLite databases
+RUN mkdir -p /data && chown appuser:appuser /data
+
 COPY --from=publish /app/publish .
 RUN chown -R appuser:appuser /app
 USER appuser
