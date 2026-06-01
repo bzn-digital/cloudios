@@ -70,11 +70,14 @@ builder.Services.AddScoped<ITenantProvider, JwtTenantProvider>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
-builder.Services.AddSingleton<DockerNetworkService>();
+builder.Services.AddSingleton<IDockerNetworkService, DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
+builder.Services.AddScoped<MetricsService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 builder.Services.AddHostedService<EventProcessorWorker>();
+builder.Services.AddHostedService<MetricsCollectionWorker>();
+builder.Services.AddHostedService<MetricsCleanupWorker>();
 builder.Services.AddSingleton<BillingEventHandler>();
 
 // --- YARP Reverse Proxy (InMemoryConfigProvider for dynamic routes) ---
@@ -136,6 +139,7 @@ app.MapAuthEndpoints();
 app.MapRealmEndpoints();
 app.MapUserEndpoints();
 app.MapContainerEndpoints();
+app.MapMetricsEndpoints();
 
 // --- Static files for Blazor WASM (Client panel) ---
 app.UseStaticFiles();

@@ -56,5 +56,7 @@ public sealed class MetricsContainerMetricHistoryConfiguration : IEntityTypeConf
 
         builder.HasIndex(m => new { m.ContainerId, m.Timestamp });
         builder.HasIndex(m => m.Timestamp);
+
+        // No foreign key constraint - metrics DB is separate from main DB
     }
 }
