@@ -11,6 +11,7 @@
   <ItemGroup>
     <PackageReference Include="coverlet.collector" Version="6.0.4" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
   </ItemGroup>
@@ -19,6 +20,7 @@
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Domain\Bzn.Cloudios.Domain.csproj" />
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Application\Bzn.Cloudios.Application.csproj" />
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Infrastructure\Bzn.Cloudios.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Bzn.Cloudios.WebAPI\Bzn.Cloudios.WebAPI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -68,6 +68,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `YarpRouteHandler` stub: AddRoute on Started, RemoveRoute on Stopped/Deleted
 - `BillingEventHandler` stub: RegisterStart/Stop for billing calculation
 - Handler subscriptions in Program.cs: YARP + Billing wired to ContainerStarted/Stopped/Deleted
+- `IYarpRouteUpdater` interface + `YarpRouteUpdater` implementation (WebAPI)
+- YARP configured with `InMemoryConfigProvider` for dynamic routes (empty initial routes)
+- `ForwardedHeaders` configured for Cloudflare Tunnel (XForwardedFor, XForwardedProto)
+- Hostname pattern: `{container-name}.{realm-slug}.cloudios.bzn.dev`
+- `YarpRouteUpdater` subscribes to ContainerStarted/Stopped/Deleted events
+- Route/Cluster added on container start, removed on stop/delete
+- `Realm.Slug` property added for hostname generation
+- YARP routes: hostname-based routing to container internal IP:port
 
 ### Deprecated
 
