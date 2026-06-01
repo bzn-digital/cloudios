@@ -42,6 +42,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - BCrypt password hashing (AOT-safe) for user creation and login verification
 - Validations: unique email, unique realm name, no self-deletion, no last RealmOwner removal
 - DatabaseSeeder updated to hash admin password with BCrypt
+- Docker Client Service: AOT-safe Unix socket HTTP client (no Docker.DotNet reflection)
+- `IContainerService` / `ContainerService`: Deploy, Start, Stop, Restart, Delete, GetContainerIp
+- `DockerNetworkService`: ensures `cloudios_internal` network (172.20.0.0/16) on startup
+- Container state synchronization: DB ↔ Docker (orphan cleanup, stale Running→Stopped fix)
+- `ContainerCrudService`: CRUD + Docker lifecycle orchestration
+- Container endpoints: `GET /api/realms/{realmId}/containers`, `POST`, `POST /{id}/deploy`, `POST /{id}/start|stop|restart`, `DELETE`
+- Docker labels: `cloudios.realm`, `cloudios.container`, `cloudios.managed=true`
+- CPU/RAM limits via HostConfig (CpuQuota, Memory)
 
 ### Deprecated
 
