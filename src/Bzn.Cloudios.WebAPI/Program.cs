@@ -74,6 +74,7 @@ builder.Services.AddSingleton<IDockerNetworkService, DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
 builder.Services.AddScoped<MetricsService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 builder.Services.AddHostedService<EventProcessorWorker>();
 builder.Services.AddHostedService<MetricsCollectionWorker>();
@@ -140,6 +141,7 @@ app.MapRealmEndpoints();
 app.MapUserEndpoints();
 app.MapContainerEndpoints();
 app.MapMetricsEndpoints();
+app.MapBillingEndpoints();
 
 // --- Static files for Blazor WASM (Client panel) ---
 app.UseStaticFiles();

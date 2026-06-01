@@ -246,7 +246,8 @@ public class BillingEventHandlerTests
     [Fact]
     public async Task RegisterStartAsync_CompletesWithoutError()
     {
-        var handler = new BillingEventHandler(NullLogger<BillingEventHandler>.Instance);
+        var billingService = new MockBillingService();
+        var handler = new BillingEventHandler(billingService, NullLogger<BillingEventHandler>.Instance);
         var evt = new ContainerStartedEvent(Guid.NewGuid(), Guid.NewGuid(), "app", DateTime.UtcNow);
         await handler.RegisterStartAsync(evt, CancellationToken.None);
     }
@@ -254,8 +255,37 @@ public class BillingEventHandlerTests
     [Fact]
     public async Task RegisterStopAsync_CompletesWithoutError()
     {
-        var handler = new BillingEventHandler(NullLogger<BillingEventHandler>.Instance);
+        var billingService = new MockBillingService();
+        var handler = new BillingEventHandler(billingService, NullLogger<BillingEventHandler>.Instance);
         var evt = new ContainerStoppedEvent(Guid.NewGuid(), Guid.NewGuid(), "app", DateTime.UtcNow);
         await handler.RegisterStopAsync(evt, CancellationToken.None);
+    }
+}
+
+public class MockBillingService : IBillingService
+{
+    public Task RegisterStartAsync(Guid containerId, DateTime startedAtUtc, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task RegisterStopAsync(Guid containerId, DateTime stoppedAtUtc, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<decimal> GetRealmBillingAsync(Guid realmId, int year, int month, CancellationToken ct = default)
+    {
+        return Task.FromResult(0m);
+    }
+
+    public Task<decimal> GetGlobalBillingAsync(int year, int month, CancellationToken ct = default)
+    {
+        return Task.FromResult(0m);
+    }
+
+    public Task<decimal> GetContainerMonthCostAsync(Guid containerId, int year, int month, CancellationToken ct = default)
+    {
+        return Task.FromResult(0m);
     }
 }
