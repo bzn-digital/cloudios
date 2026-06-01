@@ -1,0 +1,33 @@
+# Cloudios — Local Development (Podman / Docker Compose)
+#
+# Usage:
+#   podman compose up --build
+#   docker compose up --build
+#
+# The WebAPI runs on http://localhost:8080
+# Blazor WASM is served as static files by the WebAPI.
+# SQLite databases persist in named volumes.
+
+services:
+  cloudios:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: cloudios-webapi
+    ports:
+      - "8080:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__MainDb=Data Source=/data/cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared
+      - ConnectionStrings__MetricsDb=Data Source=/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
+      - Admin__Email=admin@cloudios.local
+      - Admin__PasswordHash=CHANGE_ME_USE_BCRIPT_HASH
+      - Jwt__Authority=http://localhost:8080
+      - Jwt__Audience=cloudios-api
+    volumes:
+      - cloudios-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    restart: unless-stopped
+
+volumes:
+  cloudios-data:
