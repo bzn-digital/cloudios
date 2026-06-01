@@ -1,0 +1,9 @@
+.git/
+.gitignore
+.docks/
+README.md
+LICENSE
+CHANGELOG.md
+**/bin/
+**/obj/
+**/TestResults/

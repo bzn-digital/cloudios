@@ -38,6 +38,13 @@ ScaffoldingReadMe.txt
 
 # dotenv environment variables file
 .env
+.env.*
+
+# Docker/Podman compose override
+compose.override.yaml
+
+# AOT publish output
+publish/
 
 # Others
 ~$*
