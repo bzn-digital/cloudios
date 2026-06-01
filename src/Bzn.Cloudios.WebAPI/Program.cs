@@ -1,5 +1,6 @@
 using System.Text;
 using Bzn.Cloudios.Application.Abstractions;
+using Bzn.Cloudios.Application.Events;
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Bzn.Cloudios.Infrastructure.Services;
@@ -69,7 +70,10 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
-builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
+builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
+builder.Services.AddHostedService<EventProcessorWorker>();
+builder.Services.AddSingleton<YarpRouteHandler>();
+builder.Services.AddSingleton<BillingEventHandler>();
 
 // --- YARP Reverse Proxy ---
 builder.Services.AddReverseProxy()
@@ -92,6 +96,20 @@ using (var scope = app.Services.CreateScope())
     var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
     await containerService.SynchronizeStateAsync();
 }
+
+// --- Event Bus subscriptions ---
+var eventBus = (InProcessEventBus)app.Services.GetRequiredService<IEventBus>();
+var yarpHandler = app.Services.GetRequiredService<YarpRouteHandler>();
+var billingHandler = app.Services.GetRequiredService<BillingEventHandler>();
+
+// YARP handlers
+eventBus.Subscribe<ContainerStartedEvent>(yarpHandler.AddRouteAsync);
+eventBus.Subscribe<ContainerStoppedEvent>(yarpHandler.RemoveRouteAsync);
+eventBus.Subscribe<ContainerDeletedEvent>(yarpHandler.RemoveRouteAsync);
+
+// Billing handlers
+eventBus.Subscribe<ContainerStartedEvent>(billingHandler.RegisterStartAsync);
+eventBus.Subscribe<ContainerStoppedEvent>(billingHandler.RegisterStopAsync);
 
 // --- Middleware pipeline ---
 app.UseAuthentication();

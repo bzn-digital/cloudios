@@ -59,6 +59,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `GET /api/containers/all` — admin list all containers across realms (PlatformAdmin)
 - Validations: unique name per realm, imageName required, cpuLimitCores 0.1–4.0, memoryLimitBytes 128MB–8GB
 - `IEventBus` / `InMemoryEventBus`: ContainerStarted, ContainerStopped, ContainerDeleted, ContainerFailed events
+- `IEventBus` refactored with `Subscribe<TEvent>` for handler registration
+- `InProcessEventBus` using `Channel<EventEnvelope>` bounded (capacity 1000, Wait back-pressure)
+- `EventProcessorWorker` BackgroundService: consumes channel, dispatches to handlers in parallel, logs errors without crash
+- `EventEnvelope` wrapper with EventType, Payload, EnqueuedAt
+- `RealmBlockedEvent` added to domain events
+- `EventJsonContext` with `[JsonSerializable]` for all events (logging future)
+- `YarpRouteHandler` stub: AddRoute on Started, RemoveRoute on Stopped/Deleted
+- `BillingEventHandler` stub: RegisterStart/Stop for billing calculation
+- Handler subscriptions in Program.cs: YARP + Billing wired to ContainerStarted/Stopped/Deleted
 
 ### Deprecated
 
