@@ -7,33 +7,40 @@ public static class ContainerEndpoints
 {
     public static void MapContainerEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/realms/{realmId:guid}/containers")
+        // Admin endpoint: all containers across realms
+        app.MapGet("/api/containers/all", async (ContainerCrudService service, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+        {
+            var result = await service.ListAllAsync(page, pageSize, ct);
+            return Results.Ok(result);
+        }).RequireAuthorization("RequirePlatformAdmin");
+
+        var group = app.MapGroup("/api/containers")
             .RequireAuthorization("RequireRealmMember");
 
-        // List containers in realm
-        group.MapGet("/", async (Guid realmId, ContainerCrudService service, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
+        // List containers (realm from JWT)
+        group.MapGet("/", async (ContainerCrudService service, int page = 1, int pageSize = 20, string? search = null, string? status = null, CancellationToken ct = default) =>
         {
-            var result = await service.ListByRealmAsync(realmId, page, pageSize, ct);
+            var result = await service.ListAsync(page, pageSize, search, status, ct);
             return Results.Ok(result);
         });
 
         // Get container detail
-        group.MapGet("/{id:guid}", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        group.MapGet("/{id:guid}", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             var result = await service.GetByIdAsync(id, ct);
             return result is null ? Results.NotFound() : Results.Ok(result);
         });
 
-        // Create container (not deployed yet)
-        group.MapPost("/", async (Guid realmId, CreateContainerRequest request, ContainerCrudService service, CancellationToken ct) =>
+        // Create container (RealmOwner+ only)
+        group.MapPost("/", async (CreateContainerRequest request, ContainerCrudService service, CancellationToken ct) =>
         {
-            var (container, error) = await service.CreateAsync(realmId, request, ct);
+            var (container, error) = await service.CreateAsync(request, ct);
             if (error is not null) return Results.Conflict(new { error });
-            return Results.Created($"/api/realms/{realmId}/containers/{container!.Id}", container);
-        });
+            return Results.Created($"/api/containers/{container!.Id}", container);
+        }).RequireAuthorization("RequireRealmOwner");
 
         // Deploy container (create + start in Docker)
-        group.MapPost("/{id:guid}/deploy", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/deploy", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             try
             {
@@ -48,10 +55,10 @@ public static class ContainerEndpoints
             {
                 return Results.Problem(ex.Message);
             }
-        });
+        }).RequireAuthorization("RequireRealmOwner");
 
         // Start container
-        group.MapPost("/{id:guid}/start", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/start", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             try
             {
@@ -62,10 +69,10 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        });
+        }).RequireAuthorization("RequireRealmOwner");
 
         // Stop container
-        group.MapPost("/{id:guid}/stop", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/stop", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             try
             {
@@ -76,10 +83,10 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        });
+        }).RequireAuthorization("RequireRealmOwner");
 
         // Restart container
-        group.MapPost("/{id:guid}/restart", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        group.MapPost("/{id:guid}/restart", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             try
             {
@@ -90,10 +97,10 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        });
+        }).RequireAuthorization("RequireRealmOwner");
 
-        // Delete container
-        group.MapDelete("/{id:guid}", async (Guid realmId, Guid id, ContainerCrudService service, CancellationToken ct) =>
+        // Delete container (RealmOwner only)
+        group.MapDelete("/{id:guid}", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
         {
             try
             {
@@ -104,6 +111,6 @@ public static class ContainerEndpoints
             {
                 return Results.NotFound(new { error = ex.Message });
             }
-        });
+        }).RequireAuthorization("RequireRealmOwner");
     }
 }
