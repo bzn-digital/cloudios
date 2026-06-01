@@ -37,6 +37,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `TenantQueryExtensions`: `.ForRealm(realmId)` for Container, User, ContainerVolume, ContainerEnvVar (no Global Query Filters)
 - Authorization policies: `RequirePlatformAdmin`, `RequirePlatformUser`, `RequireRealmOwner`, `RequireRealmMember`
 - JWT Bearer configured with issuer, audience, signing key validation
+- Realm CRUD: `GET /api/realms` (list/search/paginate), `GET /api/realms/{id}`, `POST`, `PUT`, `DELETE` (PlatformAdmin only)
+- User CRUD: `GET /api/realms/{realmId}/users`, `POST`, `PUT`, `DELETE` (RealmOwner+)
+- BCrypt password hashing (AOT-safe) for user creation and login verification
+- Validations: unique email, unique realm name, no self-deletion, no last RealmOwner removal
+- DatabaseSeeder updated to hash admin password with BCrypt
 
 ### Deprecated
 

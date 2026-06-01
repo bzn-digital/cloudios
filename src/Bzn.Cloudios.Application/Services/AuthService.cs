@@ -93,8 +93,6 @@ public sealed class AuthService
 
     private static bool VerifyPassword(string password, string storedHash)
     {
-        // TODO: Replace with BCrypt.Verify(password, storedHash)
-        // For now, simple comparison for initial development
-        return !string.IsNullOrEmpty(storedHash) && storedHash != "CHANGE_ME_USE_BCRIPT_HASH";
+        return BCrypt.Net.BCrypt.Verify(password, storedHash);
     }
 }
