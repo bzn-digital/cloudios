@@ -50,6 +50,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Container endpoints: `GET /api/realms/{realmId}/containers`, `POST`, `POST /{id}/deploy`, `POST /{id}/start|stop|restart`, `DELETE`
 - Docker labels: `cloudios.realm`, `cloudios.container`, `cloudios.managed=true`
 - CPU/RAM limits via HostConfig (CpuQuota, Memory)
+- Container API refactored to `/api/containers` (realm from JWT, no realmId in URL)
+- `GET /api/containers` — list with pagination, search, status filter (realm from JWT)
+- `GET /api/containers/{id}` — detail with volumes and env vars
+- `POST /api/containers` — create container (RealmOwner+)
+- `POST /api/containers/{id}/deploy|start|stop|restart` — lifecycle (RealmOwner+)
+- `DELETE /api/containers/{id}` — remove (RealmOwner only)
+- `GET /api/containers/all` — admin list all containers across realms (PlatformAdmin)
+- Validations: unique name per realm, imageName required, cpuLimitCores 0.1–4.0, memoryLimitBytes 128MB–8GB
+- `IEventBus` / `InMemoryEventBus`: ContainerStarted, ContainerStopped, ContainerDeleted, ContainerFailed events
 
 ### Deprecated
 

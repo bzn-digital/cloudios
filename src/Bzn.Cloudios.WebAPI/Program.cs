@@ -69,6 +69,7 @@ builder.Services.AddScoped<UserService>();
 builder.Services.AddSingleton<DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
+builder.Services.AddSingleton<IEventBus, InMemoryEventBus>();
 
 // --- YARP Reverse Proxy ---
 builder.Services.AddReverseProxy()
