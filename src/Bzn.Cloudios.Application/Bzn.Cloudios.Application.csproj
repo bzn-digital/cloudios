@@ -7,6 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.12.1" />
+    <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.12.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Bzn.Cloudios.Domain\Bzn.Cloudios.Domain.csproj" />
     <ProjectReference Include="..\Bzn.Cloudios.Infrastructure\Bzn.Cloudios.Infrastructure.csproj" />
   </ItemGroup>

@@ -31,6 +31,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- JWT authentication: `POST /api/auth/login` endpoint with symmetric key validation
+- `ITenantProvider` / `JwtTenantProvider`: extracts UserId, RealmId, Role from JWT claims (Scoped)
+- `AuthService`: validates credentials and generates JWT with claims (UserId, RealmId, Role, Email)
+- `TenantQueryExtensions`: `.ForRealm(realmId)` for Container, User, ContainerVolume, ContainerEnvVar (no Global Query Filters)
+- Authorization policies: `RequirePlatformAdmin`, `RequirePlatformUser`, `RequireRealmOwner`, `RequireRealmMember`
+- JWT Bearer configured with issuer, audience, signing key validation
 
 ### Deprecated
 

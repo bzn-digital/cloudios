@@ -1,7 +1,13 @@
+using System.Text;
+using Bzn.Cloudios.Application.Abstractions;
+using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Bzn.Cloudios.Infrastructure.Services;
+using Bzn.Cloudios.WebAPI.Endpoints;
 using Bzn.Cloudios.WebAPI.Serialization;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -22,14 +28,42 @@ builder.Services.AddDbContext<MetricsDbContext>(options =>
     options.UseSqlite(metricsDbPath).AddInterceptors(pragmaInterceptor));
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// --- Authentication & Authorization ---
-builder.Services.AddAuthentication()
+// --- Authentication (JWT Bearer with symmetric key) ---
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKey_ReplaceInProduction_32Chars!";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "cloudios";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "cloudios-api";
+
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        options.Authority = builder.Configuration["Jwt:Authority"];
-        options.Audience = builder.Configuration["Jwt:Audience"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = jwtIssuer,
+            ValidAudience = jwtAudience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
+        };
     });
-builder.Services.AddAuthorization();
+
+// --- Authorization Policies ---
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("RequirePlatformAdmin", policy =>
+        policy.RequireRole("PlatformAdmin"))
+    .AddPolicy("RequirePlatformUser", policy =>
+        policy.RequireRole("PlatformAdmin", "PlatformUser", "PlatformSre"))
+    .AddPolicy("RequireRealmOwner", policy =>
+        policy.RequireRole("PlatformAdmin", "RealmOwner"))
+    .AddPolicy("RequireRealmMember", policy =>
+        policy.RequireRole("PlatformAdmin", "PlatformUser", "PlatformSre",
+            "RealmOwner", "RealmAdmin", "RealmUser", "RealmSre"));
+
+// --- Application Services ---
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ITenantProvider, JwtTenantProvider>();
+builder.Services.AddScoped<AuthService>();
 
 // --- YARP Reverse Proxy ---
 builder.Services.AddReverseProxy()
@@ -49,6 +83,9 @@ using (var scope = app.Services.CreateScope())
 // --- Middleware pipeline ---
 app.UseAuthentication();
 app.UseAuthorization();
+
+// --- Auth Endpoints ---
+app.MapAuthEndpoints();
 
 // --- Static files for Blazor WASM (Client panel) ---
 app.UseStaticFiles();
