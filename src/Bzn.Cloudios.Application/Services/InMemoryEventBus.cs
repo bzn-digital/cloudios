@@ -14,7 +14,7 @@ public sealed class EventEnvelope
 public sealed class InProcessEventBus : IEventBus
 {
     private readonly Channel<EventEnvelope> _channel;
-    private readonly Dictionary<Type, List<Delegate>> _handlers = new();
+    private readonly Dictionary<Type, List<Func<object, CancellationToken, Task>>> _handlers = new();
     private readonly ILogger<InProcessEventBus> _logger;
 
     public InProcessEventBus(ILogger<InProcessEventBus> logger)
@@ -45,10 +45,10 @@ public sealed class InProcessEventBus : IEventBus
         var type = typeof(TEvent);
         if (!_handlers.TryGetValue(type, out var list))
         {
-            list = new List<Delegate>();
+            list = new List<Func<object, CancellationToken, Task>>();
             _handlers[type] = list;
         }
-        list.Add(handler);
+        list.Add((payload, ct) => handler((TEvent)payload, ct));
         _logger.LogInformation("Handler subscribed for {EventType}", type.Name);
     }
 
@@ -70,8 +70,7 @@ public sealed class InProcessEventBus : IEventBus
         {
             try
             {
-                var typedHandler = (Func<object, CancellationToken, Task>)handler;
-                await typedHandler(envelope.Payload, ct);
+                await handler(envelope.Payload, ct);
             }
             catch (Exception ex)
             {
