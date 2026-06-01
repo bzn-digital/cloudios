@@ -17,7 +17,7 @@ public sealed class DatabaseSeeder
         _logger = logger;
     }
 
-    public async Task SeedAsync(string adminEmail, string adminPasswordHash, CancellationToken ct = default)
+    public async Task SeedAsync(string adminEmail, string adminPassword, CancellationToken ct = default)
     {
         await _context.Database.MigrateAsync(ct);
 
@@ -39,7 +39,7 @@ public sealed class DatabaseSeeder
             Id = Guid.NewGuid(),
             RealmId = systemRealm.Id,
             Email = adminEmail,
-            PasswordHash = adminPasswordHash,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
             Role = UserRole.PlatformAdmin,
             IsBlocked = false,
             CreatedAt = DateTime.UtcNow

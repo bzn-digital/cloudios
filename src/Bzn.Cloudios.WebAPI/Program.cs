@@ -64,6 +64,8 @@ builder.Services.AddAuthorizationBuilder()
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ITenantProvider, JwtTenantProvider>();
 builder.Services.AddScoped<AuthService>();
+builder.Services.AddScoped<RealmService>();
+builder.Services.AddScoped<UserService>();
 
 // --- YARP Reverse Proxy ---
 builder.Services.AddReverseProxy()
@@ -76,16 +78,18 @@ using (var scope = app.Services.CreateScope())
 {
     var seeder = scope.ServiceProvider.GetRequiredService<DatabaseSeeder>();
     var adminEmail = builder.Configuration["Admin:Email"] ?? "admin@cloudios.local";
-    var adminPasswordHash = builder.Configuration["Admin:PasswordHash"] ?? string.Empty;
-    await seeder.SeedAsync(adminEmail, adminPasswordHash);
+    var adminPassword = builder.Configuration["Admin:Password"] ?? "Admin@123";
+    await seeder.SeedAsync(adminEmail, adminPassword);
 }
 
 // --- Middleware pipeline ---
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- Auth Endpoints ---
+// --- API Endpoints ---
 app.MapAuthEndpoints();
+app.MapRealmEndpoints();
+app.MapUserEndpoints();
 
 // --- Static files for Blazor WASM (Client panel) ---
 app.UseStaticFiles();
