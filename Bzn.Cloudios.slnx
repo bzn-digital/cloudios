@@ -6,4 +6,7 @@
     <Project Path="src/Bzn.Cloudios.WebAPI/Bzn.Cloudios.WebAPI.csproj" />
     <Project Path="src/Bzn.Cloudios.WebApp/Bzn.Cloudios.WebApp.csproj" />
   </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Bzn.Cloudios.Tests/Bzn.Cloudios.Tests.csproj" />
+  </Folder>
 </Solution>

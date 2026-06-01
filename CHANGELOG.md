@@ -16,6 +16,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Manual DI registration in WebAPI Program.cs
 - Docker/Podman support for local testing: multi-stage `Dockerfile` (AOT publish), `compose.yaml`, `.dockerignore`
 - WebAPI container runs as non-root user on port 8080 with Docker socket mounted
+- Unit test project `Bzn.Cloudios.Tests` (xUnit) with Domain DTO/Enum tests
+- PR validation workflow split into 3 jobs: Build, Unit Tests, AOT Publish
 
 ### Changed
 
