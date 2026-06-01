@@ -1,0 +1,98 @@
+@page "/login"
+@inject HttpClient Http
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthStateProvider
+@using Bzn.Cloudios.WebApp.Auth
+
+<div class="login-container">
+    <div class="login-card">
+        <h2>Cloudios Login</h2>
+        <p class="subtitle">Sign in to access your realm</p>
+
+        <EditForm Model="@loginModel" OnValidSubmit="HandleLogin">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="form-group">
+                <label for="email">Email</label>
+                <InputText id="email" @bind-Value="loginModel.Email" class="form-control" />
+                <ValidationMessage For="@(() => loginModel.Email)" />
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <InputText id="password" type="password" @bind-Value="loginModel.Password" class="form-control" />
+                <ValidationMessage For="@(() => loginModel.Password)" />
+            </div>
+
+            <button type="submit" class="btn btn-primary" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Signing in...</span>
+                }
+                else
+                {
+                    <span>Sign In</span>
+                }
+            </button>
+        </EditForm>
+
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+            <div class="alert alert-danger">@errorMessage</div>
+        }
+    </div>
+</div>
+
+@code {
+    private class LoginModel
+    {
+        public string Email { get; set; } = string.Empty;
+        public string Password { get; set; } = string.Empty;
+    }
+
+    private LoginModel loginModel = new();
+    private bool isLoading = false;
+    private string? errorMessage;
+
+    private async Task HandleLogin()
+    {
+        isLoading = true;
+        errorMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("/api/auth/login", new { loginModel.Email, loginModel.Password });
+            
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
+                if (result != null && !string.IsNullOrEmpty(result.Token))
+                {
+                    if (AuthStateProvider is CustomAuthStateProvider customAuth)
+                    {
+                        await customAuth.MarkUserAsAuthenticated(result.Token);
+                    }
+                    Navigation.NavigateTo("/dashboard", forceLoad: true);
+                }
+            }
+            else
+            {
+                errorMessage = "Invalid email or password";
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"An error occurred: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private class LoginResponse
+    {
+        public string Token { get; set; } = string.Empty;
+    }
+}
