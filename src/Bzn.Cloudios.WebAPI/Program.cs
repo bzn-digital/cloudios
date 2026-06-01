@@ -6,9 +6,12 @@ using Bzn.Cloudios.Infrastructure.Persistence;
 using Bzn.Cloudios.Infrastructure.Services;
 using Bzn.Cloudios.WebAPI.Endpoints;
 using Bzn.Cloudios.WebAPI.Serialization;
+using Bzn.Cloudios.WebAPI.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -72,12 +75,14 @@ builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 builder.Services.AddHostedService<EventProcessorWorker>();
-builder.Services.AddSingleton<YarpRouteHandler>();
 builder.Services.AddSingleton<BillingEventHandler>();
 
-// --- YARP Reverse Proxy ---
+// --- YARP Reverse Proxy (InMemoryConfigProvider for dynamic routes) ---
+var inMemoryConfig = new InMemoryConfigProvider([], []);
+builder.Services.AddSingleton(inMemoryConfig);
+builder.Services.AddSingleton<IYarpRouteUpdater, YarpRouteUpdater>();
 builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
+    .LoadFromMemory([], []);
 
 var app = builder.Build();
 
@@ -99,17 +104,28 @@ using (var scope = app.Services.CreateScope())
 
 // --- Event Bus subscriptions ---
 var eventBus = (InProcessEventBus)app.Services.GetRequiredService<IEventBus>();
-var yarpHandler = app.Services.GetRequiredService<YarpRouteHandler>();
+var yarpUpdater = app.Services.GetRequiredService<IYarpRouteUpdater>() as YarpRouteUpdater;
 var billingHandler = app.Services.GetRequiredService<BillingEventHandler>();
 
-// YARP handlers
-eventBus.Subscribe<ContainerStartedEvent>(yarpHandler.AddRouteAsync);
-eventBus.Subscribe<ContainerStoppedEvent>(yarpHandler.RemoveRouteAsync);
-eventBus.Subscribe<ContainerDeletedEvent>(yarpHandler.RemoveRouteAsync);
+// YARP handlers (real route manipulation)
+if (yarpUpdater is not null)
+{
+    eventBus.Subscribe<ContainerStartedEvent>(yarpUpdater.HandleContainerStartedAsync);
+    eventBus.Subscribe<ContainerStoppedEvent>(yarpUpdater.HandleContainerStoppedAsync);
+    eventBus.Subscribe<ContainerDeletedEvent>(yarpUpdater.HandleContainerDeletedAsync);
+}
 
 // Billing handlers
 eventBus.Subscribe<ContainerStartedEvent>(billingHandler.RegisterStartAsync);
 eventBus.Subscribe<ContainerStoppedEvent>(billingHandler.RegisterStopAsync);
+
+// --- Forwarded Headers (Cloudflare Tunnel) ---
+app.UseForwardedHeaders(new ForwardedHeadersOptions
+{
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownNetworks = { },
+    KnownProxies = { }
+});
 
 // --- Middleware pipeline ---
 app.UseAuthentication();
