@@ -26,8 +26,8 @@ Este repositório segue um modelo de versionamento estruturado:
 * Padrões de branch: `feature/*`, `bugfix/*`, `hotfix/*`, `release/v*`.
 
 ## ⚖️ Licença
-Este projeto é regido pela **Business Source License 1.1 (BSL)** (ou especifique a PolyForm aqui). 
-O código-fonte está disponível para leitura, estudo e uso pessoal/acadêmico. **É estritamente proibido o uso comercial desta infraestrutura para prover serviços concorrentes de hospedagem/PaaS sem autorização expressa da BZN Digital.**
+Este projeto é regido pela **GNU Affero General Public License v3.0 (AGPLv3)**.
+O código-fonte está disponível sob os termos da AGPLv3, que exige que quaisquer modificações distribuídas (incluindo uso via rede) sejam disponibilizadas sob a mesma licença. Consulte o arquivo `LICENSE` na raiz para o texto integral.
 
 ---
 *Built with ⚡ by BZN Digital.*
