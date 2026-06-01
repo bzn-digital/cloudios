@@ -21,6 +21,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Bzn.Cloudios.WebPlatform` Blazor WASM project for admin panel (served at `/admin`)
 - `UserRole` enum updated: Platform roles (`PlatformAdmin`, `PlatformUser`, `PlatformSre`) for admin panel; Realm roles (`RealmOwner`, `RealmAdmin`, `RealmUser`, `RealmSre`) for client panel
 - WebAPI serves both panels: WebApp (client, root) and WebPlatform (admin, `/admin`)
+- SQLite database design with two DbContexts: `CloudiosDbContext` (main) and `MetricsDbContext` (metrics)
+- Entities: Realm, User, Container, ContainerVolume, ContainerEnvVar, ContainerMetricHistory
+- `SqlitePragmaInterceptor` applying WAL, NORMAL sync, foreign keys, and cache PRAGMAs on connection
+- Fluent API configurations with CHECK constraints, unique indexes, CASCADE deletes per `DATABASE_SCHEMA.md`
+- EF Core migrations `InitialCreate` for both contexts
+- `DatabaseSeeder` creating system realm and PlatformAdmin user on first run
+- Docker/Podman compose with named volume `cloudios-data` for persistent SQLite databases
 
 ### Changed
 
