@@ -39,7 +39,7 @@ public sealed class ContainerDetailResponse
     public DateTime? StartedAtUtc { get; set; }
     public DateTime CreatedAt { get; set; }
     public List<ContainerVolumeDto> Volumes { get; set; } = [];
-    public List<ContainerEnvVarDto> EnvironmentVariables { get; set; } = [];
+    public List<object> EnvironmentVariables { get; set; } = [];
 }
 
 public sealed class CreateContainerRequest
@@ -70,11 +70,25 @@ public sealed class ContainerVolumeDto
     public bool IsReadOnly { get; set; }
 }
 
+public sealed class ContainerVolumeRequest
+{
+    public string HostPath { get; set; } = string.Empty;
+    public string ContainerPath { get; set; } = string.Empty;
+    public bool IsReadOnly { get; set; }
+}
+
 public sealed class ContainerEnvVarDto
 {
     public Guid Id { get; set; }
     public string Key { get; set; } = string.Empty;
     public string Value { get; set; } = string.Empty;
+}
+
+public sealed class ContainerEnvVarSecureDto
+{
+    public Guid Id { get; set; }
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = "***"; // Hidden for RealmViewer
 }
 
 public sealed class ContainerLogsResponse

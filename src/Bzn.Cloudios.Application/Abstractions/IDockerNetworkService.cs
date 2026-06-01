@@ -16,4 +16,5 @@ public interface IDockerNetworkService
 {
     Task EnsureNetworkAsync(CancellationToken ct = default);
     Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default);
+    Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default);
 }

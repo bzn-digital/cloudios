@@ -140,6 +140,7 @@ app.MapAuthEndpoints();
 app.MapRealmEndpoints();
 app.MapUserEndpoints();
 app.MapContainerEndpoints();
+app.MapContainerConfigEndpoints();
 app.MapMetricsEndpoints();
 app.MapBillingEndpoints();
 

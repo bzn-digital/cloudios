@@ -7,6 +7,8 @@ using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace Bzn.Cloudios.Application.Services;
 
@@ -17,6 +19,7 @@ public sealed class ContainerCrudService
     private readonly ITenantProvider _tenantProvider;
     private readonly IEventBus _eventBus;
     private readonly IBillingService _billingService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<ContainerCrudService> _logger;
 
     public ContainerCrudService(
@@ -25,6 +28,7 @@ public sealed class ContainerCrudService
         ITenantProvider tenantProvider,
         IEventBus eventBus,
         IBillingService billingService,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<ContainerCrudService> logger)
     {
         _context = context;
@@ -32,6 +36,7 @@ public sealed class ContainerCrudService
         _tenantProvider = tenantProvider;
         _eventBus = eventBus;
         _billingService = billingService;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -135,7 +140,7 @@ public sealed class ContainerCrudService
 
         if (container is null) return null;
 
-        return MapToDetail(container);
+        return MapToDetail(container, _httpContextAccessor.HttpContext?.User);
     }
 
     public async Task<(ContainerDetailResponse? Container, string? Error)> CreateAsync(CreateContainerRequest request, CancellationToken ct = default)
@@ -189,7 +194,7 @@ public sealed class ContainerCrudService
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Container {Name} created in realm {RealmId}", container.Name, realmId);
-        return (MapToDetail(container), null);
+        return (MapToDetail(container, _httpContextAccessor.HttpContext?.User), null);
     }
 
     public async Task<ContainerActionResponse> DeployAsync(Guid containerId, CancellationToken ct = default)
@@ -244,7 +249,7 @@ public sealed class ContainerCrudService
         var realmId = container?.RealmId ?? Guid.Empty;
         var name = container?.Name ?? "unknown";
 
-        await _containerService.DeleteAsync(containerId, ct);
+        await _containerService.DeleteAsync(containerId, removeVolumes: true, ct);
         await _eventBus.PublishAsync(new ContainerDeletedEvent(containerId, realmId, name, DateTime.UtcNow), ct);
     }
 
@@ -262,8 +267,12 @@ public sealed class ContainerCrudService
         return null;
     }
 
-    private static ContainerDetailResponse MapToDetail(Container c)
+    private static ContainerDetailResponse MapToDetail(Container c, ClaimsPrincipal? user)
     {
+        var role = user?.FindFirst(ClaimTypes.Role)?.Value;
+        var isViewer = role == "RealmViewer";
+        var isAdmin = role == "PlatformAdmin" || role == "PlatformSre";
+
         return new ContainerDetailResponse
         {
             Id = c.Id,
@@ -285,12 +294,9 @@ public sealed class ContainerCrudService
                 ContainerPath = v.ContainerPath,
                 IsReadOnly = v.IsReadOnly
             }).ToList(),
-            EnvironmentVariables = c.EnvironmentVariables.Select(e => new ContainerEnvVarDto
-            {
-                Id = e.Id,
-                Key = e.Key,
-                Value = e.Value
-            }).ToList()
+            EnvironmentVariables = isViewer && !isAdmin
+                ? c.EnvironmentVariables.Select(e => (object)new ContainerEnvVarSecureDto { Id = e.Id, Key = e.Key, Value = "***" }).ToList()
+                : c.EnvironmentVariables.Select(e => (object)new ContainerEnvVarDto { Id = e.Id, Key = e.Key, Value = e.Value }).ToList()
         };
     }
 }

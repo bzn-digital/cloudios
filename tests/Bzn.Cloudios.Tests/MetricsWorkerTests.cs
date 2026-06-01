@@ -242,4 +242,9 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
     {
         return Task.FromResult(_stats);
     }
+
+    public Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
+    {
+        return Task.FromResult(default(T));
+    }
 }
