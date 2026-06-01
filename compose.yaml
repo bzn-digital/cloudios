@@ -22,7 +22,8 @@ services:
       - ConnectionStrings__MetricsDb=Data Source=/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
       - Admin__Email=admin@cloudios.local
       - Admin__PasswordHash=CHANGE_ME_USE_BCRIPT_HASH
-      - Jwt__Authority=http://localhost:8080
+      - Jwt__Key=SuperSecretKey_ReplaceInProduction_32Chars!
+      - Jwt__Issuer=cloudios
       - Jwt__Audience=cloudios-api
     volumes:
       - cloudios-data:/data
