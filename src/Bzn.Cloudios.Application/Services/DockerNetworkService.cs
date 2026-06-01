@@ -1,4 +1,5 @@
 using Bzn.Cloudios.Application.Abstractions;
+using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
@@ -227,5 +228,66 @@ public sealed class DockerNetworkService : IDockerNetworkService
         if (string.IsNullOrWhiteSpace(responseBody)) return default;
 
         return JsonSerializer.Deserialize<T>(responseBody);
+    }
+
+    public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default)
+    {
+        try
+        {
+            var logs = await SendRequestAsync<byte[]>(
+                "GET", $"/containers/{dockerContainerId}/logs?stdout=true&stderr=true&timestamps=true&tail={tail}", ct: ct);
+
+            if (logs is null || logs.Length == 0)
+                return [];
+
+            var entries = new List<ContainerLogEntry>();
+            var offset = 0;
+
+            while (offset < logs.Length)
+            {
+                if (offset + 8 > logs.Length)
+                    break;
+
+                // Docker log format: 8-byte header [stream_type (1), unused (3), size (4)]
+                var streamType = logs[offset];
+                var size = BitConverter.ToInt32(logs, offset + 4);
+
+                offset += 8;
+
+                if (offset + size > logs.Length)
+                    break;
+
+                var payload = Encoding.UTF8.GetString(logs, offset, size);
+                offset += size;
+
+                var stream = streamType == 1 ? "stdout" : streamType == 2 ? "stderr" : "unknown";
+
+                // Parse timestamp from payload (format: "2024-01-01T00:00:00.000000000Z message")
+                var timestamp = DateTime.UtcNow;
+                var message = payload;
+                var spaceIndex = payload.IndexOf(' ');
+                if (spaceIndex > 0)
+                {
+                    var timestampStr = payload[..spaceIndex];
+                    if (DateTime.TryParse(timestampStr, out var parsedTs))
+                        timestamp = parsedTs;
+                    message = payload[(spaceIndex + 1)..];
+                }
+
+                entries.Add(new ContainerLogEntry
+                {
+                    Timestamp = timestamp,
+                    Stream = stream,
+                    Line = message
+                });
+            }
+
+            return entries;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to get logs for container {DockerId}", dockerContainerId);
+            return [];
+        }
     }
 }

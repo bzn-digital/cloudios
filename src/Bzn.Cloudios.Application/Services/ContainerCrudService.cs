@@ -20,6 +20,7 @@ public sealed class ContainerCrudService
     private readonly IEventBus _eventBus;
     private readonly IBillingService _billingService;
     private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDockerNetworkService _docker;
     private readonly ILogger<ContainerCrudService> _logger;
 
     public ContainerCrudService(
@@ -29,6 +30,7 @@ public sealed class ContainerCrudService
         IEventBus eventBus,
         IBillingService billingService,
         IHttpContextAccessor httpContextAccessor,
+        IDockerNetworkService docker,
         ILogger<ContainerCrudService> logger)
     {
         _context = context;
@@ -37,6 +39,7 @@ public sealed class ContainerCrudService
         _eventBus = eventBus;
         _billingService = billingService;
         _httpContextAccessor = httpContextAccessor;
+        _docker = docker;
         _logger = logger;
     }
 
@@ -251,6 +254,18 @@ public sealed class ContainerCrudService
 
         await _containerService.DeleteAsync(containerId, removeVolumes: true, ct);
         await _eventBus.PublishAsync(new ContainerDeletedEvent(containerId, realmId, name, DateTime.UtcNow), ct);
+    }
+
+    public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(Guid containerId, int tail = 100, CancellationToken ct = default)
+    {
+        var container = await _context.Containers.FindAsync([containerId], ct);
+        if (container is null)
+            throw new InvalidOperationException($"Container {containerId} not found");
+
+        if (container.DockerContainerId is null)
+            return []; // Container never deployed
+
+        return await _docker.GetContainerLogsAsync(container.DockerContainerId, tail, ct);
     }
 
     private static string? ValidateCreate(CreateContainerRequest request)
