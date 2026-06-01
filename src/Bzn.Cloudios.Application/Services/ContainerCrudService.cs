@@ -16,6 +16,7 @@ public sealed class ContainerCrudService
     private readonly IContainerService _containerService;
     private readonly ITenantProvider _tenantProvider;
     private readonly IEventBus _eventBus;
+    private readonly IBillingService _billingService;
     private readonly ILogger<ContainerCrudService> _logger;
 
     public ContainerCrudService(
@@ -23,12 +24,14 @@ public sealed class ContainerCrudService
         IContainerService containerService,
         ITenantProvider tenantProvider,
         IEventBus eventBus,
+        IBillingService billingService,
         ILogger<ContainerCrudService> logger)
     {
         _context = context;
         _containerService = containerService;
         _tenantProvider = tenantProvider;
         _eventBus = eventBus;
+        _billingService = billingService;
         _logger = logger;
     }
 
@@ -49,7 +52,14 @@ public sealed class ContainerCrudService
             .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new ContainerListItem
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var dtos = new List<ContainerListItem>();
+        foreach (var c in items)
+        {
+            var monthCost = await _billingService.GetContainerMonthCostAsync(c.Id, now.Year, now.Month, ct);
+            dtos.Add(new ContainerListItem
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -59,15 +69,15 @@ public sealed class ContainerCrudService
                 CpuLimitCores = c.CpuLimitCores,
                 MemoryLimitBytes = c.MemoryLimitBytes,
                 CostPerHourBRL = c.CostPerHourBRL,
-                CurrentMonthCostBRL = 0,
+                CurrentMonthCostBRL = monthCost,
                 StartedAtUtc = c.StartedAtUtc,
                 CreatedAt = c.CreatedAt
-            })
-            .ToListAsync(ct);
+            });
+        }
 
         return new ContainerListResponse
         {
-            Items = items,
+            Items = dtos,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
@@ -84,7 +94,14 @@ public sealed class ContainerCrudService
             .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new AdminContainerListItem
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var dtos = new List<AdminContainerListItem>();
+        foreach (var c in items)
+        {
+            var monthCost = await _billingService.GetContainerMonthCostAsync(c.Id, now.Year, now.Month, ct);
+            dtos.Add(new AdminContainerListItem
             {
                 Id = c.Id,
                 RealmId = c.RealmId,
@@ -95,13 +112,13 @@ public sealed class ContainerCrudService
                 CpuLimitCores = c.CpuLimitCores,
                 MemoryLimitBytes = c.MemoryLimitBytes,
                 CostPerHourBRL = c.CostPerHourBRL,
-                CurrentMonthCostBRL = 0
-            })
-            .ToListAsync(ct);
+                CurrentMonthCostBRL = monthCost
+            });
+        }
 
         return new AdminContainerListResponse
         {
-            Items = items,
+            Items = dtos,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
