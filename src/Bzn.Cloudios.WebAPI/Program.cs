@@ -27,8 +27,16 @@ var app = builder.Build();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// --- Static files for Blazor WASM ---
+// --- Static files for Blazor WASM (Client panel) ---
 app.UseStaticFiles();
+
+// --- Static files for Admin panel (WebPlatform) ---
+app.UseStaticFiles(new StaticFileOptions
+{
+    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
+        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "admin")),
+    RequestPath = "/admin"
+});
 
 // --- YARP ---
 app.MapReverseProxy();
@@ -39,7 +47,10 @@ app.MapGet("/health", () =>
     return Results.Ok(new { status = "Healthy", version = "0.1.0" });
 });
 
-// --- Fallback to Blazor WASM index.html ---
+// --- Fallback: Client panel (WebApp) ---
 app.MapFallbackToFile("index.html");
+
+// --- Fallback: Admin panel (WebPlatform) ---
+app.MapFallbackToFile("/admin/{**path}", "admin/index.html");
 
 app.Run();
