@@ -2,8 +2,11 @@ namespace Bzn.Cloudios.Domain.Enums;
 
 public enum UserRole
 {
-    GlobalAdmin,
+    PlatformAdmin,
+    PlatformUser,
+    PlatformSre,
     RealmOwner,
-    RealmDev,
-    RealmViewer
+    RealmAdmin,
+    RealmUser,
+    RealmSre
 }

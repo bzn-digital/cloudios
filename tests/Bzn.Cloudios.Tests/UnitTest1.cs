@@ -18,11 +18,14 @@ public class DomainDtoTests
     [Fact]
     public void UserRole_Enum_HasExpectedValues()
     {
-        Assert.Equal(4, Enum.GetNames<UserRole>().Length);
-        Assert.True(Enum.IsDefined(UserRole.GlobalAdmin));
+        Assert.Equal(7, Enum.GetNames<UserRole>().Length);
+        Assert.True(Enum.IsDefined(UserRole.PlatformAdmin));
+        Assert.True(Enum.IsDefined(UserRole.PlatformUser));
+        Assert.True(Enum.IsDefined(UserRole.PlatformSre));
         Assert.True(Enum.IsDefined(UserRole.RealmOwner));
-        Assert.True(Enum.IsDefined(UserRole.RealmDev));
-        Assert.True(Enum.IsDefined(UserRole.RealmViewer));
+        Assert.True(Enum.IsDefined(UserRole.RealmAdmin));
+        Assert.True(Enum.IsDefined(UserRole.RealmUser));
+        Assert.True(Enum.IsDefined(UserRole.RealmSre));
     }
 
     [Fact]
