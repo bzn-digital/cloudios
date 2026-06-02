@@ -75,6 +75,8 @@ public class ContainerVolumeEnvVarTests
         var db = CreateInMemoryDb();
         var containerId = Guid.NewGuid();
         var realmId = Guid.NewGuid();
+        var tempDir = Path.Combine(Path.GetTempPath(), $"test-volumes-{Guid.NewGuid()}");
+        Directory.CreateDirectory(tempDir);
 
         db.Realms.Add(new Realm { Id = realmId, Name = "Test", Slug = "test", IsActive = true, CreatedAt = DateTime.UtcNow });
         db.Containers.Add(new Container
@@ -89,13 +91,18 @@ public class ContainerVolumeEnvVarTests
             CreatedAt = DateTime.UtcNow
         });
         db.ContainerVolumes.AddRange(
-            new ContainerVolume { Id = Guid.NewGuid(), ContainerId = containerId, HostPath = "/old/path", ContainerPath = "/container/old", IsReadOnly = false }
+            new ContainerVolume { Id = Guid.NewGuid(), ContainerId = containerId, HostPath = Path.Combine(tempDir, "old"), ContainerPath = "/container/old", IsReadOnly = false }
         );
         await db.SaveChangesAsync();
 
         var logger = NullLogger<ContainerService>.Instance;
         var docker = new MockDockerNetworkService();
-        var config = new ConfigurationBuilder().Build();
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>
+            {
+                { "Volumes:BasePath", tempDir }
+            })
+            .Build();
         var service = new ContainerService(db, docker, config, logger);
 
         var newVolumes = new List<ContainerVolumeRequest>
@@ -111,6 +118,9 @@ public class ContainerVolumeEnvVarTests
         Assert.DoesNotContain(volumes, v => v.HostPath.Contains("old"));
         Assert.Contains(volumes, v => v.HostPath.Contains("data") && v.ContainerPath == "/app/data");
         Assert.Contains(volumes, v => v.HostPath.Contains("config") && v.IsReadOnly);
+
+        // Cleanup
+        Directory.Delete(tempDir, recursive: true);
     }
 
     [Fact]
