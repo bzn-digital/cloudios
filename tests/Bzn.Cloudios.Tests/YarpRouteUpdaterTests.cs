@@ -5,6 +5,7 @@ using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Bzn.Cloudios.WebAPI.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Yarp.ReverseProxy.Configuration;
@@ -18,7 +19,9 @@ public class YarpRouteUpdaterTests
         var provider = new InMemoryConfigProvider([], []);
         var db = context ?? CreateInMemoryDb();
         var logger = NullLogger<YarpRouteUpdater>.Instance;
-        var updater = new YarpRouteUpdater(provider, db, logger, baseDomain);
+        
+        var scopeFactory = new MockScopeFactory(db);
+        var updater = new YarpRouteUpdater(provider, scopeFactory, logger, baseDomain);
         return (updater, provider);
     }
 
@@ -226,5 +229,54 @@ public class IYarpRouteUpdaterInterfaceTests
         Assert.Equal(typeof(Task), addRoute!.ReturnType);
         Assert.Equal(typeof(Task), removeRoute!.ReturnType);
         Assert.Equal(typeof(string), buildHostname!.ReturnType);
+    }
+}
+
+public class MockScopeFactory : IServiceScopeFactory
+{
+    private readonly CloudiosDbContext _db;
+
+    public MockScopeFactory(CloudiosDbContext db)
+    {
+        _db = db;
+    }
+
+    public IServiceScope CreateScope()
+    {
+        return new MockScope(_db);
+    }
+}
+
+public class MockScope : IServiceScope
+{
+    private readonly CloudiosDbContext _db;
+
+    public MockScope(CloudiosDbContext db)
+    {
+        _db = db;
+        ServiceProvider = new MockServiceProvider(db);
+    }
+
+    public IServiceProvider ServiceProvider { get; }
+
+    public void Dispose()
+    {
+    }
+}
+
+public class MockServiceProvider : IServiceProvider
+{
+    private readonly CloudiosDbContext _db;
+
+    public MockServiceProvider(CloudiosDbContext db)
+    {
+        _db = db;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        if (serviceType == typeof(CloudiosDbContext))
+            return _db;
+        throw new InvalidOperationException($"Service {serviceType.Name} not supported in mock");
     }
 }

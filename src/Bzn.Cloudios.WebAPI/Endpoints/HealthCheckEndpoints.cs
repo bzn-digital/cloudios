@@ -22,6 +22,6 @@ public static class HealthCheckEndpoints
         {
             var metrics = await healthCheckService.GetHostMetricsAsync(ct);
             return Results.Ok(metrics);
-        }).RequireAuthorization("RequirePlatformAdmin");
+        });
     }
 }

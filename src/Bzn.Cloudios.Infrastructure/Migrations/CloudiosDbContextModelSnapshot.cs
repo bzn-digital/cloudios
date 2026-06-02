@@ -17,6 +17,40 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
 
+            modelBuilder.Entity("Bzn.Cloudios.Domain.Entities.BillingPeriod", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<Guid>("ContainerId")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CostBRL")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("REAL")
+                        .HasDefaultValue(0.0m);
+
+                    b.Property<double>("Hours")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("REAL")
+                        .HasDefaultValue(0.0);
+
+                    b.Property<DateTime>("StartedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("StoppedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StartedAtUtc");
+
+                    b.HasIndex("ContainerId", "StartedAtUtc");
+
+                    b.ToTable("BillingPeriods", (string)null);
+                });
+
             modelBuilder.Entity("Bzn.Cloudios.Domain.Entities.Container", b =>
                 {
                     b.Property<Guid>("Id")
@@ -160,6 +194,10 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");

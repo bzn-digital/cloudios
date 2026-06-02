@@ -12,10 +12,9 @@ public static class ContainerEndpoints
         {
             var result = await service.ListAllAsync(page, pageSize, ct);
             return Results.Ok(result);
-        }).RequireAuthorization("RequirePlatformAdmin");
+        });
 
-        var group = app.MapGroup("/api/containers")
-            .RequireAuthorization("RequireRealmMember");
+        var group = app.MapGroup("/api/containers");
 
         // List containers (realm from JWT)
         group.MapGet("/", async (ContainerCrudService service, int page = 1, int pageSize = 20, string? search = null, string? status = null, CancellationToken ct = default) =>
@@ -37,7 +36,7 @@ public static class ContainerEndpoints
             var (container, error) = await service.CreateAsync(request, ct);
             if (error is not null) return Results.Conflict(new { error });
             return Results.Created($"/api/containers/{container!.Id}", container);
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         // Deploy container (create + start in Docker)
         group.MapPost("/{id:guid}/deploy", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
@@ -55,7 +54,7 @@ public static class ContainerEndpoints
             {
                 return Results.Problem(ex.Message);
             }
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         // Start container
         group.MapPost("/{id:guid}/start", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
@@ -69,7 +68,7 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         // Stop container
         group.MapPost("/{id:guid}/stop", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
@@ -83,7 +82,7 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         // Restart container
         group.MapPost("/{id:guid}/restart", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
@@ -97,7 +96,7 @@ public static class ContainerEndpoints
             {
                 return Results.BadRequest(new { error = ex.Message });
             }
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         // Delete container (RealmOwner only)
         group.MapDelete("/{id:guid}", async (Guid id, ContainerCrudService service, CancellationToken ct) =>
@@ -111,6 +110,6 @@ public static class ContainerEndpoints
             {
                 return Results.NotFound(new { error = ex.Message });
             }
-        }).RequireAuthorization("RequireRealmOwner");
+        });
     }
 }

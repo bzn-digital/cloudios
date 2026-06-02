@@ -1,0 +1,57 @@
+version: '3.8'
+
+services:
+  webapi:
+    build:
+      context: ./src/Bzn.Cloudios.WebAPI
+      dockerfile: Dockerfile
+    container_name: cloudios-webapi
+    ports:
+      - "5021:5021"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ConnectionStrings:MainDb=Data Source=/app/data/cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared
+      - ConnectionStrings:MetricsDb=Data Source=/app/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
+    volumes:
+      - cloudios_data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cloudios-network
+    restart: unless-stopped
+
+  webapp:
+    build:
+      context: ./src/Bzn.Cloudios.WebApp
+      dockerfile: Dockerfile
+    container_name: cloudios-webapp
+    ports:
+      - "80:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5021
+    depends_on:
+      - webapi
+    networks:
+      - cloudios-network
+    restart: unless-stopped
+
+  webplatform:
+    build:
+      context: ./src/Bzn.Cloudios.WebPlatform
+      dockerfile: Dockerfile
+    container_name: cloudios-webplatform
+    ports:
+      - "8080:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5021
+    depends_on:
+      - webapi
+    networks:
+      - cloudios-network
+    restart: unless-stopped
+
+volumes:
+  cloudios_data:
+
+networks:
+  cloudios-network:
+    driver: bridge

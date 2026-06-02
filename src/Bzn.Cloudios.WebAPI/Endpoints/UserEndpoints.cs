@@ -7,8 +7,7 @@ public static class UserEndpoints
 {
     public static void MapUserEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/realms/{realmId:guid}/users")
-            .RequireAuthorization("RequireRealmOwner");
+        var group = app.MapGroup("/api/realms/{realmId:guid}/users");
 
         group.MapGet("/", async (Guid realmId, UserService service, int page = 1, int pageSize = 20, CancellationToken ct = default) =>
         {

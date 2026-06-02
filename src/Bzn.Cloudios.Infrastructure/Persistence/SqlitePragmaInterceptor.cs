@@ -39,13 +39,25 @@ public sealed class SqlitePragmaInterceptor : DbConnectionInterceptor
     {
         if (connection is null || _pragmasApplied) return;
 
-        using var cmd = connection.CreateCommand();
-        foreach (var pragma in Pragmas)
-        {
-            cmd.CommandText = pragma;
-            cmd.ExecuteNonQuery();
-        }
+        var wasOpen = connection.State == System.Data.ConnectionState.Open;
+        if (!wasOpen)
+            connection.Open();
 
-        _pragmasApplied = true;
+        try
+        {
+            using var cmd = connection.CreateCommand();
+            foreach (var pragma in Pragmas)
+            {
+                cmd.CommandText = pragma;
+                cmd.ExecuteNonQuery();
+            }
+
+            _pragmasApplied = true;
+        }
+        finally
+        {
+            if (!wasOpen)
+                connection.Close();
+        }
     }
 }

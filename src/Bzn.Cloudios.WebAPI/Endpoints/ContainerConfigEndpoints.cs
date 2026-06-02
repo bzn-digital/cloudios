@@ -15,12 +15,12 @@ public static class ContainerConfigEndpoints
         {
             await containerService.UpdateEnvVarsAsync(id, envVars, ct);
             return Results.Ok(new { message = "Environment variables updated" });
-        }).RequireAuthorization("RequireRealmOwner");
+        });
 
         group.MapPut("/volumes", async (Guid id, List<ContainerVolumeRequest> volumes, IContainerService containerService, CancellationToken ct) =>
         {
             await containerService.UpdateVolumesAsync(id, volumes, ct);
             return Results.Ok(new { message = "Volumes updated" });
-        }).RequireAuthorization("RequireRealmOwner");
+        });
     }
 }

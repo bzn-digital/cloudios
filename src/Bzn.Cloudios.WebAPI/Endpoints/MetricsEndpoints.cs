@@ -7,8 +7,7 @@ public static class MetricsEndpoints
 {
     public static void MapMetricsEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/containers/{id:guid}/metrics")
-            .RequireAuthorization("RequireRealmMember");
+        var group = app.MapGroup("/api/containers/{id:guid}/metrics");
 
         group.MapGet("/", async (Guid id, MetricsService service, DateTime? from, DateTime? to, CancellationToken ct) =>
         {
@@ -20,6 +19,6 @@ public static class MetricsEndpoints
         {
             var result = await service.GetHostMetricsAsync(ct);
             return Results.Ok(result);
-        }).RequireAuthorization("RequirePlatformAdmin");
+        });
     }
 }

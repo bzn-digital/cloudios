@@ -20,7 +20,15 @@ public sealed class DockerNetworkService : IDockerNetworkService
 
     public DockerNetworkService(IConfiguration configuration, ILogger<DockerNetworkService> logger)
     {
-        _socketPath = configuration["Docker:SocketPath"] ?? "/var/run/docker.sock";
+        // Use Windows named pipe for Docker on Windows, Unix socket on Linux/Mac
+        if (OperatingSystem.IsWindows())
+        {
+            _socketPath = configuration["Docker:SocketPath"] ?? @"\\.\pipe\docker_engine";
+        }
+        else
+        {
+            _socketPath = configuration["Docker:SocketPath"] ?? "/var/run/docker.sock";
+        }
         _logger = logger;
     }
 

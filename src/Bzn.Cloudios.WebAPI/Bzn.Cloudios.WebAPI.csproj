@@ -4,8 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <PublishAot>true</PublishAot>
-    <JsonSerializerIsReflectionEnabledByDefault>false</JsonSerializerIsReflectionEnabledByDefault>
+    <PublishAot>false</PublishAot>
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <ItemGroup>
@@ -17,7 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Bzn.Cloudios.Application\Bzn.Cloudios.Application.csproj" />
     <ProjectReference Include="..\Bzn.Cloudios.Infrastructure\Bzn.Cloudios.Infrastructure.csproj" />
-    <ProjectReference Include="..\Bzn.Cloudios.WebApp\Bzn.Cloudios.WebApp.csproj" />
     <ProjectReference Include="..\Bzn.Cloudios.WebPlatform\Bzn.Cloudios.WebPlatform.csproj" />
   </ItemGroup>
 

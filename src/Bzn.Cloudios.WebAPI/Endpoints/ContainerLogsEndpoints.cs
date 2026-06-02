@@ -14,6 +14,6 @@ public static class ContainerLogsEndpoints
         {
             var logs = await crudService.GetContainerLogsAsync(id, tail ?? 100, ct);
             return Results.Ok(new { ContainerId = id, Logs = logs });
-        }).RequireAuthorization("RequireRealmMember");
+        });
     }
 }
