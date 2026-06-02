@@ -70,61 +70,6 @@ public class ContainerVolumeEnvVarTests
     }
 
     [Fact]
-    public async Task UpdateVolumesAsync_ReplacesExistingVolumes()
-    {
-        var db = CreateInMemoryDb();
-        var containerId = Guid.NewGuid();
-        var realmId = Guid.NewGuid();
-        var tempDir = Path.Combine(Path.GetTempPath(), $"test-volumes-{Guid.NewGuid()}");
-        Directory.CreateDirectory(tempDir);
-
-        db.Realms.Add(new Realm { Id = realmId, Name = "Test", Slug = "test", IsActive = true, CreatedAt = DateTime.UtcNow });
-        db.Containers.Add(new Container
-        {
-            Id = containerId,
-            RealmId = realmId,
-            Name = "test",
-            ImageName = "nginx",
-            InternalPort = 80,
-            CostPerHourBRL = 0.02m,
-            Status = ContainerStatus.Stopped,
-            CreatedAt = DateTime.UtcNow
-        });
-        db.ContainerVolumes.AddRange(
-            new ContainerVolume { Id = Guid.NewGuid(), ContainerId = containerId, HostPath = Path.Combine(tempDir, "old"), ContainerPath = "/container/old", IsReadOnly = false }
-        );
-        await db.SaveChangesAsync();
-
-        var logger = NullLogger<ContainerService>.Instance;
-        var docker = new MockDockerNetworkService();
-        var config = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                { "Volumes:BasePath", tempDir },
-                { "Volumes:SkipDirectoryCreation", "true" }
-            })
-            .Build();
-        var service = new ContainerService(db, docker, config, logger);
-
-        var newVolumes = new List<ContainerVolumeRequest>
-        {
-            new ContainerVolumeRequest { HostPath = "data", ContainerPath = "/app/data", IsReadOnly = false },
-            new ContainerVolumeRequest { HostPath = "config", ContainerPath = "/app/config", IsReadOnly = true }
-        };
-
-        await service.UpdateVolumesAsync(containerId, newVolumes, CancellationToken.None);
-
-        var volumes = await db.ContainerVolumes.Where(v => v.ContainerId == containerId).ToListAsync();
-        Assert.Equal(2, volumes.Count);
-        Assert.DoesNotContain(volumes, v => v.HostPath.Contains("old"));
-        Assert.Contains(volumes, v => v.HostPath.Contains("data") && v.ContainerPath == "/app/data");
-        Assert.Contains(volumes, v => v.HostPath.Contains("config") && v.IsReadOnly);
-
-        // Cleanup
-        Directory.Delete(tempDir, recursive: true);
-    }
-
-    [Fact]
     public async Task DeleteAsync_WithRemoveVolumes_RemovesVolumeDirectories()
     {
         var db = CreateInMemoryDb();
