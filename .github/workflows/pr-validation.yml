@@ -62,3 +62,27 @@ jobs:
 
       - name: AOT Publish
         run: dotnet publish src/Bzn.Cloudios.WebAPI/Bzn.Cloudios.WebAPI.csproj -c Release -r linux-x64
+
+  react-build:
+    name: React Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Build WebApp
+        run: |
+          cd src/Bzn.Cloudios.WebApp
+          npm ci
+          npm run build
+
+      - name: Build WebPlatform
+        run: |
+          cd src/Bzn.Cloudios.WebPlatform
+          npm ci
+          npm run build
