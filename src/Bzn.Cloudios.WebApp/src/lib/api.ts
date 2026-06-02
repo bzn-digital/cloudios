@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5021';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 
 class ApiClient {
   private baseUrl: string;
@@ -76,6 +76,64 @@ class ApiClient {
 
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  // Billing endpoints
+  async getRealmBilling(year: number, month: number) {
+    return this.get(`/billing/realm?year=${year}&month=${month}`);
+  }
+
+  // Metrics endpoints
+  async getRealmMetricsHistory(from: string, to: string) {
+    return this.get(`/metrics/realm/history?from=${from}&to=${to}`);
+  }
+
+  // Container endpoints
+  async getContainers(search?: string, status?: string, page = 1, pageSize = 20) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    return this.get(`/containers?${params.toString()}`);
+  }
+
+  async getContainer(id: string) {
+    return this.get(`/containers/${id}`);
+  }
+
+  async createContainer(data: unknown) {
+    return this.post('/containers', data);
+  }
+
+  async deployContainer(id: string) {
+    return this.post(`/containers/${id}/deploy`);
+  }
+
+  async startContainer(id: string) {
+    return this.post(`/containers/${id}/start`);
+  }
+
+  async stopContainer(id: string) {
+    return this.post(`/containers/${id}/stop`);
+  }
+
+  async restartContainer(id: string) {
+    return this.post(`/containers/${id}/restart`);
+  }
+
+  async deleteContainer(id: string) {
+    return this.delete(`/containers/${id}`);
+  }
+
+  async getContainerLogs(id: string, tail = 100) {
+    return this.get(`/containers/${id}/logs?tail=${tail}`);
+  }
+
+  // Registration endpoint
+  async register(data: { realmName: string; email: string; password: string }) {
+    return this.post('/register', data);
   }
 }
 

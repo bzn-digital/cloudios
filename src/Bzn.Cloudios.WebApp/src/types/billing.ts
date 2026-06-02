@@ -27,3 +27,27 @@ export interface RealmBillingItem {
   containerCount: number;
   activeContainerCount: number;
 }
+
+export interface ContainerMetricsResponse {
+  containerId: string;
+  from: string;
+  to: string;
+  dataPoints: MetricDataPoint[];
+}
+
+export interface MetricDataPoint {
+  timestamp: string;
+  cpuPercent: number;
+  memoryUsedBytes: number;
+  networkRxBytes: number;
+  networkTxBytes: number;
+}
+
+export interface HostMetricsResponse {
+  totalCpuPercent: number;
+  totalMemoryUsedBytes: number;
+  totalMemoryTotalBytes: number;
+  activeContainers: number;
+  diskUsedBytes: number;
+  diskTotalBytes: number;
+}

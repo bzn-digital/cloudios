@@ -28,7 +28,7 @@ public sealed class AuthService
     {
         var user = await _context.Users
             .Include(u => u.Realm)
-            .FirstOrDefaultAsync(u => u.Email == request.Email, ct);
+            .FirstOrDefaultAsync(u => u.Email == request.Email && u.Realm.Name == request.RealmName, ct);
 
         if (user is null || user.IsBlocked)
         {
@@ -69,10 +69,10 @@ public sealed class AuthService
 
         var claims = new List<Claim>
         {
-            new("UserId", user.Id.ToString()),
-            new("RealmId", user.RealmId.ToString()),
-            new(ClaimTypes.Role, user.Role.ToString()),
-            new("Role", user.Role.ToString()),
+            new(JwtRegisteredClaimNames.Sub, user.Id.ToString()),
+            new("realmId", user.RealmId.ToString()),
+            new("realmName", user.Realm.Name),
+            new("role", user.Role.ToString()),
             new(JwtRegisteredClaimNames.Email, user.Email),
             new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };

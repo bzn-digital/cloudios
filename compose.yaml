@@ -16,9 +16,10 @@ services:
       dockerfile: src/Bzn.Cloudios.WebAPI/Dockerfile
     container_name: cloudios-webapi
     ports:
-      - "5021:5021"
+      - "5022:5021"
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:5021
       - ConnectionStrings:MainDb=Data Source=/app/data/cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared
       - ConnectionStrings:MetricsDb=Data Source=/app/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
     volumes:

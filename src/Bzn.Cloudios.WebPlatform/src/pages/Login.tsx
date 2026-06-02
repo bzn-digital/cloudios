@@ -6,6 +6,7 @@ import type { LoginRequest } from '../types/auth';
 export function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [realmName, setRealmName] = useState('system');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -17,7 +18,7 @@ export function Login() {
     setLoading(true);
 
     try {
-      const credentials: LoginRequest = { email, password };
+      const credentials: LoginRequest = { email, password, realmName };
       await login(credentials);
       navigate('/dashboard');
     } catch (err) {
@@ -41,6 +42,18 @@ export function Login() {
               {error}
             </div>
           )}
+
+          <div className="form-group">
+            <label htmlFor="realmName">Realm</label>
+            <input
+              id="realmName"
+              type="text"
+              value={realmName}
+              onChange={(e) => setRealmName(e.target.value)}
+              placeholder="system"
+              required
+            />
+          </div>
 
           <div className="form-group">
             <label htmlFor="email">Email</label>

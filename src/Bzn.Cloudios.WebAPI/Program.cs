@@ -37,7 +37,7 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApps", policy =>
     {
-        policy.WithOrigins("http://localhost:5173", "http://localhost:5174")
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost")
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials();
@@ -89,19 +89,20 @@ using (var scope = app.Services.CreateScope())
     await seeder.SeedAsync(adminEmail, adminPassword);
 
     // --- Docker network + state sync ---
-    try
-    {
-        var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
-        await dockerNetwork.EnsureNetworkAsync();
+    // Temporarily disabled for debugging
+    // try
+    // {
+    //     var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
+    //     await dockerNetwork.EnsureNetworkAsync();
 
-        var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
-        await containerService.SynchronizeStateAsync();
-    }
-    catch (Exception ex)
-    {
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Docker not available - running without Docker integration");
-    }
+    //     var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
+    //     await containerService.SynchronizeStateAsync();
+    // }
+    // catch (Exception ex)
+    // {
+    //     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    //     logger.LogWarning(ex, "Docker not available - running without Docker integration");
+    // }
 }
 
 // --- Event Bus subscriptions ---
@@ -131,28 +132,20 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 });
 
 // --- Middleware pipeline ---
+app.UseRouting();
 app.UseCors("AllowReactApps");
 // app.UseAuthentication(); // Temporarily disabled for local testing
 // app.UseAuthorization(); // Temporarily disabled for local testing
 
 // --- API Endpoints ---
-app.MapAuthEndpoints();
-app.MapRealmEndpoints();
-app.MapUserEndpoints();
-app.MapContainerEndpoints();
-app.MapContainerConfigEndpoints();
-app.MapContainerLogsEndpoints();
-app.MapMetricsEndpoints();
-app.MapBillingEndpoints();
-app.MapHealthCheckEndpoints();
+RegistrationEndpoints.MapRegistrationEndpoints(app);
+AuthEndpoints.MapAuthEndpoints(app);
+// ContainerEndpoints.MapContainerEndpoints(app);
+// MetricsEndpoints.MapMetricsEndpoints(app);
+// BillingEndpoints.MapBillingEndpoints(app);
+// HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---
 // app.MapReverseProxy();
-
-// --- Health check endpoint ---
-app.MapGet("/health", () =>
-{
-    return Results.Ok(new { status = "Healthy", version = "0.1.0" });
-});
 
 app.Run();

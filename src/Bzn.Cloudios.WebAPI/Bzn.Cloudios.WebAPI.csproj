@@ -17,7 +17,6 @@
   <ItemGroup>
     <ProjectReference Include="..\Bzn.Cloudios.Application\Bzn.Cloudios.Application.csproj" />
     <ProjectReference Include="..\Bzn.Cloudios.Infrastructure\Bzn.Cloudios.Infrastructure.csproj" />
-    <ProjectReference Include="..\Bzn.Cloudios.WebPlatform\Bzn.Cloudios.WebPlatform.csproj" />
   </ItemGroup>
 
 </Project>

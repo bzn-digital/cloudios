@@ -12,7 +12,7 @@ export function ProtectedRoute({ children }: { children: React.ReactNode }) {
     return <Navigate to="/login" replace />;
   }
 
-  if (user?.role !== 'GlobalAdmin') {
+  if (user?.role !== 'PlatformAdmin') {
     return (
       <div className="access-denied">
         <div className="access-denied-content">
