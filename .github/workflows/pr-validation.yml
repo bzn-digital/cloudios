@@ -45,6 +45,8 @@ jobs:
         run: dotnet build --no-restore --configuration Release
 
       - name: Run tests
+        env:
+          VOLUMES__SKIPDIRECTORYCREATION: true
         run: dotnet test --no-build --configuration Release --verbosity normal --collect:"XPlat Code Coverage"
 
   aot-publish:
