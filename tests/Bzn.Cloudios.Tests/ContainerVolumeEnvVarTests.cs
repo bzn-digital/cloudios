@@ -100,7 +100,8 @@ public class ContainerVolumeEnvVarTests
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                { "Volumes:BasePath", tempDir }
+                { "Volumes:BasePath", tempDir },
+                { "Volumes:SkipDirectoryCreation", "true" }
             })
             .Build();
         var service = new ContainerService(db, docker, config, logger);
