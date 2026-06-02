@@ -7,8 +7,7 @@ public static class RealmEndpoints
 {
     public static void MapRealmEndpoints(this WebApplication app)
     {
-        var group = app.MapGroup("/api/realms")
-            .RequireAuthorization("RequirePlatformAdmin");
+        var group = app.MapGroup("/api/realms");
 
         group.MapGet("/", async (RealmService service, int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default) =>
         {

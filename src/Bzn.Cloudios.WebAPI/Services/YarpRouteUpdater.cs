@@ -9,7 +9,7 @@ namespace Bzn.Cloudios.WebAPI.Services;
 public sealed class YarpRouteUpdater : IYarpRouteUpdater
 {
     private readonly InMemoryConfigProvider _configProvider;
-    private readonly CloudiosDbContext _context;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<YarpRouteUpdater> _logger;
     private readonly string _baseDomain;
 
@@ -19,12 +19,12 @@ public sealed class YarpRouteUpdater : IYarpRouteUpdater
 
     public YarpRouteUpdater(
         InMemoryConfigProvider configProvider,
-        CloudiosDbContext context,
+        IServiceScopeFactory scopeFactory,
         ILogger<YarpRouteUpdater> logger,
         string? baseDomain = null)
     {
         _configProvider = configProvider;
-        _context = context;
+        _scopeFactory = scopeFactory;
         _logger = logger;
         _baseDomain = baseDomain ?? "cloudios.bzn.dev";
     }
@@ -93,14 +93,17 @@ public sealed class YarpRouteUpdater : IYarpRouteUpdater
     // Event handlers for IEventBus subscription
     public async Task HandleContainerStartedAsync(ContainerStartedEvent evt, CancellationToken ct)
     {
-        var container = await _context.Containers.FindAsync([evt.ContainerId], ct);
+        using var scope = _scopeFactory.CreateScope();
+        var context = scope.ServiceProvider.GetRequiredService<CloudiosDbContext>();
+        
+        var container = await context.Containers.FindAsync([evt.ContainerId], ct);
         if (container is null)
         {
             _logger.LogWarning("Container {Id} not found in DB for route addition", evt.ContainerId);
             return;
         }
 
-        var realm = await _context.Realms.FindAsync([container.RealmId], ct);
+        var realm = await context.Realms.FindAsync([container.RealmId], ct);
         if (realm is null) return;
 
         var hostname = BuildHostname(container.Name, realm.Slug);

@@ -14,3 +14,17 @@ updates:
       interval: weekly
     labels:
       - dependencies
+
+  - package-ecosystem: npm
+    directory: /src/Bzn.Cloudios.WebApp
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies
+
+  - package-ecosystem: npm
+    directory: /src/Bzn.Cloudios.WebPlatform
+    schedule:
+      interval: weekly
+    labels:
+      - dependencies

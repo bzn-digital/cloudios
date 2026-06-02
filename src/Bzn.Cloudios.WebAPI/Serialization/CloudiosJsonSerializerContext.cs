@@ -22,6 +22,8 @@ namespace Bzn.Cloudios.WebAPI.Serialization;
 [JsonSerializable(typeof(CreateContainerRequest))]
 [JsonSerializable(typeof(ContainerActionResponse))]
 [JsonSerializable(typeof(ContainerVolumeDto))]
+[JsonSerializable(typeof(ContainerVolumeRequest))]
+[JsonSerializable(typeof(List<ContainerVolumeRequest>))]
 [JsonSerializable(typeof(ContainerEnvVarDto))]
 [JsonSerializable(typeof(ContainerLogsResponse))]
 [JsonSerializable(typeof(ContainerLogEntry))]

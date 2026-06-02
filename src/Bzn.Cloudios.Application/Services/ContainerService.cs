@@ -17,6 +17,8 @@ public sealed class ContainerService : IContainerService
     private readonly IDockerNetworkService _docker;
     private readonly ILogger<ContainerService> _logger;
     private readonly string _socketPath;
+    private readonly string _volumesBasePath;
+    private readonly bool _skipDirectoryCreation;
 
     public ContainerService(
         CloudiosDbContext context,
@@ -28,6 +30,8 @@ public sealed class ContainerService : IContainerService
         _docker = docker;
         _logger = logger;
         _socketPath = configuration["Docker:SocketPath"] ?? "/var/run/docker.sock";
+        _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
+        _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
     }
 
     public async Task<ContainerActionResponse> DeployAsync(Guid containerId, CancellationToken ct = default)
@@ -218,8 +222,11 @@ public sealed class ContainerService : IContainerService
         // Add new volumes
         foreach (var vol in volumes)
         {
-            var hostPath = $"/var/lib/cloudios/volumes/realm-{container.RealmId}/container-{containerId}/{vol.HostPath}";
-            Directory.CreateDirectory(hostPath);
+            var hostPath = Path.Combine(_volumesBasePath, "volumes", $"realm-{container.RealmId}", $"container-{containerId}", vol.HostPath);
+            if (!_skipDirectoryCreation)
+            {
+                Directory.CreateDirectory(hostPath);
+            }
 
             container.Volumes.Add(new ContainerVolume
             {

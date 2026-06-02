@@ -2,6 +2,7 @@ using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -10,19 +11,16 @@ namespace Bzn.Cloudios.Application.Services;
 public sealed class MetricsCollectionWorker : BackgroundService
 {
     private readonly IDockerNetworkService _dockerNetwork;
-    private readonly CloudiosDbContext _mainDb;
-    private readonly MetricsDbContext _metricsDb;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<MetricsCollectionWorker> _logger;
 
     public MetricsCollectionWorker(
         IDockerNetworkService dockerNetwork,
-        CloudiosDbContext mainDb,
-        MetricsDbContext metricsDb,
+        IServiceScopeFactory scopeFactory,
         ILogger<MetricsCollectionWorker> logger)
     {
         _dockerNetwork = dockerNetwork;
-        _mainDb = mainDb;
-        _metricsDb = metricsDb;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -49,6 +47,10 @@ public sealed class MetricsCollectionWorker : BackgroundService
 
     public async Task CollectAndStoreMetricsAsync(CancellationToken ct)
     {
+        using var scope = _scopeFactory.CreateScope();
+        var mainDb = scope.ServiceProvider.GetRequiredService<CloudiosDbContext>();
+        var metricsDb = scope.ServiceProvider.GetRequiredService<MetricsDbContext>();
+        
         var stats = await _dockerNetwork.GetContainerStatsAsync(ct);
         if (stats.Count == 0)
         {
@@ -57,7 +59,7 @@ public sealed class MetricsCollectionWorker : BackgroundService
         }
 
         // Map Docker container IDs to Cloudios container IDs
-        var dockerToCloudiosMap = await _mainDb.Containers
+        var dockerToCloudiosMap = await mainDb.Containers
             .Where(c => c.DockerContainerId != null)
             .Select(c => new { c.DockerContainerId, c.Id })
             .ToDictionaryAsync(x => x.DockerContainerId!, x => x.Id, ct);
@@ -89,17 +91,17 @@ public sealed class MetricsCollectionWorker : BackgroundService
         if (metricsToInsert.Count == 0) return;
 
         // Batch insert in single transaction
-        await _metricsDb.Database.BeginTransactionAsync(ct);
+        await metricsDb.Database.BeginTransactionAsync(ct);
         try
         {
-            await _metricsDb.ContainerMetricsHistory.AddRangeAsync(metricsToInsert, ct);
-            await _metricsDb.SaveChangesAsync(ct);
-            await _metricsDb.Database.CommitTransactionAsync(ct);
+            await metricsDb.ContainerMetricsHistory.AddRangeAsync(metricsToInsert, ct);
+            await metricsDb.SaveChangesAsync(ct);
+            await metricsDb.Database.CommitTransactionAsync(ct);
             _logger.LogInformation("Collected and stored {Count} metrics", metricsToInsert.Count);
         }
         catch
         {
-            await _metricsDb.Database.RollbackTransactionAsync(ct);
+            await metricsDb.Database.RollbackTransactionAsync(ct);
             throw;
         }
     }

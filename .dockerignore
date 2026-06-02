@@ -7,3 +7,8 @@ CHANGELOG.md
 **/bin/
 **/obj/
 **/TestResults/
+src/Bzn.Cloudios.WebApp/
+src/Bzn.Cloudios.WebPlatform/
+src/Bzn.Cloudios.WebApp.Blazor.Backup/
+src/Bzn.Cloudios.WebPlatform.Blazor.Backup/
+

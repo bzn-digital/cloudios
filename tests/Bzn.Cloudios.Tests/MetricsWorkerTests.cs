@@ -5,6 +5,7 @@ using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 
@@ -38,7 +39,7 @@ public class MetricsCollectionWorkerTests
         var (mainDb, metricsDb) = CreateInMemoryDbs();
         var dockerNetwork = new DockerNetworkServiceStub();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, mainDb, metricsDb, logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -84,7 +85,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, mainDb, metricsDb, logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -117,7 +118,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, mainDb, metricsDb, logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -136,7 +137,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, mainDb, metricsDb, logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -172,7 +173,8 @@ public class MetricsCleanupWorkerTests
         await db.SaveChangesAsync();
 
         var logger = NullLogger<MetricsCleanupWorker>.Instance;
-        var worker = new MetricsCleanupWorker(db, logger);
+        var scopeFactory = new MockMetricsScopeFactory(db);
+        var worker = new MetricsCleanupWorker(scopeFactory, logger);
 
         await worker.CleanupOldMetricsAsync(CancellationToken.None);
 
@@ -202,7 +204,8 @@ public class MetricsCleanupWorkerTests
         await db.SaveChangesAsync();
 
         var logger = NullLogger<MetricsCleanupWorker>.Instance;
-        var worker = new MetricsCleanupWorker(db, logger);
+        var scopeFactory = new MockMetricsScopeFactory(db);
+        var worker = new MetricsCleanupWorker(scopeFactory, logger);
 
         await worker.CleanupOldMetricsAsync(CancellationToken.None);
 
@@ -215,7 +218,8 @@ public class MetricsCleanupWorkerTests
     {
         var db = CreateInMemoryDb();
         var logger = NullLogger<MetricsCleanupWorker>.Instance;
-        var worker = new MetricsCleanupWorker(db, logger);
+        var scopeFactory = new MockMetricsScopeFactory(db);
+        var worker = new MetricsCleanupWorker(scopeFactory, logger);
 
         await worker.CleanupOldMetricsAsync(CancellationToken.None);
 
@@ -252,5 +256,111 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
     public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default)
     {
         return Task.FromResult(new List<ContainerLogEntry>());
+    }
+}
+
+public class MockMetricsScopeFactory : IServiceScopeFactory
+{
+    private readonly MetricsDbContext _db;
+
+    public MockMetricsScopeFactory(MetricsDbContext db)
+    {
+        _db = db;
+    }
+
+    public IServiceScope CreateScope()
+    {
+        return new MockMetricsScope(_db);
+    }
+}
+
+public class MockMetricsScope : IServiceScope
+{
+    private readonly MetricsDbContext _db;
+
+    public MockMetricsScope(MetricsDbContext db)
+    {
+        _db = db;
+        ServiceProvider = new MockMetricsServiceProvider(db);
+    }
+
+    public IServiceProvider ServiceProvider { get; }
+
+    public void Dispose()
+    {
+    }
+}
+
+public class MockMetricsServiceProvider : IServiceProvider
+{
+    private readonly MetricsDbContext _db;
+
+    public MockMetricsServiceProvider(MetricsDbContext db)
+    {
+        _db = db;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        if (serviceType == typeof(MetricsDbContext))
+            return _db;
+        throw new InvalidOperationException($"Service {serviceType.Name} not supported in mock");
+    }
+}
+
+public class MockDbsScopeFactory : IServiceScopeFactory
+{
+    private readonly CloudiosDbContext _mainDb;
+    private readonly MetricsDbContext _metricsDb;
+
+    public MockDbsScopeFactory(CloudiosDbContext mainDb, MetricsDbContext metricsDb)
+    {
+        _mainDb = mainDb;
+        _metricsDb = metricsDb;
+    }
+
+    public IServiceScope CreateScope()
+    {
+        return new MockDbsScope(_mainDb, _metricsDb);
+    }
+}
+
+public class MockDbsScope : IServiceScope
+{
+    private readonly CloudiosDbContext _mainDb;
+    private readonly MetricsDbContext _metricsDb;
+
+    public MockDbsScope(CloudiosDbContext mainDb, MetricsDbContext metricsDb)
+    {
+        _mainDb = mainDb;
+        _metricsDb = metricsDb;
+        ServiceProvider = new MockDbsServiceProvider(mainDb, metricsDb);
+    }
+
+    public IServiceProvider ServiceProvider { get; }
+
+    public void Dispose()
+    {
+    }
+}
+
+public class MockDbsServiceProvider : IServiceProvider
+{
+    private readonly CloudiosDbContext _mainDb;
+    private readonly MetricsDbContext _metricsDb;
+
+    public MockDbsServiceProvider(CloudiosDbContext mainDb, MetricsDbContext metricsDb)
+    {
+        _mainDb = mainDb;
+        _metricsDb = metricsDb;
+    }
+
+    public object? GetService(Type serviceType)
+    {
+        if (serviceType == typeof(CloudiosDbContext))
+            return _mainDb;
+        if (serviceType == typeof(MetricsDbContext))
+            return _metricsDb;
+        throw new InvalidOperationException($"Service {serviceType.Name} not supported in mock");
     }
 }
