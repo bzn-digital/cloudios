@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -38,6 +39,7 @@ const icons = {
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const menuItems = [
     { path: '/', label: 'Home', icon: icons.home },
@@ -49,7 +51,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout-container">
-      <aside className="sidebar">
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <h1>☁ Cloudios</h1>
           <p>{user?.realmName}</p>
@@ -62,9 +64,10 @@ export function Layout({ children }: LayoutProps) {
                 <Link
                   to={item.path}
                   className={location.pathname === item.path ? 'active' : ''}
+                  title={item.label}
                 >
                   {item.icon}
-                  {item.label}
+                  <span className="nav-label">{item.label}</span>
                 </Link>
               </li>
             ))}
@@ -77,9 +80,25 @@ export function Layout({ children }: LayoutProps) {
               <p>{user?.email}</p>
               <p>{user?.role}</p>
             </div>
-            <button onClick={logout}>Logout</button>
+            <button onClick={logout}><span>Logout</span></button>
           </div>
         </div>
+
+        <button
+          className="sidebar-toggle"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          )}
+        </button>
       </aside>
 
       <main className="main-content">
