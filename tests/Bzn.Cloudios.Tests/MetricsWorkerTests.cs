@@ -38,9 +38,8 @@ public class MetricsCollectionWorkerTests
     {
         var (mainDb, metricsDb) = CreateInMemoryDbs();
         var dockerNetwork = new DockerNetworkServiceStub();
-        var dockerClient = new MockDockerClient();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, dockerClient);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -85,9 +84,8 @@ public class MetricsCollectionWorkerTests
             }
         });
 
-        var dockerClient = new MockDockerClient();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, dockerClient);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -119,9 +117,8 @@ public class MetricsCollectionWorkerTests
             new ContainerStats { ContainerId = "d2", ContainerName = "c2", CpuPercent = 20, MemoryUsedBytes = 200, NetworkRxBytes = 5, NetworkTxBytes = 6, BlockReadBytes = 7, BlockWriteBytes = 8 }
         });
 
-        var dockerClient = new MockDockerClient();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, dockerClient);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -139,9 +136,8 @@ public class MetricsCollectionWorkerTests
             new ContainerStats { ContainerId = "unknown", ContainerName = "ghost", CpuPercent = 10, MemoryUsedBytes = 100, NetworkRxBytes = 1, NetworkTxBytes = 2, BlockReadBytes = 3, BlockWriteBytes = 4 }
         });
 
-        var dockerClient = new MockDockerClient();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, dockerClient);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -270,13 +266,6 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
     public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default)
     {
         return Task.FromResult(new List<ContainerLogEntry>());
-    }
-}
-
-public class MockDockerClient : DockerClient
-{
-    public MockDockerClient() : base(new Uri("unix:///var/run/docker.sock"))
-    {
     }
 }
 

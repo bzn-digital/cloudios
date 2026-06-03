@@ -52,9 +52,8 @@ public class ContainerVolumeEnvVarTests
 
         var logger = NullLogger<ContainerService>.Instance;
         var dockerNetwork = new MockDockerNetworkService();
-        var dockerClient = new MockDockerClient();
         var config = new ConfigurationBuilder().Build();
-        var service = new ContainerService(db, dockerClient, dockerNetwork, config, logger);
+        var service = new ContainerService(db, null, dockerNetwork, config, logger);
 
         var newEnvVars = new Dictionary<string, string>
         {
@@ -104,9 +103,8 @@ public class ContainerVolumeEnvVarTests
 
         var logger = NullLogger<ContainerService>.Instance;
         var dockerNetwork = new MockDockerNetworkService();
-        var dockerClient = new MockDockerClient();
         var config = new ConfigurationBuilder().Build();
-        var service = new ContainerService(db, dockerClient, dockerNetwork, config, logger);
+        var service = new ContainerService(db, null, dockerNetwork, config, logger);
 
         await service.DeleteAsync(containerId, removeVolumes: true, CancellationToken.None);
 
@@ -148,9 +146,8 @@ public class ContainerVolumeEnvVarTests
 
         var logger = NullLogger<ContainerService>.Instance;
         var dockerNetwork = new MockDockerNetworkService();
-        var dockerClient = new MockDockerClient();
         var config = new ConfigurationBuilder().Build();
-        var service = new ContainerService(db, dockerClient, dockerNetwork, config, logger);
+        var service = new ContainerService(db, null, dockerNetwork, config, logger);
 
         await service.DeleteAsync(containerId, removeVolumes: false, CancellationToken.None);
 
@@ -254,11 +251,4 @@ public class MockDockerNetworkService : IDockerNetworkService
     public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default) => Task.FromResult(new List<ContainerStats>());
     public Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default) => Task.FromResult(default(T));
     public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default) => Task.FromResult(new List<ContainerLogEntry>());
-}
-
-public class MockDockerClient : DockerClient
-{
-    public MockDockerClient() : base(new Uri("unix:///var/run/docker.sock"))
-    {
-    }
 }

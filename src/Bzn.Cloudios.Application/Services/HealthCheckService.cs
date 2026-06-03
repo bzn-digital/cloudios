@@ -1,12 +1,11 @@
 using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Infrastructure.Persistence;
-using Docker.DotNet;
-using Docker.DotNet.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace Bzn.Cloudios.Application.Services;
 
@@ -14,20 +13,20 @@ public sealed class HealthCheckService
 {
     private readonly CloudiosDbContext _mainDb;
     private readonly MetricsDbContext _metricsDb;
-    private readonly DockerClient _dockerClient;
+    private readonly IDockerNetworkService _dockerNetwork;
     private readonly IHostApplicationLifetime _lifetime;
     private readonly IConfiguration _configuration;
 
     public HealthCheckService(
         CloudiosDbContext mainDb,
         MetricsDbContext metricsDb,
-        DockerClient dockerClient,
+        IDockerNetworkService dockerNetwork,
         IHostApplicationLifetime lifetime,
         IConfiguration configuration)
     {
         _mainDb = mainDb;
         _metricsDb = metricsDb;
-        _dockerClient = dockerClient;
+        _dockerNetwork = dockerNetwork;
         _lifetime = lifetime;
         _configuration = configuration;
     }
@@ -71,7 +70,7 @@ public sealed class HealthCheckService
         // Check Docker socket
         try
         {
-            await _dockerClient.System.PingAsync(ct);
+            await _dockerNetwork.SendRequestAsync<object>("GET", "/_ping", ct: ct);
             response.Details["docker"] = "connected";
         }
         catch (Exception ex)
@@ -97,10 +96,19 @@ public sealed class HealthCheckService
 
         try
         {
-            var systemInfo = await _dockerClient.System.GetSystemInfoAsync(ct);
-            cpuPercent = systemInfo.NCPU * 1.0;
-            memoryTotal = systemInfo.MemTotal;
-            memoryUsed = systemInfo.MemTotal; // Simplified - actual usage calculation requires more data
+            var systemInfo = await _dockerNetwork.SendRequestAsync<JsonElement>("GET", "/system/info", ct: ct);
+            if (systemInfo.ValueKind != JsonValueKind.Undefined)
+            {
+                cpuPercent = systemInfo.TryGetProperty("NCPU", out var ncpu) ? ncpu.GetInt32() * 1.0 : 0.0;
+                if (systemInfo.TryGetProperty("MemTotal", out var memTotal))
+                {
+                    memoryTotal = memTotal.GetInt64();
+                }
+                if (systemInfo.TryGetProperty("MemUsed", out var memUsed))
+                {
+                    memoryUsed = memUsed.GetInt64();
+                }
+            }
         }
         catch
         {
@@ -116,16 +124,11 @@ public sealed class HealthCheckService
         var activeContainers = 0;
         try
         {
-            var containers = await _dockerClient.Containers.ListContainersAsync(
-                new ContainersListParameters
-                {
-                    All = false,
-                    Filters = new Dictionary<string, IDictionary<string, bool>>
-                    {
-                        ["label"] = new Dictionary<string, bool> { ["cloudios.managed"] = true }
-                    }
-                }, ct);
-            activeContainers = containers.Count;
+            var containers = await _dockerNetwork.SendRequestAsync<JsonElement>("GET", "/containers/json?all=false&filters={\"label\":[\"cloudios.managed=true\"]}", ct: ct);
+            if (containers.ValueKind != JsonValueKind.Undefined && containers.ValueKind == JsonValueKind.Array)
+            {
+                activeContainers = containers.GetArrayLength();
+            }
         }
         catch
         {

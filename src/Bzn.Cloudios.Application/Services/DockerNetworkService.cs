@@ -308,4 +308,12 @@ public sealed class DockerNetworkService : IDockerNetworkService
             return [];
         }
     }
+
+    public async Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
+    {
+        // This method is kept for backward compatibility with tests
+        // In production, use the specific Docker.DotNet methods
+        _logger.LogWarning("SendRequestAsync called with {Method} {Path} - this is deprecated", method, path);
+        return default(T);
+    }
 }

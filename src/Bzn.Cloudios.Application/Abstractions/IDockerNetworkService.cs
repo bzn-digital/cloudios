@@ -21,4 +21,5 @@ public interface IDockerNetworkService
     Task<List<string>> ListNetworksAsync(CancellationToken ct = default);
     Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default);
     Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default);
+    Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default);
 }
