@@ -1,17 +1,35 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
+import { Modal } from '../components/Modal';
 import { apiClient } from '../lib/api';
+import { useToast } from '../contexts/ToastContext';
 import type { ContainerListResponse, ContainerListItem } from '../types/container';
+import type { CreateContainerRequest } from '../types/container';
 
 export function Services() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
   const [containers, setContainers] = useState<ContainerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [showNewServiceModal, setShowNewServiceModal] = useState(false);
+  const [newServiceLoading, setNewServiceLoading] = useState(false);
+  const [newServiceError, setNewServiceError] = useState<string | null>(null);
+  const [newServiceFormData, setNewServiceFormData] = useState<CreateContainerRequest>({
+    name: '',
+    imageName: '',
+    internalPort: 80,
+    cpuLimitCores: 0.5,
+    memoryLimitBytes: 256 * 1024 * 1024,
+    costPerHourBRL: 0.02,
+    volumes: [],
+    environmentVariables: {},
+  });
+  const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }]);
 
   useEffect(() => {
     loadContainers();
@@ -30,35 +48,97 @@ export function Services() {
     }
   };
 
-  const handleAction = async (id: string, action: () => Promise<unknown>) => {
+  const handleAction = async (id: string, action: () => Promise<unknown>, successMessage: string) => {
     try {
       setActionLoading(id);
       await action();
       await loadContainers();
+      showToast('success', successMessage);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Action failed');
+      showToast('error', err instanceof Error ? err.message : 'Action failed');
     } finally {
       setActionLoading(null);
     }
   };
 
   const handleStart = (id: string) => {
-    handleAction(id, () => apiClient.startContainer(id));
+    handleAction(id, () => apiClient.startContainer(id), 'Service started successfully');
   };
 
   const handleStop = (id: string) => {
-    handleAction(id, () => apiClient.stopContainer(id));
+    handleAction(id, () => apiClient.stopContainer(id), 'Service stopped successfully');
   };
 
   const handleRestart = (id: string) => {
-    handleAction(id, () => apiClient.restartContainer(id));
+    handleAction(id, () => apiClient.restartContainer(id), 'Service restarted successfully');
   };
 
   const handleDelete = (id: string, name: string) => {
     const confirmed = window.prompt(`Type "${name}" to confirm deletion:`);
     if (confirmed === name) {
-      handleAction(id, () => apiClient.deleteContainer(id));
+      handleAction(id, () => apiClient.deleteContainer(id), 'Service deleted successfully');
     }
+  };
+
+  const handleNewServiceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      setNewServiceLoading(true);
+      setNewServiceError(null);
+
+      if (!/^[a-z0-9-]+$/.test(newServiceFormData.name)) {
+        setNewServiceError('Service name must contain only lowercase letters, numbers, and hyphens');
+        return;
+      }
+
+      const envVarsObj: Record<string, string> = {};
+      envVars.forEach((env) => {
+        if (env.key && env.value) {
+          envVarsObj[env.key] = env.value;
+        }
+      });
+
+      const payload = {
+        ...newServiceFormData,
+        environmentVariables: envVarsObj,
+      };
+
+      await apiClient.createContainer(payload);
+      setShowNewServiceModal(false);
+      setNewServiceFormData({
+        name: '',
+        imageName: '',
+        internalPort: 80,
+        cpuLimitCores: 0.5,
+        memoryLimitBytes: 256 * 1024 * 1024,
+        costPerHourBRL: 0.02,
+        volumes: [],
+        environmentVariables: {},
+      });
+      setEnvVars([{ key: '', value: '' }]);
+      await loadContainers();
+      showToast('success', 'Service created successfully');
+    } catch (err) {
+      setNewServiceError(err instanceof Error ? err.message : 'Failed to create service');
+      showToast('error', err instanceof Error ? err.message : 'Failed to create service');
+    } finally {
+      setNewServiceLoading(false);
+    }
+  };
+
+  const addEnvVar = () => {
+    setEnvVars([...envVars, { key: '', value: '' }]);
+  };
+
+  const removeEnvVar = (index: number) => {
+    setEnvVars(envVars.filter((_, i) => i !== index));
+  };
+
+  const updateEnvVar = (index: number, field: 'key' | 'value', value: string) => {
+    const updated = [...envVars];
+    updated[index][field] = value;
+    setEnvVars(updated);
   };
 
   const formatBytes = (bytes: number) => {
@@ -89,7 +169,7 @@ export function Services() {
       <div className="services">
         <div className="services-header">
           <h1>Services</h1>
-          <button className="btn btn-primary" onClick={() => navigate('/services/new')}>
+          <button className="btn btn-primary" onClick={() => setShowNewServiceModal(true)}>
             + New Service
           </button>
         </div>
@@ -126,6 +206,7 @@ export function Services() {
                   <th>Status</th>
                   <th>Name</th>
                   <th>Image</th>
+                  <th>Public URL</th>
                   <th>CPU Limit</th>
                   <th>RAM Limit</th>
                   <th>Cost (Month)</th>
@@ -149,6 +230,20 @@ export function Services() {
                       </button>
                     </td>
                     <td>{container.imageName}</td>
+                    <td>
+                      {container.publicUrl ? (
+                        <a
+                          href={container.publicUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="link-button"
+                        >
+                          {container.publicUrl}
+                        </a>
+                      ) : (
+                        <span className="text-muted">Not configured</span>
+                      )}
+                    </td>
                     <td>{formatCpu(container.cpuLimitCores)}</td>
                     <td>{formatBytes(container.memoryLimitBytes)}</td>
                     <td>R$ {container.currentMonthCostBRL.toFixed(2)}</td>
@@ -197,6 +292,131 @@ export function Services() {
           </div>
         )}
       </div>
+
+      <Modal
+        isOpen={showNewServiceModal}
+        onClose={() => setShowNewServiceModal(false)}
+        title="New Service"
+      >
+        <form onSubmit={handleNewServiceSubmit} className="new-service-form">
+          {newServiceError && <p className="error">{newServiceError}</p>}
+
+          <div className="form-group">
+            <label htmlFor="name">Service Name *</label>
+            <input
+              id="name"
+              type="text"
+              value={newServiceFormData.name}
+              onChange={(e) => setNewServiceFormData({ ...newServiceFormData, name: e.target.value })}
+              placeholder="my-service"
+              required
+              pattern="[a-z0-9-]+"
+              title="Only lowercase letters, numbers, and hyphens"
+            />
+            <small>Only lowercase letters, numbers, and hyphens (e.g., my-service)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="imageName">Docker Image *</label>
+            <input
+              id="imageName"
+              type="text"
+              value={newServiceFormData.imageName}
+              onChange={(e) => setNewServiceFormData({ ...newServiceFormData, imageName: e.target.value })}
+              placeholder="nginx:latest"
+              required
+            />
+            <small>e.g., nginx:latest, n8nio/n8n, postgres:15</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="internalPort">Internal Port *</label>
+            <input
+              id="internalPort"
+              type="number"
+              value={newServiceFormData.internalPort}
+              onChange={(e) => setNewServiceFormData({ ...newServiceFormData, internalPort: parseInt(e.target.value) || 80 })}
+              min={1}
+              max={65535}
+              required
+            />
+            <small>Port your application listens on (e.g., 80, 3000, 5678)</small>
+          </div>
+
+          <div className="form-row">
+            <div className="form-group">
+              <label htmlFor="cpuLimit">CPU Limit (vCPU) *</label>
+              <input
+                id="cpuLimit"
+                type="number"
+                step="0.1"
+                min="0.1"
+                max="4.0"
+                value={newServiceFormData.cpuLimitCores}
+                onChange={(e) => setNewServiceFormData({ ...newServiceFormData, cpuLimitCores: parseFloat(e.target.value) || 0.5 })}
+                required
+              />
+              <small>0.1 to 4.0 vCPU</small>
+            </div>
+
+            <div className="form-group">
+              <label htmlFor="memoryLimit">RAM Limit (MB) *</label>
+              <input
+                id="memoryLimit"
+                type="number"
+                min={128}
+                max={8192}
+                step={128}
+                value={newServiceFormData.memoryLimitBytes / (1024 * 1024)}
+                onChange={(e) => setNewServiceFormData({ ...newServiceFormData, memoryLimitBytes: (parseInt(e.target.value) || 256) * 1024 * 1024 })}
+                required
+              />
+              <small>128MB to 8GB</small>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label>Environment Variables</label>
+            {envVars.map((env, index) => (
+              <div key={index} className="env-var-row">
+                <input
+                  type="text"
+                  placeholder="KEY"
+                  value={env.key}
+                  onChange={(e) => updateEnvVar(index, 'key', e.target.value)}
+                />
+                <input
+                  type="text"
+                  placeholder="VALUE"
+                  value={env.value}
+                  onChange={(e) => updateEnvVar(index, 'value', e.target.value)}
+                />
+                {envVars.length > 1 && (
+                  <button
+                    type="button"
+                    className="btn btn-sm btn-danger"
+                    onClick={() => removeEnvVar(index)}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+            ))}
+            <button type="button" className="btn btn-sm btn-secondary" onClick={addEnvVar}>
+              + Add Variable
+            </button>
+          </div>
+
+          <div className="form-actions">
+            <button type="submit" className="btn btn-primary" disabled={newServiceLoading}>
+              {newServiceLoading ? 'Creating...' : 'Create Service'}
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={() => setShowNewServiceModal(false)}>
+              Cancel
+            </button>
+          </div>
+        </form>
+      </Modal>
     </Layout>
   );
 }

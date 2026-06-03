@@ -16,6 +16,7 @@ export interface ContainerListItem {
   memoryLimitBytes: number;
   costPerHourBRL: number;
   currentMonthCostBRL: number;
+  publicUrl?: string;
   startedAtUtc?: string;
   createdAt: string;
 }
