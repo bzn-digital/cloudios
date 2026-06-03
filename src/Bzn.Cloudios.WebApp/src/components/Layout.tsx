@@ -134,7 +134,7 @@ export function Layout({ children }: LayoutProps) {
       icon: icons.billing,
       children: [
         { id: 'analytics', label: 'Analytics', icon: icons.analytics, path: '/billing/analytics' },
-        { id: 'faturas', label: 'Faturas', icon: icons.invoices, path: '/billing/faturas' },
+        { id: 'invoices', label: 'Invoices', icon: icons.invoices, path: '/billing/invoices' },
         { id: 'billing-management', label: 'Billing Management', icon: icons.billingManagement, path: '/billing/management' },
       ],
     },
