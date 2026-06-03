@@ -127,7 +127,7 @@ using (var scope = app.Services.CreateScope())
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    KnownNetworks = { },
+    KnownIPNetworks = { },
     KnownProxies = { }
 });
 
