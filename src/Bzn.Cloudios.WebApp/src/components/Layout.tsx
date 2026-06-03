@@ -169,6 +169,7 @@ export function Layout({ children }: LayoutProps) {
   const [isCollapsed, setIsCollapsed] = useState(!savedPin);
   const [isPinned, setIsPinned] = useState(savedPin);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
 
   const togglePin = () => {
     const newPinned = !isPinned;
@@ -281,7 +282,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout-container">
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
         <div className="sidebar-header">
           <h1>
             <span className="logo-icon">☁</span>
@@ -341,7 +342,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       <main className="main-content">
-        {location.pathname !== '/' && <Header />}
+        {location.pathname !== '/' && <Header onMobileMenuToggle={() => setIsMobileOpen(!isMobileOpen)} />}
         {location.pathname !== '/' && <Breadcrumb />}
         {children}
       </main>
