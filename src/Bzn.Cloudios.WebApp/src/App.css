@@ -686,6 +686,36 @@ body {
   flex: 1;
   overflow: auto;
   background: var(--bzn-surface-0);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Breadcrumb ───────────────────────────────────────── */
+.breadcrumb {
+  padding: 20px 32px 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.breadcrumb-link {
+  color: var(--bzn-gray-500);
+  text-decoration: none;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-link:hover {
+  color: var(--bzn-primary-hover);
+}
+
+.breadcrumb-separator {
+  color: var(--bzn-gray-400);
+}
+
+.breadcrumb-current {
+  color: var(--bzn-gray-700);
+  font-weight: 600;
 }
 
 /* ── Dashboard ────────────────────────────────────────── */

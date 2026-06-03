@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Breadcrumb } from './Breadcrumb';
 
 interface LayoutProps {
   children: ReactNode;
@@ -270,6 +271,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       <main className="main-content">
+        {location.pathname !== '/' && <Breadcrumb />}
         {children}
       </main>
     </div>
