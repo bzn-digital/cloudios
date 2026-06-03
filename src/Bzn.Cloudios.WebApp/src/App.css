@@ -317,7 +317,7 @@ body {
 /* ── Dashboard ────────────────────────────────────────── */
 .dashboard {
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1800px;
 }
 
 .dashboard h1 {
@@ -526,7 +526,7 @@ body {
 /* ── Services page ────────────────────────────────────── */
 .services {
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1800px;
 }
 
 .services-header {
@@ -765,7 +765,7 @@ body {
 /* ── New Service page ──────────────────────────────────── */
 .new-service {
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1800px;
 }
 
 .new-service-header {
@@ -839,7 +839,7 @@ body {
 /* ── Service Detail page ─────────────────────────────── */
 .service-detail {
   padding: 32px;
-  max-width: 1400px;
+  max-width: 1800px;
 }
 
 .service-detail-header {
@@ -1203,6 +1203,24 @@ body {
 }
 
 /* ── Responsive ───────────────────────────────────────── */
+@media (min-width: 1920px) {
+  .dashboard,
+  .services,
+  .new-service,
+  .service-detail {
+    max-width: none;
+    padding: 40px 48px;
+  }
+
+  .dashboard-cards {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .service-detail-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
 @media (max-width: 1024px) {
   .sidebar {
     width: 220px;
