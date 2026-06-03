@@ -96,3 +96,11 @@ coverage/
 
 # Misc
 *.tsbuildinfo
+
+# Database files
+*.db
+*.db-shm
+*.db-wal
+
+# Nginx config files
+nginx.conf
