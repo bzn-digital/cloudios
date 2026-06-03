@@ -219,7 +219,7 @@ export function Services() {
         {error && <p className="error">{error}</p>}
 
         {containers.length === 0 ? (
-          <p className="empty-state">No services found.</p>
+          <p className="empty-state">No services deployed yet.</p>
         ) : (
           <div className="services-table">
             <table>
