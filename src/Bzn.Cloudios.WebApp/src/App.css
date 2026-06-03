@@ -502,15 +502,23 @@ body {
   justify-content: space-between;
 }
 
-.sidebar-footer-info p {
-  margin: 0;
-  white-space: nowrap;
+.sidebar.collapsed .sidebar-footer-content {
+  justify-content: center;
+}
+
+.sidebar-footer-info {
   transition: opacity 0.3s ease;
 }
 
-.sidebar.collapsed .sidebar-footer-info p {
+.sidebar.collapsed .sidebar-footer-info {
   opacity: 0;
   pointer-events: none;
+  position: absolute;
+}
+
+.sidebar-footer-info p {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .sidebar-footer-info p:first-child {
