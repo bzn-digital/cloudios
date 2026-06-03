@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -112,18 +112,10 @@ const icons = {
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const [isCollapsed, setIsCollapsed] = useState(true);
-  const [isPinned, setIsPinned] = useState(false);
+  const savedPin = localStorage.getItem('sidebar-pinned') === 'true';
+  const [isCollapsed, setIsCollapsed] = useState(!savedPin);
+  const [isPinned, setIsPinned] = useState(savedPin);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
-
-  // Persist pin state in localStorage
-  useEffect(() => {
-    const savedPin = localStorage.getItem('sidebar-pinned');
-    if (savedPin === 'true') {
-      setIsPinned(true);
-      setIsCollapsed(false);
-    }
-  }, []);
 
   const togglePin = () => {
     const newPinned = !isPinned;
