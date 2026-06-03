@@ -2,6 +2,7 @@ using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Infrastructure.Persistence;
+using Docker.DotNet;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Hosting;
@@ -40,11 +41,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerClient = new MockDockerClient(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerClient, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Healthy", result.Status);
@@ -58,11 +59,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: false);
+        var dockerClient = new MockDockerClient(healthy: false);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerClient, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Degraded", result.Status);
@@ -76,11 +77,11 @@ public class HealthCheckTests
         var metricsDb = CreateInMemoryMetricsDb();
         // Simulate database failure by disposing the context
         await mainDb.DisposeAsync();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerClient = new MockDockerClient(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerClient, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Unhealthy", result.Status);
@@ -91,13 +92,13 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerClient = new MockDockerClient(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("CLOUDIOS_VERSION", "2.0.0") })
             .Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerClient, lifetime, config);
         var result = service.CheckHealthAsync(CancellationToken.None).Result;
 
         Assert.Equal("2.0.0", result.Version);
@@ -108,11 +109,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true, returnSystemInfo: true);
+        var dockerClient = new MockDockerClient(healthy: true, returnSystemInfo: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerClient, lifetime, config);
         var metrics = await service.GetHostMetricsAsync(CancellationToken.None);
 
         Assert.NotNull(metrics);
@@ -122,47 +123,56 @@ public class HealthCheckTests
     }
 }
 
-public class MockDockerNetworkServiceForHealth : IDockerNetworkService
+public class MockDockerClient : DockerClient
 {
     private readonly bool _healthy;
     private readonly bool _returnSystemInfo;
 
-    public MockDockerNetworkServiceForHealth(bool healthy = true, bool returnSystemInfo = false)
+    public MockDockerClient(bool healthy = true, bool returnSystemInfo = false) : base(new Uri("unix:///var/run/docker.sock"))
     {
         _healthy = healthy;
         _returnSystemInfo = returnSystemInfo;
     }
 
-    public Task EnsureNetworkAsync(CancellationToken ct = default) => Task.CompletedTask;
-    public Task EnsureRealmNetworkAsync(Guid realmId, CancellationToken ct = default) => Task.CompletedTask;
-    public Task<List<string>> ListNetworksAsync(CancellationToken ct = default) => Task.FromResult(new List<string>());
-    public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default) => Task.FromResult(new List<ContainerStats>());
-    public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default) => Task.FromResult(new List<ContainerLogEntry>());
-
-    public Task<T?> SendRequestAsync<T>(string method, string path, string? body = null, CancellationToken ct = default)
+    public new Task<SystemInfoResponseBody> GetSystemInfoAsync(CancellationToken ct = default)
     {
         if (!_healthy)
             throw new InvalidOperationException("Docker connection failed");
 
-        if (_returnSystemInfo && path.Contains("system/info"))
+        if (_returnSystemInfo)
         {
-            var systemInfoJson = @"{
-                ""NCPU"": 4,
-                ""MemTotal"": 17179869184,
-                ""MemUsed"": 8589934592
-            }";
-            var element = JsonSerializer.Deserialize<JsonElement>(systemInfoJson);
-            return Task.FromResult((T?)(object)element);
+            return Task.FromResult(new SystemInfoResponseBody
+            {
+                NCPU = 4,
+                MemTotal = 17179869184
+            });
         }
 
-        if (_returnSystemInfo && path.Contains("containers/json"))
+        return Task.FromResult(new SystemInfoResponseBody());
+    }
+
+    public new Task<IList<ContainerListResponse>> ListContainersAsync(ContainersListParameters parameters, CancellationToken ct = default)
+    {
+        if (!_healthy)
+            throw new InvalidOperationException("Docker connection failed");
+
+        if (_returnSystemInfo)
         {
-            var containersJson = @"[{""Id"": ""abc123""}]";
-            var element = JsonSerializer.Deserialize<JsonElement>(containersJson);
-            return Task.FromResult((T?)(object)element);
+            return Task.FromResult<IList<ContainerListResponse>>(new List<ContainerListResponse>
+            {
+                new ContainerListResponse { ID = "abc123" }
+            });
         }
 
-        return Task.FromResult(default(T));
+        return Task.FromResult<IList<ContainerListResponse>>(new List<ContainerListResponse>());
+    }
+
+    public new Task<SystemPingResponse> PingAsync(CancellationToken ct = default)
+    {
+        if (!_healthy)
+            throw new InvalidOperationException("Docker connection failed");
+
+        return Task.FromResult(new SystemPingResponse());
     }
 }
 
