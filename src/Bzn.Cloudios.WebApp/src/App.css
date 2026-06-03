@@ -365,8 +365,12 @@ body {
   position: relative;
   z-index: 10;
   transition: width 0.3s ease;
-  overflow-y: auto;
   flex-shrink: 0;
+}
+
+.sidebar-nav {
+  flex: 1;
+  overflow-y: auto;
 }
 
 .sidebar.collapsed {
