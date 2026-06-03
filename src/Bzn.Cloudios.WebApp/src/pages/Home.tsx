@@ -57,6 +57,38 @@ const Home = () => {
       section: 'Computing',
     },
     {
+      id: 'virtual-networks',
+      title: 'Virtual Networks',
+      description: 'Manage virtual networks and connectivity',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25" />
+          <line x1="8" y1="16" x2="8.01" y2="16" />
+          <line x1="8" y1="20" x2="8.01" y2="20" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+          <line x1="12" y1="22" x2="12.01" y2="22" />
+          <line x1="16" y1="16" x2="16.01" y2="16" />
+          <line x1="16" y1="20" x2="16.01" y2="20" />
+        </svg>
+      ),
+      path: '/networking/virtual-networks',
+      section: 'Networking',
+    },
+    {
+      id: 'domains',
+      title: 'Domains',
+      description: 'Manage custom domains and DNS',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      ),
+      path: '/networking/domains',
+      section: 'Networking',
+    },
+    {
       id: 'analytics',
       title: 'Analytics',
       description: 'View usage analytics and insights',
@@ -101,7 +133,7 @@ const Home = () => {
     },
   ];
 
-  const sections = ['Computing', 'Billing'] as const;
+  const sections = ['Computing', 'Networking', 'Billing'] as const;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
