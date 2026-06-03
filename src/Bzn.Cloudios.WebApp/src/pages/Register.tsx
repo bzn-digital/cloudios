@@ -128,7 +128,7 @@ export function Register() {
             style={{
               background: 'none',
               border: 'none',
-              color: 'var(--bzn-primary)',
+              color: 'var(--bzn-primary-hover)',
               cursor: 'pointer',
               textDecoration: 'none',
               padding: 0,

@@ -1,9 +1,11 @@
-/* BZN Brand Theme - Blue/Purple/Lilac/Orange Color Palette */
+/* ═══════════════════════════════════════════════════════════
+   BZN Cloudios — Dark Mode Theme System
+   Blue / Purple / Lilac / Orange brand palette
+   ═══════════════════════════════════════════════════════════ */
 
-/* CSS Custom Properties for BZN Theme */
 :root {
-  /* Primary BZN Colors */
-  --bzn-blue-50: #eff6ff;
+  /* ── BZN Brand: Blue ──────────────────────────────────── */
+  --bzn-blue-50:  #eff6ff;
   --bzn-blue-100: #dbeafe;
   --bzn-blue-200: #bfdbfe;
   --bzn-blue-300: #93c5fd;
@@ -14,8 +16,8 @@
   --bzn-blue-800: #1e40af;
   --bzn-blue-900: #1e3a8a;
 
-  /* Purple/Lilac Colors */
-  --bzn-purple-50: #faf5ff;
+  /* ── BZN Brand: Purple / Lilac ────────────────────────── */
+  --bzn-purple-50:  #faf5ff;
   --bzn-purple-100: #f3e8ff;
   --bzn-purple-200: #e9d5ff;
   --bzn-purple-300: #d8b4fe;
@@ -26,8 +28,7 @@
   --bzn-purple-800: #6b21a8;
   --bzn-purple-900: #581c87;
 
-  /* Lilac (Light Purple) */
-  --bzn-lilac-50: #fdf4ff;
+  --bzn-lilac-50:  #fdf4ff;
   --bzn-lilac-100: #fae8ff;
   --bzn-lilac-200: #f5d0fe;
   --bzn-lilac-300: #f0abfc;
@@ -38,8 +39,8 @@
   --bzn-lilac-800: #86198f;
   --bzn-lilac-900: #701a75;
 
-  /* Orange Colors */
-  --bzn-orange-50: #fff7ed;
+  /* ── BZN Brand: Orange ────────────────────────────────── */
+  --bzn-orange-50:  #fff7ed;
   --bzn-orange-100: #ffedd5;
   --bzn-orange-200: #fed7aa;
   --bzn-orange-300: #fdba74;
@@ -50,332 +51,137 @@
   --bzn-orange-800: #9a3412;
   --bzn-orange-900: #7c2d12;
 
-  /* Semantic Color Mappings */
-  --bzn-primary: var(--bzn-blue-600);
-  --bzn-primary-hover: var(--bzn-blue-700);
-  --bzn-primary-light: var(--bzn-blue-50);
-  --bzn-primary-dark: var(--bzn-blue-800);
+  /* ── Dark Surface Palette (sophisticated, not pure black) ─ */
+  --bzn-surface-0: #06060f;
+  --bzn-surface-1: #0c0c1d;
+  --bzn-surface-2: #12122a;
+  --bzn-surface-3: #1a1a35;
+  --bzn-surface-4: #22223f;
+  --bzn-surface-5: #2a2a4a;
 
-  --bzn-secondary: var(--bzn-purple-600);
-  --bzn-secondary-hover: var(--bzn-purple-700);
-  --bzn-secondary-light: var(--bzn-purple-50);
+  /* ── Semantic Colors (dark-mode aware) ────────────────── */
+  --bzn-primary:        var(--bzn-blue-500);
+  --bzn-primary-hover:  var(--bzn-blue-400);
+  --bzn-primary-light:  rgba(59, 130, 246, 0.12);
+  --bzn-primary-dark:   var(--bzn-blue-700);
 
-  --bzn-accent: var(--bzn-orange-500);
-  --bzn-accent-hover: var(--bzn-orange-600);
-  --bzn-accent-light: var(--bzn-orange-50);
+  --bzn-secondary:        var(--bzn-purple-500);
+  --bzn-secondary-hover:  var(--bzn-purple-400);
+  --bzn-secondary-light:  rgba(147, 51, 234, 0.12);
 
-  --bzn-lilac-accent: var(--bzn-lilac-500);
-  --bzn-lilac-accent-hover: var(--bzn-lilac-600);
-  --bzn-lilac-light: var(--bzn-lilac-50);
+  --bzn-accent:        var(--bzn-orange-500);
+  --bzn-accent-hover:  var(--bzn-orange-400);
+  --bzn-accent-light:  rgba(249, 115, 22, 0.12);
 
-  /* Neutral Colors */
-  --bzn-gray-50: #f9fafb;
-  --bzn-gray-100: #f3f4f6;
-  --bzn-gray-200: #e5e7eb;
-  --bzn-gray-300: #d1d5db;
-  --bzn-gray-400: #9ca3af;
-  --bzn-gray-500: #6b7280;
-  --bzn-gray-600: #4b5563;
-  --bzn-gray-700: #374151;
-  --bzn-gray-800: #1f2937;
-  --bzn-gray-900: #111827;
+  --bzn-lilac-accent:        var(--bzn-lilac-400);
+  --bzn-lilac-accent-hover:  var(--bzn-lilac-300);
+  --bzn-lilac-light:         rgba(217, 70, 239, 0.12);
 
-  /* Status Colors */
-  --bzn-success: #10b981;
-  --bzn-success-light: #d1fae5;
-  --bzn-warning: var(--bzn-orange-500);
-  --bzn-warning-light: var(--bzn-orange-100);
-  --bzn-error: #ef4444;
-  --bzn-error-light: #fee2e2;
-  --bzn-info: var(--bzn-blue-500);
-  --bzn-info-light: var(--bzn-blue-100);
+  /* ── Neutral (dark mode) ─────────────────────────────── */
+  --bzn-gray-50:  #06060f;
+  --bzn-gray-100: #0c0c1d;
+  --bzn-gray-200: #1a1a35;
+  --bzn-gray-300: #2a2a4a;
+  --bzn-gray-400: #4a4a6a;
+  --bzn-gray-500: #7a7a9a;
+  --bzn-gray-600: #9a9ab4;
+  --bzn-gray-700: #b4b4cc;
+  --bzn-gray-800: #d4d4e4;
+  --bzn-gray-900: #f0f0f8;
 
-  /* Shadows */
-  --bzn-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --bzn-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --bzn-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --bzn-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-  --bzn-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  /* ── Status Colors ────────────────────────────────────── */
+  --bzn-success:       #34d399;
+  --bzn-success-light: rgba(52, 211, 153, 0.12);
+  --bzn-warning:       #fbbf24;
+  --bzn-warning-light: rgba(251, 191, 36, 0.12);
+  --bzn-error:         #f87171;
+  --bzn-error-light:   rgba(248, 113, 113, 0.12);
+  --bzn-info:          var(--bzn-blue-400);
+  --bzn-info-light:    rgba(96, 165, 250, 0.12);
 
-  /* Gradients */
-  --bzn-gradient-primary: linear-gradient(135deg, var(--bzn-blue-600), var(--bzn-purple-600));
+  /* ── Shadows (dark-tinted) ───────────────────────────── */
+  --bzn-shadow-sm:  0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --bzn-shadow:     0 2px 8px 0 rgba(0, 0, 0, 0.5);
+  --bzn-shadow-md:  0 4px 16px -2px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255,255,255,0.03);
+  --bzn-shadow-lg:  0 8px 32px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255,255,255,0.04);
+  --bzn-shadow-xl:  0 16px 48px -8px rgba(0, 0, 0, 0.8), 0 0 0 1px rgba(255,255,255,0.05);
+  --bzn-shadow-glow-blue:   0 0 20px rgba(59, 130, 246, 0.15), 0 0 60px rgba(59, 130, 246, 0.05);
+  --bzn-shadow-glow-purple: 0 0 20px rgba(147, 51, 234, 0.15), 0 0 60px rgba(147, 51, 234, 0.05);
+  --bzn-shadow-glow-orange: 0 0 20px rgba(249, 115, 22, 0.15), 0 0 60px rgba(249, 115, 22, 0.05);
+
+  /* ── Gradients ────────────────────────────────────────── */
+  --bzn-gradient-primary:   linear-gradient(135deg, var(--bzn-blue-600), var(--bzn-purple-600));
   --bzn-gradient-secondary: linear-gradient(135deg, var(--bzn-purple-500), var(--bzn-lilac-500));
-  --bzn-gradient-accent: linear-gradient(135deg, var(--bzn-orange-500), var(--bzn-orange-600));
-  --bzn-gradient-hero: linear-gradient(135deg, var(--bzn-blue-700), var(--bzn-purple-600), var(--bzn-lilac-500));
+  --bzn-gradient-accent:    linear-gradient(135deg, var(--bzn-orange-500), var(--bzn-orange-600));
+  --bzn-gradient-hero:      linear-gradient(135deg, #0a0a2e 0%, #1a0a3e 30%, #2a0a3e 60%, #1a0a2e 100%);
+  --bzn-gradient-surface:  linear-gradient(180deg, var(--bzn-surface-1) 0%, var(--bzn-surface-0) 100%);
+  --bzn-gradient-card:      linear-gradient(135deg, var(--bzn-surface-2) 0%, var(--bzn-surface-1) 100%);
 
-  /* Border Radius */
-  --bzn-radius-sm: 0.375rem;
-  --bzn-radius: 0.5rem;
-  --bzn-radius-md: 0.75rem;
-  --bzn-radius-lg: 1rem;
-  --bzn-radius-xl: 1.5rem;
-  --bzn-radius-2xl: 2rem;
+  /* ── Border Radius ───────────────────────────────────── */
+  --bzn-radius-sm:  0.375rem;
+  --bzn-radius:     0.5rem;
+  --bzn-radius-md:  0.75rem;
+  --bzn-radius-lg:  1rem;
+  --bzn-radius-xl:  1.25rem;
+  --bzn-radius-2xl: 1.5rem;
 
-  /* Typography */
-  --bzn-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --bzn-font-mono: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+  /* ── Typography ───────────────────────────────────────── */
+  --bzn-font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  --bzn-font-mono: 'JetBrains Mono', 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, monospace;
+
+  /* ── Border (dark mode) ───────────────────────────────── */
+  --bzn-border:       rgba(255, 255, 255, 0.06);
+  --bzn-border-hover: rgba(255, 255, 255, 0.12);
+  --bzn-border-focus: rgba(59, 130, 246, 0.5);
 }
 
-/* BZN Theme Base Styles */
-.bzn-theme {
-  font-family: var(--bzn-font-sans);
-  color: var(--bzn-gray-900);
-  background-color: var(--bzn-gray-50);
-}
-
-/* BZN Button Styles */
-.btn-bzn-primary {
-  background: var(--bzn-gradient-primary);
-  color: white;
-  border: none;
-  border-radius: var(--bzn-radius-md);
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--bzn-shadow);
-}
-
-.btn-bzn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--bzn-shadow-lg);
-  background: linear-gradient(135deg, var(--bzn-blue-700), var(--bzn-purple-700));
-}
-
-.btn-bzn-secondary {
-  background: var(--bzn-gradient-secondary);
-  color: white;
-  border: none;
-  border-radius: var(--bzn-radius-md);
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--bzn-shadow);
-}
-
-.btn-bzn-secondary:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--bzn-shadow-lg);
-  background: linear-gradient(135deg, var(--bzn-purple-600), var(--bzn-lilac-600));
-}
-
-.btn-bzn-accent {
-  background: var(--bzn-gradient-accent);
-  color: white;
-  border: none;
-  border-radius: var(--bzn-radius-md);
-  padding: 0.75rem 1.5rem;
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: var(--bzn-shadow);
-}
-
-.btn-bzn-accent:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--bzn-shadow-lg);
-  background: linear-gradient(135deg, var(--bzn-orange-600), var(--bzn-orange-700));
-}
-
-/* BZN Card Styles */
-.bzn-card {
-  background: white;
-  border-radius: var(--bzn-radius-lg);
-  box-shadow: var(--bzn-shadow);
-  border: 1px solid var(--bzn-gray-200);
-  transition: all 0.2s ease;
-}
-
-.bzn-card:hover {
-  box-shadow: var(--bzn-shadow-md);
-  transform: translateY(-2px);
-}
-
-.bzn-card-elevated {
-  background: white;
-  border-radius: var(--bzn-radius-xl);
-  box-shadow: var(--bzn-shadow-lg);
-  border: 1px solid var(--bzn-gray-200);
-  transition: all 0.3s ease;
-}
-
-.bzn-card-elevated:hover {
-  box-shadow: var(--bzn-shadow-xl);
-  transform: translateY(-4px);
-}
-
-/* BZN Status Badges */
-.bzn-badge {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.bzn-badge-success {
-  background: var(--bzn-success-light);
-  color: var(--bzn-success);
-}
-
-.bzn-badge-warning {
-  background: var(--bzn-warning-light);
-  color: var(--bzn-warning);
-}
-
-.bzn-badge-error {
-  background: var(--bzn-error-light);
-  color: var(--bzn-error);
-}
-
-.bzn-badge-info {
-  background: var(--bzn-info-light);
-  color: var(--bzn-info);
-}
-
-.bzn-badge-primary {
-  background: var(--bzn-primary-light);
-  color: var(--bzn-primary);
-}
-
-.bzn-badge-purple {
-  background: var(--bzn-purple-100);
-  color: var(--bzn-purple-700);
-}
-
-.bzn-badge-lilac {
-  background: var(--bzn-lilac-100);
-  color: var(--bzn-lilac-700);
-}
-
-.bzn-badge-orange {
-  background: var(--bzn-orange-100);
-  color: var(--bzn-orange-700);
-}
-
-/* BZN Input Styles */
-.bzn-input {
-  border: 2px solid var(--bzn-gray-300);
-  border-radius: var(--bzn-radius-md);
-  padding: 0.75rem 1rem;
-  font-size: 0.875rem;
-  transition: all 0.2s ease;
-  background: white;
-}
-
-.bzn-input:focus {
-  outline: none;
-  border-color: var(--bzn-primary);
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.bzn-input:hover {
-  border-color: var(--bzn-gray-400);
-}
-
-/* BZN Sidebar Styles */
-.bzn-sidebar {
-  background: linear-gradient(180deg, white 0%, var(--bzn-gray-50) 100%);
-  border-right: 1px solid var(--bzn-gray-200);
-  box-shadow: var(--bzn-shadow-sm);
-}
-
-.bzn-sidebar-header {
-  background: var(--bzn-gradient-primary);
-  color: white;
-  padding: 1.5rem;
-  border-bottom: 1px solid var(--bzn-gray-200);
-}
-
-.bzn-sidebar-nav a {
-  color: var(--bzn-gray-700);
-  border-radius: var(--bzn-radius-md);
-  margin: 0.25rem 0;
-  transition: all 0.2s ease;
-}
-
-.bzn-sidebar-nav a:hover {
-  background: var(--bzn-primary-light);
-  color: var(--bzn-primary);
-  transform: translateX(4px);
-}
-
-.bzn-sidebar-nav a.active {
-  background: var(--bzn-gradient-primary);
-  color: white;
-  box-shadow: var(--bzn-shadow);
-}
-
-/* BZN Hero Section */
-.bzn-hero {
-  background: var(--bzn-gradient-hero);
-  color: white;
-  border-radius: var(--bzn-radius-xl);
-  padding: 3rem;
-  margin-bottom: 2rem;
-  box-shadow: var(--bzn-shadow-lg);
-  position: relative;
-  overflow: hidden;
-}
-
-.bzn-hero::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(45deg, rgba(255,255,255,0.1) 0%, transparent 100%);
-  pointer-events: none;
-}
-
-/* BZN Animations */
+/* ── Animations ──────────────────────────────────────────── */
 @keyframes bzn-pulse {
   0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
+  50% { opacity: 0.5; }
 }
 
 @keyframes bzn-slide-in {
-  from {
-    opacity: 0;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
 
-.bzn-animate-pulse {
-  animation: bzn-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+@keyframes bzn-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
-.bzn-animate-slide-in {
-  animation: bzn-slide-in 0.3s ease-out;
+@keyframes bzn-glow {
+  0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.2); }
+  50%      { box-shadow: 0 0 20px rgba(59,130,246,0.4); }
 }
 
-/* BZN Responsive Utilities */
-@media (max-width: 768px) {
-  .bzn-hero {
-    padding: 2rem 1.5rem;
-    margin-bottom: 1.5rem;
-  }
-  
-  .bzn-card-elevated {
-    border-radius: var(--bzn-radius-lg);
-  }
-  
-  .btn-bzn-primary,
-  .btn-bzn-secondary,
-  .btn-bzn-accent {
-    padding: 0.625rem 1.25rem;
-    font-size: 0.8125rem;
-  }
+@keyframes bzn-shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* ── Scrollbar (dark) ────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bzn-surface-0);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bzn-surface-4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--bzn-surface-5);
+}
+
+/* ── Selection ───────────────────────────────────────────── */
+::selection {
+  background: rgba(59, 130, 246, 0.3);
+  color: #fff;
 }
