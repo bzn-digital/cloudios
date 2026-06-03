@@ -7,6 +7,14 @@ interface LayoutProps {
   children: ReactNode;
 }
 
+interface MenuItem {
+  id: string;
+  label: string;
+  icon: React.ReactNode;
+  path?: string;
+  children?: MenuItem[];
+}
+
 const icons = {
   home: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -19,9 +27,30 @@ const icons = {
       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
     </svg>
   ),
-  services: (
+  computing: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+      <line x1="8" y1="21" x2="16" y2="21" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+    </svg>
+  ),
+  services: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+    </svg>
+  ),
+  databases: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  ),
+  apps: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L2 7l10 5 10-5-10-5z" />
+      <path d="M2 17l10 5 10-5" />
+      <path d="M2 12l10 5 10-5" />
     </svg>
   ),
   billing: (
@@ -34,20 +63,96 @@ const icons = {
       <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
     </svg>
   ),
+  chevronDown: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  ),
+  chevronRight: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  ),
 };
 
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
 
-  const menuItems = [
-    { path: '/', label: 'Home', icon: icons.home },
-    { path: '/dashboard', label: 'Dashboard', icon: icons.dashboard },
-    { path: '/services', label: 'Services', icon: icons.services },
-    { path: '/billing', label: 'Billing', icon: icons.billing },
-    { path: '/team', label: 'Team', icon: icons.team },
+  const toggleMenu = (menuId: string) => {
+    setExpandedMenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(menuId)) {
+        next.delete(menuId);
+      } else {
+        next.add(menuId);
+      }
+      return next;
+    });
+  };
+
+  const menuItems: MenuItem[] = [
+    { id: 'home', label: 'Home', icon: icons.home, path: '/' },
+    { id: 'dashboard', label: 'Dashboard', icon: icons.dashboard, path: '/dashboard' },
+    {
+      id: 'computing',
+      label: 'Computing',
+      icon: icons.computing,
+      children: [
+        { id: 'services', label: 'Services', icon: icons.services, path: '/services' },
+        { id: 'managed-databases', label: 'Managed Databases', icon: icons.databases, path: '/managed-databases' },
+        { id: 'managed-apps', label: 'Managed Apps', icon: icons.apps, path: '/managed-apps' },
+      ],
+    },
+    { id: 'billing', label: 'Billing', icon: icons.billing, path: '/billing' },
+    { id: 'team', label: 'Team', icon: icons.team, path: '/team' },
   ];
+
+  const renderMenuItem = (item: MenuItem, level: number = 0) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedMenus.has(item.id);
+    const isActive = item.path && location.pathname === item.path;
+
+    if (hasChildren) {
+      return (
+        <li key={item.id}>
+          <button
+            className={`menu-item has-children ${isExpanded ? 'expanded' : ''}`}
+            onClick={() => toggleMenu(item.id)}
+            title={item.label}
+          >
+            {item.icon}
+            <span className="nav-label">{item.label}</span>
+            {!isCollapsed && (
+              <span className="chevron">
+                {isExpanded ? icons.chevronDown : icons.chevronRight}
+              </span>
+            )}
+          </button>
+          {isExpanded && !isCollapsed && (
+            <ul className="submenu">
+              {item.children!.map((child) => renderMenuItem(child, level + 1))}
+            </ul>
+          )}
+        </li>
+      );
+    }
+
+    return (
+      <li key={item.id}>
+        <Link
+          to={item.path!}
+          className={`menu-item ${isActive ? 'active' : ''}`}
+          title={item.label}
+        >
+          {item.icon}
+          <span className="nav-label">{item.label}</span>
+        </Link>
+      </li>
+    );
+  };
 
   return (
     <div className="layout-container">
@@ -59,18 +164,7 @@ export function Layout({ children }: LayoutProps) {
 
         <nav className="sidebar-nav">
           <ul>
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                <Link
-                  to={item.path}
-                  className={location.pathname === item.path ? 'active' : ''}
-                  title={item.label}
-                >
-                  {item.icon}
-                  <span className="nav-label">{item.label}</span>
-                </Link>
-              </li>
-            ))}
+            {menuItems.map((item) => renderMenuItem(item))}
           </ul>
         </nav>
 
