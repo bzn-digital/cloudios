@@ -83,4 +83,33 @@ public sealed class MetricsService
             DiskTotalBytes = 500L * 1024 * 1024 * 1024 // 500GB stub
         };
     }
+
+    public async Task<RealmMetricsResponse> GetRealmMetricsAsync(Guid realmId, DateTime from, DateTime to, CancellationToken ct = default)
+    {
+        var containers = await _mainDb.Containers
+            .Where(c => c.RealmId == realmId)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+
+        var metrics = await _metricsDb.ContainerMetricsHistory
+            .Where(m => containers.Contains(m.ContainerId) && m.Timestamp >= from && m.Timestamp <= to)
+            .OrderBy(m => m.Timestamp)
+            .Select(m => new MetricDataPoint
+            {
+                Timestamp = m.Timestamp,
+                CpuPercent = m.CpuPercent,
+                MemoryUsedBytes = m.MemoryUsedBytes,
+                NetworkRxBytes = m.NetworkRxBytes,
+                NetworkTxBytes = m.NetworkTxBytes
+            })
+            .ToListAsync(ct);
+
+        return new RealmMetricsResponse
+        {
+            RealmId = realmId,
+            From = from,
+            To = to,
+            DataPoints = metrics
+        };
+    }
 }

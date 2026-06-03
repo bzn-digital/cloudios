@@ -39,7 +39,7 @@ public class MetricsCollectionWorkerTests
         var (mainDb, metricsDb) = CreateInMemoryDbs();
         var dockerNetwork = new DockerNetworkServiceStub();
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -85,7 +85,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -118,7 +118,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -137,7 +137,7 @@ public class MetricsCollectionWorkerTests
         });
 
         var logger = NullLogger<MetricsCollectionWorker>.Instance;
-        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger);
+        var worker = new MetricsCollectionWorker(dockerNetwork, new MockDbsScopeFactory(mainDb, metricsDb), logger, null);
 
         await worker.CollectAndStoreMetricsAsync(CancellationToken.None);
 
@@ -241,6 +241,16 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
     public Task EnsureNetworkAsync(CancellationToken ct = default)
     {
         return Task.CompletedTask;
+    }
+
+    public Task EnsureRealmNetworkAsync(Guid realmId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<List<string>> ListNetworksAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult(new List<string>());
     }
 
     public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default)

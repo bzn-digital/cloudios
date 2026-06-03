@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { apiClient } from '../lib/api';
@@ -8,17 +8,35 @@ export function NewService() {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [networks, setNetworks] = useState<string[]>([]);
+  const [networksLoading, setNetworksLoading] = useState(false);
   const [formData, setFormData] = useState<CreateContainerRequest>({
     name: '',
     imageName: '',
     internalPort: 80,
+    hostPort: undefined,
+    networkName: '',
     cpuLimitCores: 0.5,
     memoryLimitBytes: 256 * 1024 * 1024, // 256MB
     costPerHourBRL: 0.02,
-    volumes: [],
     environmentVariables: {},
   });
   const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }]);
+
+  useEffect(() => {
+    const loadNetworks = async () => {
+      try {
+        setNetworksLoading(true);
+        const data = await apiClient.getNetworks() as { networks: string[] };
+        setNetworks(data.networks || []);
+      } catch (err) {
+        console.error('Failed to load networks:', err);
+      } finally {
+        setNetworksLoading(false);
+      }
+    };
+    loadNetworks();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -121,6 +139,37 @@ export function NewService() {
               required
             />
             <small>Port your application listens on (e.g., 80, 3000, 5678)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="hostPort">Host Port (Optional)</label>
+            <input
+              id="hostPort"
+              type="number"
+              value={formData.hostPort || ''}
+              onChange={(e) => setFormData({ ...formData, hostPort: e.target.value ? parseInt(e.target.value) : undefined })}
+              min={1}
+              max={65535}
+            />
+            <small>Port to expose on host (leave empty for random port)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="networkName">Network Name</label>
+            <select
+              id="networkName"
+              value={formData.networkName}
+              onChange={(e) => setFormData({ ...formData, networkName: e.target.value })}
+              disabled={networksLoading}
+            >
+              <option value="">Default realm network</option>
+              {networks.map((network) => (
+                <option key={network} value={network}>
+                  {network}
+                </option>
+              ))}
+            </select>
+            <small>Select a network or leave empty for default realm network</small>
           </div>
 
           <div className="form-row">

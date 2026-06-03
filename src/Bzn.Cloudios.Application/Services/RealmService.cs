@@ -1,3 +1,4 @@
+using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Infrastructure.Persistence;
@@ -10,11 +11,13 @@ public sealed class RealmService
 {
     private readonly CloudiosDbContext _context;
     private readonly ILogger<RealmService> _logger;
+    private readonly IDockerNetworkService _dockerNetworkService;
 
-    public RealmService(CloudiosDbContext context, ILogger<RealmService> logger)
+    public RealmService(CloudiosDbContext context, ILogger<RealmService> logger, IDockerNetworkService dockerNetworkService)
     {
         _context = context;
         _logger = logger;
+        _dockerNetworkService = dockerNetworkService;
     }
 
     public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default)
@@ -90,7 +93,10 @@ public sealed class RealmService
         _context.Realms.Add(realm);
         await _context.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Realm {Name} created", realm.Name);
+        // Create the default network for this realm
+        await _dockerNetworkService.EnsureRealmNetworkAsync(realm.Id, ct);
+
+        _logger.LogInformation("Realm {Name} created with default network", realm.Name);
 
         return (new RealmDetailResponse
         {

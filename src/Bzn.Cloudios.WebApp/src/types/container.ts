@@ -16,6 +16,7 @@ export interface ContainerListItem {
   memoryLimitBytes: number;
   costPerHourBRL: number;
   currentMonthCostBRL: number;
+  publicUrl?: string;
   startedAtUtc?: string;
   createdAt: string;
 }
@@ -41,10 +42,11 @@ export interface CreateContainerRequest {
   name: string;
   imageName: string;
   internalPort: number;
+  hostPort?: number;
+  networkName: string;
   cpuLimitCores: number;
   memoryLimitBytes: number;
   costPerHourBRL: number;
-  volumes: ContainerVolumeDto[];
   environmentVariables: Record<string, string>;
 }
 
