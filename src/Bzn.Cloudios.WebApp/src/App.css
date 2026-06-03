@@ -349,9 +349,10 @@ body {
 
 /* ── Layout / Sidebar ──────────────────────────────────── */
 .layout-container {
-  min-height: 100vh;
+  height: 100vh;
   display: flex;
   background: var(--bzn-surface-0);
+  overflow: hidden;
 }
 
 .sidebar {
@@ -364,6 +365,8 @@ body {
   position: relative;
   z-index: 10;
   transition: width 0.3s ease;
+  overflow-y: auto;
+  flex-shrink: 0;
 }
 
 .sidebar.collapsed {
@@ -684,7 +687,7 @@ body {
 
 .main-content {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto;
   background: var(--bzn-surface-0);
   display: flex;
   flex-direction: column;
