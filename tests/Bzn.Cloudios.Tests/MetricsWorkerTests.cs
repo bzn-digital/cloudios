@@ -243,6 +243,16 @@ public sealed class DockerNetworkServiceStub : IDockerNetworkService
         return Task.CompletedTask;
     }
 
+    public Task EnsureRealmNetworkAsync(Guid realmId, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task<List<string>> ListNetworksAsync(CancellationToken ct = default)
+    {
+        return Task.FromResult(new List<string>());
+    }
+
     public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default)
     {
         return Task.FromResult(_stats);
