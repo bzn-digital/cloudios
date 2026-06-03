@@ -12,20 +12,20 @@ public static class BillingEndpoints
     {
         var group = app.MapGroup("/api/billing");
 
-        group.MapGet("/realm", async (ITenantProvider tenant, [FromServices] BillingService billing, CancellationToken ct) =>
+        group.MapGet("/realm", async (ITenantProvider tenant, [FromServices] IBillingService billing, CancellationToken ct) =>
         {
             var now = DateTime.UtcNow;
             var cost = await billing.GetRealmBillingAsync(tenant.RealmId, now.Year, now.Month, ct);
-            return Results.Ok(new { Month = $"{now.Year:0000}-{now.Month:00}", TotalCostBRL = cost });
+            return Results.Ok(new RealmBillingResponse { Month = $"{now.Year:0000}-{now.Month:00}", TotalCostBRL = cost });
         });
 
-        group.MapGet("/global", async ([FromServices] BillingService billing, int? year, int? month, CancellationToken ct) =>
+        group.MapGet("/global", async ([FromServices] IBillingService billing, int? year, int? month, CancellationToken ct) =>
         {
             var now = DateTime.UtcNow;
             var targetYear = year ?? now.Year;
             var targetMonth = month ?? now.Month;
             var cost = await billing.GetGlobalBillingAsync(targetYear, targetMonth, ct);
-            return Results.Ok(new { Month = $"{targetYear:0000}-{targetMonth:00}", TotalRevenueBRL = cost });
+            return Results.Ok(new GlobalBillingResponse { Month = $"{targetYear:0000}-{targetMonth:00}", TotalRevenueBRL = cost });
         });
     }
 }

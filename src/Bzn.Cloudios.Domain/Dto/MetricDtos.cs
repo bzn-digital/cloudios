@@ -26,3 +26,11 @@ public sealed class HostMetricsResponse
     public long DiskUsedBytes { get; set; }
     public long DiskTotalBytes { get; set; }
 }
+
+public sealed class RealmMetricsResponse
+{
+    public Guid RealmId { get; set; }
+    public DateTime From { get; set; }
+    public DateTime To { get; set; }
+    public List<MetricDataPoint> DataPoints { get; set; } = [];
+}

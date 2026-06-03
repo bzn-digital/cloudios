@@ -21,35 +21,38 @@ public sealed class DatabaseSeeder
     {
         await _context.Database.MigrateAsync(ct);
 
-        if (await _context.Realms.AnyAsync(ct))
-            return;
+        var systemRealmId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var systemRealm = await _context.Realms.FindAsync([systemRealmId], ct);
 
-        _logger.LogInformation("Seeding initial data...");
-
-        var systemRealm = new Realm
+        if (systemRealm is null)
         {
-            Id = Guid.NewGuid(),
-            Name = "system",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
+            _logger.LogInformation("Seeding initial data...");
 
-        var adminUser = new User
-        {
-            Id = Guid.NewGuid(),
-            RealmId = systemRealm.Id,
-            Email = adminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-            Role = UserRole.PlatformAdmin,
-            IsBlocked = false,
-            CreatedAt = DateTime.UtcNow
-        };
+            systemRealm = new Realm
+            {
+                Id = systemRealmId,
+                Name = "system",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        _context.Realms.Add(systemRealm);
-        _context.Users.Add(adminUser);
+            var adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                RealmId = systemRealmId,
+                Email = adminEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+                Role = UserRole.PlatformAdmin,
+                IsBlocked = false,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        await _context.SaveChangesAsync(ct);
+            _context.Realms.Add(systemRealm);
+            _context.Users.Add(adminUser);
 
-        _logger.LogInformation("Seeding complete: system realm + admin user created");
+            await _context.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Seeding complete: system realm + admin user created");
+        }
     }
 }

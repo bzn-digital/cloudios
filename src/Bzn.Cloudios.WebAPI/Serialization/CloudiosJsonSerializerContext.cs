@@ -35,6 +35,7 @@ namespace Bzn.Cloudios.WebAPI.Serialization;
 [JsonSerializable(typeof(ContainerMetricsResponse))]
 [JsonSerializable(typeof(MetricDataPoint))]
 [JsonSerializable(typeof(HostMetricsResponse))]
+[JsonSerializable(typeof(RealmMetricsResponse))]
 [JsonSerializable(typeof(RealmBillingResponse))]
 [JsonSerializable(typeof(BillingServiceItem))]
 [JsonSerializable(typeof(GlobalBillingResponse))]
