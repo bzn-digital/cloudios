@@ -10,6 +10,9 @@ import { NewService } from './pages/NewService';
 import { ServiceDetail } from './pages/ServiceDetail';
 import ManagedDatabases from './pages/ManagedDatabases';
 import ManagedApps from './pages/ManagedApps';
+import Analytics from './pages/Analytics';
+import Invoices from './pages/Invoices';
+import BillingManagement from './pages/BillingManagement';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -73,6 +76,30 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ManagedApps />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/analytics"
+              element={
+                <ProtectedRoute>
+                  <Analytics />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/invoices"
+              element={
+                <ProtectedRoute>
+                  <Invoices />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/billing/management"
+              element={
+                <ProtectedRoute>
+                  <BillingManagement />
                 </ProtectedRoute>
               }
             />
