@@ -8,6 +8,8 @@ import { Dashboard } from './pages/Dashboard';
 import { Services } from './pages/Services';
 import { NewService } from './pages/NewService';
 import { ServiceDetail } from './pages/ServiceDetail';
+import ManagedDatabases from './pages/ManagedDatabases';
+import ManagedApps from './pages/ManagedApps';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -55,6 +57,22 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ServiceDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/managed-databases"
+              element={
+                <ProtectedRoute>
+                  <ManagedDatabases />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/managed-apps"
+              element={
+                <ProtectedRoute>
+                  <ManagedApps />
                 </ProtectedRoute>
               }
             />
