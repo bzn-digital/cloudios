@@ -377,6 +377,7 @@ body {
 
 .sidebar.collapsed {
   width: 72px;
+  min-width: 72px;
 }
 
 .sidebar-header {
