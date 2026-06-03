@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Bzn.Cloudios.Domain.Dto;
+using Bzn.Cloudios.WebAPI.Endpoints;
 
 namespace Bzn.Cloudios.WebAPI.Serialization;
 
@@ -16,12 +17,16 @@ namespace Bzn.Cloudios.WebAPI.Serialization;
 [JsonSerializable(typeof(UserItem))]
 [JsonSerializable(typeof(CreateUserRequest))]
 [JsonSerializable(typeof(UpdateUserRequest))]
+[JsonSerializable(typeof(RegisterRequest))]
+[JsonSerializable(typeof(RegistrationResponse))]
 [JsonSerializable(typeof(ContainerListResponse))]
 [JsonSerializable(typeof(ContainerListItem))]
 [JsonSerializable(typeof(ContainerDetailResponse))]
 [JsonSerializable(typeof(CreateContainerRequest))]
 [JsonSerializable(typeof(ContainerActionResponse))]
 [JsonSerializable(typeof(ContainerVolumeDto))]
+[JsonSerializable(typeof(ContainerVolumeRequest))]
+[JsonSerializable(typeof(List<ContainerVolumeRequest>))]
 [JsonSerializable(typeof(ContainerEnvVarDto))]
 [JsonSerializable(typeof(ContainerLogsResponse))]
 [JsonSerializable(typeof(ContainerLogEntry))]

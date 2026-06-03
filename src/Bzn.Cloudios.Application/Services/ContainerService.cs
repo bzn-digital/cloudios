@@ -14,13 +14,15 @@ namespace Bzn.Cloudios.Application.Services;
 public sealed class ContainerService : IContainerService
 {
     private readonly CloudiosDbContext _context;
-    private readonly DockerNetworkService _docker;
+    private readonly IDockerNetworkService _docker;
     private readonly ILogger<ContainerService> _logger;
     private readonly string _socketPath;
+    private readonly string _volumesBasePath;
+    private readonly bool _skipDirectoryCreation;
 
     public ContainerService(
         CloudiosDbContext context,
-        DockerNetworkService docker,
+        IDockerNetworkService docker,
         IConfiguration configuration,
         ILogger<ContainerService> logger)
     {
@@ -28,6 +30,8 @@ public sealed class ContainerService : IContainerService
         _docker = docker;
         _logger = logger;
         _socketPath = configuration["Docker:SocketPath"] ?? "/var/run/docker.sock";
+        _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
+        _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
     }
 
     public async Task<ContainerActionResponse> DeployAsync(Guid containerId, CancellationToken ct = default)
@@ -132,9 +136,12 @@ public sealed class ContainerService : IContainerService
         return MapToActionResponse(container);
     }
 
-    public async Task DeleteAsync(Guid containerId, CancellationToken ct = default)
+    public async Task DeleteAsync(Guid containerId, bool removeVolumes = true, CancellationToken ct = default)
     {
-        var container = await _context.Containers.FindAsync([containerId], ct);
+        var container = await _context.Containers
+            .Include(c => c.Volumes)
+            .Include(c => c.EnvironmentVariables)
+            .FirstOrDefaultAsync(c => c.Id == containerId, ct);
         if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
 
         if (container.DockerContainerId is not null)
@@ -151,10 +158,87 @@ public sealed class ContainerService : IContainerService
             }
         }
 
+        // Remove volume directories from host if requested
+        if (removeVolumes)
+        {
+            foreach (var volume in container.Volumes)
+            {
+                try
+                {
+                    if (Directory.Exists(volume.HostPath))
+                    {
+                        Directory.Delete(volume.HostPath, recursive: true);
+                        _logger.LogInformation("Removed volume directory {Path}", volume.HostPath);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to remove volume directory {Path}", volume.HostPath);
+                }
+            }
+        }
+
         _context.Containers.Remove(container);
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Container {Name} deleted", container.Name);
+    }
+
+    public async Task UpdateEnvVarsAsync(Guid containerId, Dictionary<string, string> envVars, CancellationToken ct = default)
+    {
+        var container = await _context.Containers
+            .Include(c => c.EnvironmentVariables)
+            .FirstOrDefaultAsync(c => c.Id == containerId, ct);
+        if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
+
+        // Remove existing env vars
+        _context.ContainerEnvVars.RemoveRange(container.EnvironmentVariables);
+
+        // Add new env vars
+        foreach (var (key, value) in envVars)
+        {
+            container.EnvironmentVariables.Add(new ContainerEnvVar
+            {
+                ContainerId = containerId,
+                Key = key,
+                Value = value
+            });
+        }
+
+        await _context.SaveChangesAsync(ct);
+        _logger.LogInformation("Updated environment variables for container {Name}", container.Name);
+    }
+
+    public async Task UpdateVolumesAsync(Guid containerId, List<ContainerVolumeRequest> volumes, CancellationToken ct = default)
+    {
+        var container = await _context.Containers
+            .Include(c => c.Volumes)
+            .FirstOrDefaultAsync(c => c.Id == containerId, ct);
+        if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
+
+        // Remove existing volumes
+        _context.ContainerVolumes.RemoveRange(container.Volumes);
+
+        // Add new volumes
+        foreach (var vol in volumes)
+        {
+            var hostPath = Path.Combine(_volumesBasePath, "volumes", $"realm-{container.RealmId}", $"container-{containerId}", vol.HostPath);
+            if (!_skipDirectoryCreation)
+            {
+                Directory.CreateDirectory(hostPath);
+            }
+
+            container.Volumes.Add(new ContainerVolume
+            {
+                ContainerId = containerId,
+                HostPath = hostPath,
+                ContainerPath = vol.ContainerPath,
+                IsReadOnly = vol.IsReadOnly
+            });
+        }
+
+        await _context.SaveChangesAsync(ct);
+        _logger.LogInformation("Updated volumes for container {Name}", container.Name);
     }
 
     public async Task<string?> GetContainerIpAsync(string dockerContainerId, CancellationToken ct = default)

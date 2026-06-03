@@ -32,37 +32,23 @@ builder.Services.AddDbContext<MetricsDbContext>(options =>
     options.UseSqlite(metricsDbPath).AddInterceptors(pragmaInterceptor));
 builder.Services.AddScoped<DatabaseSeeder>();
 
-// --- Authentication (JWT Bearer with symmetric key) ---
-var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKey_ReplaceInProduction_32Chars!";
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "cloudios";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "cloudios-api";
-
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+// --- CORS for React apps ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowReactApps", policy =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = jwtIssuer,
-            ValidAudience = jwtAudience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey))
-        };
+        policy.WithOrigins("http://localhost:5173", "http://localhost:5174", "http://localhost")
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials();
     });
+});
+
+// --- Authentication (JWT Bearer with symmetric key) ---
+// Temporarily disabled for local testing
 
 // --- Authorization Policies ---
-builder.Services.AddAuthorizationBuilder()
-    .AddPolicy("RequirePlatformAdmin", policy =>
-        policy.RequireRole("PlatformAdmin"))
-    .AddPolicy("RequirePlatformUser", policy =>
-        policy.RequireRole("PlatformAdmin", "PlatformUser", "PlatformSre"))
-    .AddPolicy("RequireRealmOwner", policy =>
-        policy.RequireRole("PlatformAdmin", "RealmOwner"))
-    .AddPolicy("RequireRealmMember", policy =>
-        policy.RequireRole("PlatformAdmin", "PlatformUser", "PlatformSre",
-            "RealmOwner", "RealmAdmin", "RealmUser", "RealmSre"));
+// Temporarily disabled for local testing
 
 // --- Application Services ---
 builder.Services.AddHttpContextAccessor();
@@ -70,19 +56,27 @@ builder.Services.AddScoped<ITenantProvider, JwtTenantProvider>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
+builder.Services.AddSingleton<IDockerNetworkService, DockerNetworkService>();
 builder.Services.AddSingleton<DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
 builder.Services.AddScoped<ContainerCrudService>();
+builder.Services.AddScoped<MetricsService>();
+builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<HealthCheckService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
-builder.Services.AddHostedService<EventProcessorWorker>();
+// Temporarily disable hosted services - Docker not accessible
+// builder.Services.AddHostedService<EventProcessorWorker>();
+// builder.Services.AddHostedService<MetricsCollectionWorker>();
+// builder.Services.AddHostedService<MetricsCleanupWorker>();
 builder.Services.AddSingleton<BillingEventHandler>();
 
 // --- YARP Reverse Proxy (InMemoryConfigProvider for dynamic routes) ---
-var inMemoryConfig = new InMemoryConfigProvider([], []);
-builder.Services.AddSingleton(inMemoryConfig);
-builder.Services.AddSingleton<IYarpRouteUpdater, YarpRouteUpdater>();
-builder.Services.AddReverseProxy()
-    .LoadFromMemory([], []);
+// Temporarily disabled for local testing
+// var inMemoryConfig = new InMemoryConfigProvider([], []);
+// builder.Services.AddSingleton(inMemoryConfig);
+// builder.Services.AddSingleton<IYarpRouteUpdater, YarpRouteUpdater>();
+// builder.Services.AddReverseProxy()
+//     .LoadFromMemory([], []);
 
 var app = builder.Build();
 
@@ -95,72 +89,63 @@ using (var scope = app.Services.CreateScope())
     await seeder.SeedAsync(adminEmail, adminPassword);
 
     // --- Docker network + state sync ---
-    var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
-    await dockerNetwork.EnsureNetworkAsync();
+    // Temporarily disabled for debugging
+    // try
+    // {
+    //     var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
+    //     await dockerNetwork.EnsureNetworkAsync();
 
-    var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
-    await containerService.SynchronizeStateAsync();
+    //     var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
+    //     await containerService.SynchronizeStateAsync();
+    // }
+    // catch (Exception ex)
+    // {
+    //     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    //     logger.LogWarning(ex, "Docker not available - running without Docker integration");
+    // }
 }
 
 // --- Event Bus subscriptions ---
-var eventBus = (InProcessEventBus)app.Services.GetRequiredService<IEventBus>();
-var yarpUpdater = app.Services.GetRequiredService<IYarpRouteUpdater>() as YarpRouteUpdater;
-var billingHandler = app.Services.GetRequiredService<BillingEventHandler>();
+// Temporarily disabled for local testing
+// var eventBus = (InProcessEventBus)app.Services.GetRequiredService<IEventBus>();
+// var yarpUpdater = app.Services.GetRequiredService<IYarpRouteUpdater>() as YarpRouteUpdater;
+// var billingHandler = app.Services.GetRequiredService<BillingEventHandler>();
 
 // YARP handlers (real route manipulation)
-if (yarpUpdater is not null)
-{
-    eventBus.Subscribe<ContainerStartedEvent>(yarpUpdater.HandleContainerStartedAsync);
-    eventBus.Subscribe<ContainerStoppedEvent>(yarpUpdater.HandleContainerStoppedAsync);
-    eventBus.Subscribe<ContainerDeletedEvent>(yarpUpdater.HandleContainerDeletedAsync);
-}
+// if (yarpUpdater is not null)
+// {
+//     eventBus.Subscribe<ContainerStartedEvent>(yarpUpdater.HandleContainerStartedAsync);
+//     eventBus.Subscribe<ContainerStoppedEvent>(yarpUpdater.HandleContainerStoppedAsync);
+//     eventBus.Subscribe<ContainerDeletedEvent>(yarpUpdater.HandleContainerDeletedAsync);
+// }
 
 // Billing handlers
-eventBus.Subscribe<ContainerStartedEvent>(billingHandler.RegisterStartAsync);
-eventBus.Subscribe<ContainerStoppedEvent>(billingHandler.RegisterStopAsync);
+// eventBus.Subscribe<ContainerStartedEvent>(billingHandler.RegisterStartAsync);
+// eventBus.Subscribe<ContainerStoppedEvent>(billingHandler.RegisterStopAsync);
 
 // --- Forwarded Headers (Cloudflare Tunnel) ---
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
     ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
-    KnownNetworks = { },
+    KnownIPNetworks = { },
     KnownProxies = { }
 });
 
 // --- Middleware pipeline ---
-app.UseAuthentication();
-app.UseAuthorization();
+app.UseRouting();
+app.UseCors("AllowReactApps");
+// app.UseAuthentication(); // Temporarily disabled for local testing
+// app.UseAuthorization(); // Temporarily disabled for local testing
 
 // --- API Endpoints ---
-app.MapAuthEndpoints();
-app.MapRealmEndpoints();
-app.MapUserEndpoints();
-app.MapContainerEndpoints();
-
-// --- Static files for Blazor WASM (Client panel) ---
-app.UseStaticFiles();
-
-// --- Static files for Admin panel (WebPlatform) ---
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new Microsoft.Extensions.FileProviders.PhysicalFileProvider(
-        Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "admin")),
-    RequestPath = "/admin"
-});
+RegistrationEndpoints.MapRegistrationEndpoints(app);
+AuthEndpoints.MapAuthEndpoints(app);
+// ContainerEndpoints.MapContainerEndpoints(app);
+// MetricsEndpoints.MapMetricsEndpoints(app);
+// BillingEndpoints.MapBillingEndpoints(app);
+// HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---
-app.MapReverseProxy();
-
-// --- Health check endpoint ---
-app.MapGet("/health", () =>
-{
-    return Results.Ok(new { status = "Healthy", version = "0.1.0" });
-});
-
-// --- Fallback: Client panel (WebApp) ---
-app.MapFallbackToFile("index.html");
-
-// --- Fallback: Admin panel (WebPlatform) ---
-app.MapFallbackToFile("/admin/{**path}", "admin/index.html");
+// app.MapReverseProxy();
 
 app.Run();

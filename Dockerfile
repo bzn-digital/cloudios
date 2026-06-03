@@ -8,8 +8,6 @@ COPY src/Bzn.Cloudios.Domain/Bzn.Cloudios.Domain.csproj src/Bzn.Cloudios.Domain/
 COPY src/Bzn.Cloudios.Infrastructure/Bzn.Cloudios.Infrastructure.csproj src/Bzn.Cloudios.Infrastructure/
 COPY src/Bzn.Cloudios.Application/Bzn.Cloudios.Application.csproj src/Bzn.Cloudios.Application/
 COPY src/Bzn.Cloudios.WebAPI/Bzn.Cloudios.WebAPI.csproj src/Bzn.Cloudios.WebAPI/
-COPY src/Bzn.Cloudios.WebApp/Bzn.Cloudios.WebApp.csproj src/Bzn.Cloudios.WebApp/
-COPY src/Bzn.Cloudios.WebPlatform/Bzn.Cloudios.WebPlatform.csproj src/Bzn.Cloudios.WebPlatform/
 RUN dotnet restore Bzn.Cloudios.slnx
 
 # Copy full source

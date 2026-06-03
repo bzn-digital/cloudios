@@ -43,8 +43,8 @@ public sealed class ContainerConfiguration : IEntityTypeConfiguration<Container>
             .HasConversion<string>()
             .HasDefaultValue(ContainerStatus.Stopped);
 
-        builder.HasCheckConstraint("CK_Containers_Status",
-            "Status IN ('Deploying','Running','Stopped','Failed')");
+        builder.ToTable(t => t.HasCheckConstraint("CK_Containers_Status",
+            "Status IN ('Deploying','Running','Stopped','Failed')"));
 
         builder.Property(c => c.CpuLimitCores)
             .IsRequired()

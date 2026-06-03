@@ -76,6 +76,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Route/Cluster added on container start, removed on stop/delete
 - `Realm.Slug` property added for hostname generation
 - YARP routes: hostname-based routing to container internal IP:port
+- React.js migration: WebApp and WebPlatform migrated from Blazor WASM to React with Vite + TypeScript
+- React Router for client-side routing in both frontend applications
+- AuthContext with JWT parsing and localStorage persistence for React apps
+- Login pages for WebApp (client panel) and WebPlatform (admin panel)
+- Layouts with collapsible sidebars: light mode for WebApp, dark mode for WebPlatform
+- Route protection: authenticated required for WebApp, GlobalAdmin only for WebPlatform
+- HTTP interceptor for automatic Bearer token injection and 401 handling with auto-logout
+- Dashboard pages with metric cards for both applications
+- TypeScript interfaces generated from C# DTOs for type safety
+- API client library for React applications with token management
+- CORS configuration in WebAPI for React development servers (localhost:5173, localhost:5174)
+- Docker containerization for React apps with nginx serving production builds
+- Tailwind CSS for styling in both React applications
+- Updated .gitignore with React/Node.js patterns (node_modules, dist, build, logs)
+
+### Changed
+- WebAPI: removed static file serving and Blazor-specific middleware
+- WebAPI: removed project reference to WebApp (now separate React application)
+- WebAPI: CORS enabled for React frontend development
+
+### Removed
+- Blazor WebAssembly projects: WebApp and WebPlatform (replaced by React)
+- Static file serving configuration from WebAPI Program.cs
+- MapFallbackToFile middleware from WebAPI (no longer serving frontend)
 
 ### Deprecated
 

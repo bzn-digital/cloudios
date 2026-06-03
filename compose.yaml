@@ -1,34 +1,63 @@
-# Cloudios — Local Development (Podman / Docker Compose)
+# Cloudios — Local Development (Docker Compose)
 #
 # Usage:
-#   podman compose up --build
 #   docker compose up --build
 #
-# The WebAPI runs on http://localhost:8080
-# Blazor WASM is served as static files by the WebAPI.
+# Services:
+#   webapi: API REST on http://localhost:5021
+#   webapp: React client panel on http://localhost:80
+#   webplatform: React admin panel on http://localhost:8080
 # SQLite databases persist in named volumes.
 
 services:
-  cloudios:
+  webapi:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: src/Bzn.Cloudios.WebAPI/Dockerfile
     container_name: cloudios-webapi
     ports:
-      - "8080:8080"
+      - "5022:5021"
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__MainDb=Data Source=/data/cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared
-      - ConnectionStrings__MetricsDb=Data Source=/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
-      - Admin__Email=admin@cloudios.local
-      - Admin__Password=Admin@123
-      - Jwt__Key=SuperSecretKey_ReplaceInProduction_32Chars!
-      - Jwt__Issuer=cloudios
-      - Jwt__Audience=cloudios-api
+      - ASPNETCORE_ENVIRONMENT=Production
+      - ASPNETCORE_URLS=http://0.0.0.0:5021
+      - ConnectionStrings:MainDb=Data Source=/app/data/cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared
+      - ConnectionStrings:MetricsDb=Data Source=/app/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
     volumes:
-      - cloudios-data:/data
-      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - cloudios-data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - cloudios-network
+    restart: unless-stopped
+
+  webapp:
+    build:
+      context: ./src/Bzn.Cloudios.WebApp
+      dockerfile: Dockerfile
+    container_name: cloudios-webapp
+    ports:
+      - "80:80"
+    depends_on:
+      - webapi
+    networks:
+      - cloudios-network
+    restart: unless-stopped
+
+  webplatform:
+    build:
+      context: ./src/Bzn.Cloudios.WebPlatform
+      dockerfile: Dockerfile
+    container_name: cloudios-webplatform
+    ports:
+      - "8080:80"
+    depends_on:
+      - webapi
+    networks:
+      - cloudios-network
     restart: unless-stopped
 
 volumes:
   cloudios-data:
+
+networks:
+  cloudios-network:
+    driver: bridge

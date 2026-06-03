@@ -7,6 +7,8 @@ using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Http;
 
 namespace Bzn.Cloudios.Application.Services;
 
@@ -16,6 +18,9 @@ public sealed class ContainerCrudService
     private readonly IContainerService _containerService;
     private readonly ITenantProvider _tenantProvider;
     private readonly IEventBus _eventBus;
+    private readonly IBillingService _billingService;
+    private readonly IHttpContextAccessor _httpContextAccessor;
+    private readonly IDockerNetworkService _docker;
     private readonly ILogger<ContainerCrudService> _logger;
 
     public ContainerCrudService(
@@ -23,12 +28,18 @@ public sealed class ContainerCrudService
         IContainerService containerService,
         ITenantProvider tenantProvider,
         IEventBus eventBus,
+        IBillingService billingService,
+        IHttpContextAccessor httpContextAccessor,
+        IDockerNetworkService docker,
         ILogger<ContainerCrudService> logger)
     {
         _context = context;
         _containerService = containerService;
         _tenantProvider = tenantProvider;
         _eventBus = eventBus;
+        _billingService = billingService;
+        _httpContextAccessor = httpContextAccessor;
+        _docker = docker;
         _logger = logger;
     }
 
@@ -49,7 +60,14 @@ public sealed class ContainerCrudService
             .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new ContainerListItem
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var dtos = new List<ContainerListItem>();
+        foreach (var c in items)
+        {
+            var monthCost = await _billingService.GetContainerMonthCostAsync(c.Id, now.Year, now.Month, ct);
+            dtos.Add(new ContainerListItem
             {
                 Id = c.Id,
                 Name = c.Name,
@@ -59,15 +77,15 @@ public sealed class ContainerCrudService
                 CpuLimitCores = c.CpuLimitCores,
                 MemoryLimitBytes = c.MemoryLimitBytes,
                 CostPerHourBRL = c.CostPerHourBRL,
-                CurrentMonthCostBRL = 0,
+                CurrentMonthCostBRL = monthCost,
                 StartedAtUtc = c.StartedAtUtc,
                 CreatedAt = c.CreatedAt
-            })
-            .ToListAsync(ct);
+            });
+        }
 
         return new ContainerListResponse
         {
-            Items = items,
+            Items = dtos,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
@@ -84,7 +102,14 @@ public sealed class ContainerCrudService
             .OrderBy(c => c.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(c => new AdminContainerListItem
+            .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var dtos = new List<AdminContainerListItem>();
+        foreach (var c in items)
+        {
+            var monthCost = await _billingService.GetContainerMonthCostAsync(c.Id, now.Year, now.Month, ct);
+            dtos.Add(new AdminContainerListItem
             {
                 Id = c.Id,
                 RealmId = c.RealmId,
@@ -95,13 +120,13 @@ public sealed class ContainerCrudService
                 CpuLimitCores = c.CpuLimitCores,
                 MemoryLimitBytes = c.MemoryLimitBytes,
                 CostPerHourBRL = c.CostPerHourBRL,
-                CurrentMonthCostBRL = 0
-            })
-            .ToListAsync(ct);
+                CurrentMonthCostBRL = monthCost
+            });
+        }
 
         return new AdminContainerListResponse
         {
-            Items = items,
+            Items = dtos,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
@@ -118,7 +143,7 @@ public sealed class ContainerCrudService
 
         if (container is null) return null;
 
-        return MapToDetail(container);
+        return MapToDetail(container, _httpContextAccessor.HttpContext?.User);
     }
 
     public async Task<(ContainerDetailResponse? Container, string? Error)> CreateAsync(CreateContainerRequest request, CancellationToken ct = default)
@@ -172,7 +197,7 @@ public sealed class ContainerCrudService
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Container {Name} created in realm {RealmId}", container.Name, realmId);
-        return (MapToDetail(container), null);
+        return (MapToDetail(container, _httpContextAccessor.HttpContext?.User), null);
     }
 
     public async Task<ContainerActionResponse> DeployAsync(Guid containerId, CancellationToken ct = default)
@@ -227,8 +252,20 @@ public sealed class ContainerCrudService
         var realmId = container?.RealmId ?? Guid.Empty;
         var name = container?.Name ?? "unknown";
 
-        await _containerService.DeleteAsync(containerId, ct);
+        await _containerService.DeleteAsync(containerId, removeVolumes: true, ct);
         await _eventBus.PublishAsync(new ContainerDeletedEvent(containerId, realmId, name, DateTime.UtcNow), ct);
+    }
+
+    public async Task<List<ContainerLogEntry>> GetContainerLogsAsync(Guid containerId, int tail = 100, CancellationToken ct = default)
+    {
+        var container = await _context.Containers.FindAsync([containerId], ct);
+        if (container is null)
+            throw new InvalidOperationException($"Container {containerId} not found");
+
+        if (container.DockerContainerId is null)
+            return []; // Container never deployed
+
+        return await _docker.GetContainerLogsAsync(container.DockerContainerId, tail, ct);
     }
 
     private static string? ValidateCreate(CreateContainerRequest request)
@@ -245,8 +282,12 @@ public sealed class ContainerCrudService
         return null;
     }
 
-    private static ContainerDetailResponse MapToDetail(Container c)
+    private static ContainerDetailResponse MapToDetail(Container c, ClaimsPrincipal? user)
     {
+        var role = user?.FindFirst(ClaimTypes.Role)?.Value;
+        var isViewer = role == "RealmViewer";
+        var isAdmin = role == "PlatformAdmin" || role == "PlatformSre";
+
         return new ContainerDetailResponse
         {
             Id = c.Id,
@@ -268,12 +309,9 @@ public sealed class ContainerCrudService
                 ContainerPath = v.ContainerPath,
                 IsReadOnly = v.IsReadOnly
             }).ToList(),
-            EnvironmentVariables = c.EnvironmentVariables.Select(e => new ContainerEnvVarDto
-            {
-                Id = e.Id,
-                Key = e.Key,
-                Value = e.Value
-            }).ToList()
+            EnvironmentVariables = isViewer && !isAdmin
+                ? c.EnvironmentVariables.Select(e => (object)new ContainerEnvVarSecureDto { Id = e.Id, Key = e.Key, Value = "***" }).ToList()
+                : c.EnvironmentVariables.Select(e => (object)new ContainerEnvVarDto { Id = e.Id, Key = e.Key, Value = e.Value }).ToList()
         };
     }
 }

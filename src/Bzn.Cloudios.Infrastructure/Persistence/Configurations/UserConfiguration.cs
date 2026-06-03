@@ -34,8 +34,8 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .HasColumnType("TEXT")
             .HasConversion<string>();
 
-        builder.HasCheckConstraint("CK_Users_Role",
-            "Role IN ('PlatformAdmin','PlatformUser','PlatformSre','RealmOwner','RealmAdmin','RealmUser','RealmSre')");
+        builder.ToTable(t => t.HasCheckConstraint("CK_Users_Role",
+            "Role IN ('PlatformAdmin','PlatformUser','PlatformSre','RealmOwner','RealmAdmin','RealmUser','RealmSre')"));
 
         builder.Property(u => u.IsBlocked)
             .IsRequired()
