@@ -358,6 +358,7 @@ body {
 
 .sidebar {
   width: 260px;
+  min-width: 260px;
   background: var(--bzn-surface-1);
   border-right: 1px solid var(--bzn-border);
   display: flex;
@@ -365,27 +366,8 @@ body {
   box-shadow: var(--bzn-shadow);
   position: relative;
   z-index: 10;
-  transition: width 0.3s ease, transform 0.3s ease;
+  transition: width 0.3s ease;
   flex-shrink: 0;
-}
-
-@media (max-width: 768px) {
-  .sidebar {
-    position: fixed;
-    left: 0;
-    top: 0;
-    height: 100vh;
-    transform: translateX(-100%);
-    z-index: 1000;
-  }
-
-  .sidebar.mobile-open {
-    transform: translateX(0);
-  }
-
-  .main-content {
-    margin-left: 0;
-  }
 }
 
 .sidebar-nav {
