@@ -4,8 +4,6 @@
     <Project Path="src/Bzn.Cloudios.Domain/Bzn.Cloudios.Domain.csproj" />
     <Project Path="src/Bzn.Cloudios.Infrastructure/Bzn.Cloudios.Infrastructure.csproj" />
     <Project Path="src/Bzn.Cloudios.WebAPI/Bzn.Cloudios.WebAPI.csproj" />
-    <Project Path="src/Bzn.Cloudios.WebApp/Bzn.Cloudios.WebApp.csproj" />
-    <Project Path="src/Bzn.Cloudios.WebPlatform/Bzn.Cloudios.WebPlatform.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Bzn.Cloudios.Tests/Bzn.Cloudios.Tests.csproj" />
