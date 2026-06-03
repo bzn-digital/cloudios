@@ -855,6 +855,8 @@ body {
   cursor: pointer;
   transition: background 0.2s ease;
   border-left: 3px solid transparent;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+  background: rgba(255, 255, 255, 0.02);
 }
 
 .notification-item:hover {
