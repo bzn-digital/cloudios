@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Layout } from '../components/Layout';
 
 interface QuickMenuItem {
   id: string;
@@ -85,59 +86,61 @@ const Home = () => {
   };
 
   return (
-    <div className="home">
-      <div className="home-header">
-        <h1>Welcome to Cloudios</h1>
-        <p>Manage your cloud infrastructure with ease</p>
-      </div>
+    <Layout>
+      <div className="home">
+        <div className="home-header">
+          <h1>Welcome to Cloudios</h1>
+          <p>Manage your cloud infrastructure with ease</p>
+        </div>
 
-      <div className="home-search">
-        <form onSubmit={handleSearch}>
-          <div className="search-wrapper">
-            <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="11" cy="11" r="8" />
-              <line x1="21" y1="21" x2="16.65" y2="16.65" />
-            </svg>
-            <input
-              type="text"
-              placeholder="Search services, pages, or resources..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-input"
-            />
-          </div>
-        </form>
-      </div>
-
-      <div className="home-content">
-        {sections.map((section) => (
-          <div key={section} className="home-section">
-            <h2 className="section-title">{section}</h2>
-            <div className="quick-menu-grid">
-              {quickMenuItems
-                .filter((item) => item.section === section)
-                .map((item) => (
-                  <button
-                    key={item.id}
-                    onClick={() => handleQuickMenuClick(item)}
-                    className="quick-menu-item"
-                  >
-                    <div className="quick-menu-icon">{item.icon}</div>
-                    <div className="quick-menu-content">
-                      <h3>{item.title}</h3>
-                      <p>{item.description}</p>
-                    </div>
-                    <svg className="quick-menu-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
-                ))}
+        <div className="home-search">
+          <form onSubmit={handleSearch}>
+            <div className="search-wrapper">
+              <svg className="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="8" />
+                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              </svg>
+              <input
+                type="text"
+                placeholder="Search services, pages, or resources..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="search-input"
+              />
             </div>
-          </div>
-        ))}
+          </form>
+        </div>
+
+        <div className="home-content">
+          {sections.map((section) => (
+            <div key={section} className="home-section">
+              <h2 className="section-title">{section}</h2>
+              <div className="quick-menu-grid">
+                {quickMenuItems
+                  .filter((item) => item.section === section)
+                  .map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => handleQuickMenuClick(item)}
+                      className="quick-menu-item"
+                    >
+                      <div className="quick-menu-icon">{item.icon}</div>
+                      <div className="quick-menu-content">
+                        <h3>{item.title}</h3>
+                        <p>{item.description}</p>
+                      </div>
+                      <svg className="quick-menu-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                  ))}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </Layout>
   );
 };
 
