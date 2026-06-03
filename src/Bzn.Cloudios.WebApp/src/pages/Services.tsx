@@ -19,14 +19,17 @@ export function Services() {
   const [showNewServiceModal, setShowNewServiceModal] = useState(false);
   const [newServiceLoading, setNewServiceLoading] = useState(false);
   const [newServiceError, setNewServiceError] = useState<string | null>(null);
+  const [networks, setNetworks] = useState<string[]>([]);
+  const [networksLoading, setNetworksLoading] = useState(false);
   const [newServiceFormData, setNewServiceFormData] = useState<CreateContainerRequest>({
     name: '',
     imageName: '',
     internalPort: 80,
+    hostPort: undefined,
+    networkName: '',
     cpuLimitCores: 0.5,
     memoryLimitBytes: 256 * 1024 * 1024,
     costPerHourBRL: 0.02,
-    volumes: [],
     environmentVariables: {},
   });
   const [envVars, setEnvVars] = useState<{ key: string; value: string }[]>([{ key: '', value: '' }]);
@@ -34,6 +37,24 @@ export function Services() {
   useEffect(() => {
     loadContainers();
   }, [search, statusFilter]);
+
+  const loadNetworks = async () => {
+    try {
+      setNetworksLoading(true);
+      const data = await apiClient.getNetworks() as { networks: string[] };
+      setNetworks(data.networks || []);
+    } catch (err) {
+      console.error('Failed to load networks:', err);
+    } finally {
+      setNetworksLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showNewServiceModal) {
+      loadNetworks();
+    }
+  }, [showNewServiceModal]);
 
   const loadContainers = async () => {
     try {
@@ -63,7 +84,7 @@ export function Services() {
   };
 
   const handleStart = (id: string) => {
-    handleAction(id, () => apiClient.startContainer(id), 'Service started successfully');
+    handleAction(id, () => apiClient.deployContainer(id), 'Service deployed successfully');
   };
 
   const handleStop = (id: string) => {
@@ -110,10 +131,11 @@ export function Services() {
         name: '',
         imageName: '',
         internalPort: 80,
+        hostPort: undefined,
+        networkName: '',
         cpuLimitCores: 0.5,
         memoryLimitBytes: 256 * 1024 * 1024,
         costPerHourBRL: 0.02,
-        volumes: [],
         environmentVariables: {},
       });
       setEnvVars([{ key: '', value: '' }]);
@@ -310,7 +332,6 @@ export function Services() {
               onChange={(e) => setNewServiceFormData({ ...newServiceFormData, name: e.target.value })}
               placeholder="my-service"
               required
-              pattern="[a-z0-9-]+"
               title="Only lowercase letters, numbers, and hyphens"
             />
             <small>Only lowercase letters, numbers, and hyphens (e.g., my-service)</small>
@@ -341,6 +362,37 @@ export function Services() {
               required
             />
             <small>Port your application listens on (e.g., 80, 3000, 5678)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="hostPort">Host Port (Optional)</label>
+            <input
+              id="hostPort"
+              type="number"
+              value={newServiceFormData.hostPort || ''}
+              onChange={(e) => setNewServiceFormData({ ...newServiceFormData, hostPort: e.target.value ? parseInt(e.target.value) : undefined })}
+              min={1}
+              max={65535}
+            />
+            <small>Port to expose on host (leave empty for random port)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="networkName">Network Name</label>
+            <select
+              id="networkName"
+              value={newServiceFormData.networkName}
+              onChange={(e) => setNewServiceFormData({ ...newServiceFormData, networkName: e.target.value })}
+              disabled={networksLoading}
+            >
+              <option value="">Default realm network</option>
+              {networks.map((network) => (
+                <option key={network} value={network}>
+                  {network}
+                </option>
+              ))}
+            </select>
+            <small>Select a network or leave empty for default realm network</small>
           </div>
 
           <div className="form-row">

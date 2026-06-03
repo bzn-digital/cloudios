@@ -3,6 +3,7 @@ using System;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    partial class CloudiosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260603185304_AddHostPortToContainers")]
+    partial class AddHostPortToContainers
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -93,10 +96,6 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("NetworkName")
-                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("RealmId")

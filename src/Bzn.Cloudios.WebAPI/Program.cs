@@ -7,6 +7,7 @@ using Bzn.Cloudios.Infrastructure.Services;
 using Bzn.Cloudios.WebAPI.Endpoints;
 using Bzn.Cloudios.WebAPI.Serialization;
 using Bzn.Cloudios.WebAPI.Services;
+using Docker.DotNet;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -56,6 +57,27 @@ builder.Services.AddScoped<ITenantProvider, JwtTenantProvider>();
 builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
+
+// Docker client (singleton for Podman socket connection)
+// When running locally on Windows, use TCP connection to Podman machine
+var socketPath = builder.Configuration["Docker:SocketPath"];
+DockerClient dockerClient;
+
+if (string.IsNullOrEmpty(socketPath))
+{
+    // Default to TCP connection to Podman machine for local development
+    // Podman system service must be running: podman system service --time=0 tcp:0.0.0.0:2375
+    var tcpUri = new Uri("http://localhost:2375");
+    dockerClient = new DockerClientConfiguration(tcpUri).CreateClient();
+}
+else
+{
+    var engineUri = new Uri($"unix://{socketPath}");
+    dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
+}
+
+builder.Services.AddSingleton(dockerClient);
+
 builder.Services.AddSingleton<IDockerNetworkService, DockerNetworkService>();
 builder.Services.AddSingleton<DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
@@ -64,9 +86,10 @@ builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<HealthCheckService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
-// Temporarily disable hosted services - Docker not accessible
+// Enable MetricsCollectionWorker for container state synchronization
+builder.Services.AddHostedService<MetricsCollectionWorker>();
+// Temporarily disable other hosted services
 // builder.Services.AddHostedService<EventProcessorWorker>();
-// builder.Services.AddHostedService<MetricsCollectionWorker>();
 // builder.Services.AddHostedService<MetricsCleanupWorker>();
 builder.Services.AddSingleton<BillingEventHandler>();
 
@@ -88,21 +111,24 @@ using (var scope = app.Services.CreateScope())
     var adminPassword = builder.Configuration["Admin:Password"] ?? "Admin@123";
     await seeder.SeedAsync(adminEmail, adminPassword);
 
-    // --- Docker network + state sync ---
-    // Temporarily disabled for debugging
-    // try
-    // {
-    //     var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
-    //     await dockerNetwork.EnsureNetworkAsync();
+    // Apply MetricsDb migrations
+    var metricsDb = scope.ServiceProvider.GetRequiredService<MetricsDbContext>();
+    await metricsDb.Database.MigrateAsync();
 
-    //     var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
-    //     await containerService.SynchronizeStateAsync();
-    // }
-    // catch (Exception ex)
-    // {
-    //     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-    //     logger.LogWarning(ex, "Docker not available - running without Docker integration");
-    // }
+    // --- Docker network + state sync ---
+    try
+    {
+        var dockerNetwork = scope.ServiceProvider.GetRequiredService<DockerNetworkService>();
+        await dockerNetwork.EnsureNetworkAsync();
+
+        var containerService = scope.ServiceProvider.GetRequiredService<IContainerService>();
+        await containerService.SynchronizeStateAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+        logger.LogWarning(ex, "Docker not available - running without Docker integration");
+    }
 }
 
 // --- Event Bus subscriptions ---
@@ -140,10 +166,11 @@ app.UseCors("AllowReactApps");
 // --- API Endpoints ---
 RegistrationEndpoints.MapRegistrationEndpoints(app);
 AuthEndpoints.MapAuthEndpoints(app);
-// ContainerEndpoints.MapContainerEndpoints(app);
-// MetricsEndpoints.MapMetricsEndpoints(app);
-// BillingEndpoints.MapBillingEndpoints(app);
-// HealthCheckEndpoints.MapHealthCheckEndpoints(app);
+ContainerEndpoints.MapContainerEndpoints(app);
+ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
+MetricsEndpoints.MapMetricsEndpoints(app);
+BillingEndpoints.MapBillingEndpoints(app);
+HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---
 // app.MapReverseProxy();

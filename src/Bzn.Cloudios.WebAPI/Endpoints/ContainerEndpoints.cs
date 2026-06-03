@@ -1,3 +1,4 @@
+using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
 
@@ -12,6 +13,13 @@ public static class ContainerEndpoints
         {
             var result = await service.ListAllAsync(page, pageSize, ct);
             return Results.Ok(result);
+        });
+
+        // List networks
+        app.MapGet("/api/networks", async (IDockerNetworkService networkService, CancellationToken ct) =>
+        {
+            var networks = await networkService.ListNetworksAsync(ct);
+            return Results.Ok(new { networks });
         });
 
         var group = app.MapGroup("/api/containers");
@@ -34,7 +42,7 @@ public static class ContainerEndpoints
         group.MapPost("/", async (CreateContainerRequest request, ContainerCrudService service, CancellationToken ct) =>
         {
             var (container, error) = await service.CreateAsync(request, ct);
-            if (error is not null) return Results.Conflict(new { error });
+            if (error is not null) return Results.Conflict(new ErrorResponse { Detail = error });
             return Results.Created($"/api/containers/{container!.Id}", container);
         });
 
@@ -48,11 +56,11 @@ public static class ContainerEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.NotFound(new { error = ex.Message });
+                return Results.NotFound(new ErrorResponse { Detail = ex.Message });
             }
             catch (Exception ex)
             {
-                return Results.Problem(ex.Message);
+                return Results.BadRequest(new ErrorResponse { Detail = ex.Message });
             }
         });
 
@@ -66,7 +74,7 @@ public static class ContainerEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return Results.BadRequest(new ErrorResponse { Detail = ex.Message });
             }
         });
 
@@ -80,7 +88,7 @@ public static class ContainerEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return Results.BadRequest(new ErrorResponse { Detail = ex.Message });
             }
         });
 
@@ -94,7 +102,7 @@ public static class ContainerEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.BadRequest(new { error = ex.Message });
+                return Results.BadRequest(new ErrorResponse { Detail = ex.Message });
             }
         });
 
@@ -108,7 +116,7 @@ public static class ContainerEndpoints
             }
             catch (InvalidOperationException ex)
             {
-                return Results.NotFound(new { error = ex.Message });
+                return Results.NotFound(new ErrorResponse { Detail = ex.Message });
             }
         });
     }

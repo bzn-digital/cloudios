@@ -42,10 +42,11 @@ export interface CreateContainerRequest {
   name: string;
   imageName: string;
   internalPort: number;
+  hostPort?: number;
+  networkName: string;
   cpuLimitCores: number;
   memoryLimitBytes: number;
   costPerHourBRL: number;
-  volumes: ContainerVolumeDto[];
   environmentVariables: Record<string, string>;
 }
 

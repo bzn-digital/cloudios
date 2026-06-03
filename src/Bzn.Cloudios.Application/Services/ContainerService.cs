@@ -1,35 +1,38 @@
-using System.Text.Json;
 using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Extensions;
 using Bzn.Cloudios.Domain.Dto;
 using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Domain.Enums;
 using Bzn.Cloudios.Infrastructure.Persistence;
+using Docker.DotNet;
+using Docker.DotNet.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using ContainerStatusEnum = Bzn.Cloudios.Domain.Enums.ContainerStatus;
 
 namespace Bzn.Cloudios.Application.Services;
 
 public sealed class ContainerService : IContainerService
 {
     private readonly CloudiosDbContext _context;
-    private readonly IDockerNetworkService _docker;
+    private readonly DockerClient _dockerClient;
+    private readonly IDockerNetworkService _dockerNetworkService;
     private readonly ILogger<ContainerService> _logger;
-    private readonly string _socketPath;
     private readonly string _volumesBasePath;
     private readonly bool _skipDirectoryCreation;
 
     public ContainerService(
         CloudiosDbContext context,
-        IDockerNetworkService docker,
+        DockerClient dockerClient,
+        IDockerNetworkService dockerNetworkService,
         IConfiguration configuration,
         ILogger<ContainerService> logger)
     {
         _context = context;
-        _docker = docker;
+        _dockerClient = dockerClient;
+        _dockerNetworkService = dockerNetworkService;
         _logger = logger;
-        _socketPath = configuration["Docker:SocketPath"] ?? "/var/run/docker.sock";
         _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
         _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
     }
@@ -44,31 +47,54 @@ public sealed class ContainerService : IContainerService
         if (container is null)
             throw new InvalidOperationException($"Container {containerId} not found");
 
-        container.Status = ContainerStatus.Deploying;
+        container.Status = ContainerStatusEnum.Deploying;
         await _context.SaveChangesAsync(ct);
 
         try
         {
-            var createBody = BuildCreateContainerBody(container);
-            var createJson = JsonSerializer.Serialize(createBody);
+            // Use the specified network or default to realm network
+            var networkName = string.IsNullOrEmpty(container.NetworkName)
+                ? $"cloudios_{container.RealmId:N}"
+                : container.NetworkName;
 
-            var createResponse = await _docker.SendRequestAsync<JsonElement>(
-                "POST", "/containers/create", createJson, ct);
+            // Ensure the network exists
+            if (networkName.StartsWith($"cloudios_{container.RealmId:N}"))
+            {
+                await _dockerNetworkService.EnsureRealmNetworkAsync(container.RealmId, ct);
+            }
 
-            var dockerId = createResponse.GetProperty("Id").GetString()!;
+            // Pull the image if it doesn't exist locally
+            _logger.LogInformation("Pulling image {Image}...", container.ImageName);
+            await _dockerClient.Images.CreateImageAsync(
+                new ImagesCreateParameters { FromImage = container.ImageName },
+                null,
+                new Progress<JSONMessage>(msg => _logger.LogDebug("Pull progress: {Status}", msg.Status)),
+                ct);
+            _logger.LogInformation("Image {Image} pulled successfully", container.ImageName);
 
+            // Check if a container with the same name already exists and remove it
+            var containerName = container.Name.Replace(" ", "-").ToLowerInvariant();
+            var existingContainers = await _dockerClient.Containers.ListContainersAsync(
+                new ContainersListParameters { All = true }, ct);
+            var existingContainer = existingContainers.FirstOrDefault(c => c.Names.Contains($"/{containerName}"));
+
+            if (existingContainer != null)
+            {
+                _logger.LogWarning("Container with name {Name} already exists (ID: {Id}), removing it", containerName, existingContainer.ID);
+                await _dockerClient.Containers.RemoveContainerAsync(existingContainer.ID,
+                    new ContainerRemoveParameters { Force = true, RemoveVolumes = true }, ct);
+            }
+
+            var createParams = BuildCreateContainerParameters(container);
+            var createResponse = await _dockerClient.Containers.CreateContainerAsync(createParams, ct);
+
+            var dockerId = createResponse.ID;
             container.DockerContainerId = dockerId;
 
             // Start the container
-            await _docker.SendRequestAsync<JsonElement>(
-                "POST", $"/containers/{dockerId}/start", ct: ct);
+            await _dockerClient.Containers.StartContainerAsync(dockerId, new ContainerStartParameters(), ct);
 
-            // Connect to cloudios_internal network
-            await _docker.SendRequestAsync<JsonElement>(
-                "POST", $"/networks/cloudios_internal/connect",
-                JsonSerializer.Serialize(new { Container = dockerId }), ct);
-
-            container.Status = ContainerStatus.Running;
+            container.Status = ContainerStatusEnum.Running;
             container.StartedAtUtc = DateTime.UtcNow;
             await _context.SaveChangesAsync(ct);
 
@@ -77,7 +103,7 @@ public sealed class ContainerService : IContainerService
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to deploy container {Name}", container.Name);
-            container.Status = ContainerStatus.Failed;
+            container.Status = ContainerStatusEnum.Failed;
             await _context.SaveChangesAsync(ct);
             throw;
         }
@@ -91,10 +117,9 @@ public sealed class ContainerService : IContainerService
         if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
         if (container.DockerContainerId is null) throw new InvalidOperationException("Container not deployed");
 
-        await _docker.SendRequestAsync<JsonElement>(
-            "POST", $"/containers/{container.DockerContainerId}/start", ct: ct);
+        await _dockerClient.Containers.StartContainerAsync(container.DockerContainerId, new ContainerStartParameters(), ct);
 
-        container.Status = ContainerStatus.Running;
+        container.Status = ContainerStatusEnum.Running;
         container.StartedAtUtc = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
@@ -108,10 +133,9 @@ public sealed class ContainerService : IContainerService
         if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
         if (container.DockerContainerId is null) throw new InvalidOperationException("Container not deployed");
 
-        await _docker.SendRequestAsync<JsonElement>(
-            "POST", $"/containers/{container.DockerContainerId}/stop", ct: ct);
+        await _dockerClient.Containers.StopContainerAsync(container.DockerContainerId, new ContainerStopParameters(), ct);
 
-        container.Status = ContainerStatus.Stopped;
+        container.Status = ContainerStatusEnum.Stopped;
         container.StartedAtUtc = null;
         await _context.SaveChangesAsync(ct);
 
@@ -125,10 +149,9 @@ public sealed class ContainerService : IContainerService
         if (container is null) throw new InvalidOperationException($"Container {containerId} not found");
         if (container.DockerContainerId is null) throw new InvalidOperationException("Container not deployed");
 
-        await _docker.SendRequestAsync<JsonElement>(
-            "POST", $"/containers/{container.DockerContainerId}/restart", ct: ct);
+        await _dockerClient.Containers.RestartContainerAsync(container.DockerContainerId, new ContainerRestartParameters(), ct);
 
-        container.Status = ContainerStatus.Running;
+        container.Status = ContainerStatusEnum.Running;
         container.StartedAtUtc = DateTime.UtcNow;
         await _context.SaveChangesAsync(ct);
 
@@ -149,8 +172,8 @@ public sealed class ContainerService : IContainerService
             try
             {
                 // Force stop + remove with volumes
-                await _docker.SendRequestAsync<JsonElement>(
-                    "DELETE", $"/containers/{container.DockerContainerId}?force=true&v=true", ct: ct);
+                await _dockerClient.Containers.RemoveContainerAsync(container.DockerContainerId,
+                    new ContainerRemoveParameters { Force = true, RemoveVolumes = true }, ct);
             }
             catch (Exception ex)
             {
@@ -243,18 +266,13 @@ public sealed class ContainerService : IContainerService
 
     public async Task<string?> GetContainerIpAsync(string dockerContainerId, CancellationToken ct = default)
     {
-        var inspect = await _docker.SendRequestAsync<JsonElement>(
-            "GET", $"/containers/{dockerContainerId}/json", ct: ct);
+        var inspect = await _dockerClient.Containers.InspectContainerAsync(dockerContainerId, ct);
 
-        if (inspect.ValueKind == JsonValueKind.Undefined) return null;
+        if (inspect?.NetworkSettings?.Networks == null) return null;
 
-        var networks = inspect
-            .GetProperty("NetworkSettings")
-            .GetProperty("Networks");
-
-        if (networks.TryGetProperty("cloudios_internal", out var net))
+        if (inspect.NetworkSettings.Networks.TryGetValue("cloudios_internal", out var network))
         {
-            return net.GetProperty("IPAddress").GetString();
+            return network.IPAddress;
         }
 
         return null;
@@ -265,53 +283,54 @@ public sealed class ContainerService : IContainerService
         _logger.LogInformation("Starting container state synchronization...");
 
         // Get all managed containers from Docker
-        var dockerContainers = await _docker.SendRequestAsync<List<JsonElement>>(
-            "GET", "/containers/json?all=true&filters={\"label\":[\"cloudios.managed=true\"]}", ct: ct);
+        var dockerContainers = await _dockerClient.Containers.ListContainersAsync(
+            new ContainersListParameters
+            {
+                All = true,
+                Filters = new Dictionary<string, IDictionary<string, bool>>
+                {
+                    ["label"] = new Dictionary<string, bool> { ["cloudios.managed"] = true }
+                }
+            }, ct);
 
         var dockerIds = new HashSet<string>();
-        if (dockerContainers is not null)
+        foreach (var dc in dockerContainers)
         {
-            foreach (var dc in dockerContainers)
+            dockerIds.Add(dc.ID);
+            var isRunning = dc.State == "running";
+
+            var dbContainer = await _context.Containers
+                .FirstOrDefaultAsync(c => c.DockerContainerId == dc.ID, ct);
+
+            if (dbContainer is not null)
             {
-                var dockerId = dc.GetProperty("Id").GetString()!;
-                dockerIds.Add(dockerId);
-
-                var state = dc.GetProperty("State").GetString()!;
-                var isRunning = state == "running";
-
-                var dbContainer = await _context.Containers
-                    .FirstOrDefaultAsync(c => c.DockerContainerId == dockerId, ct);
-
-                if (dbContainer is not null)
+                // DB says Running but Docker says stopped
+                if (dbContainer.Status == ContainerStatusEnum.Running && !isRunning)
                 {
-                    // DB says Running but Docker says stopped
-                    if (dbContainer.Status == ContainerStatus.Running && !isRunning)
-                    {
-                        _logger.LogWarning("Container {Name} marked as Running in DB but {State} in Docker — fixing", dbContainer.Name, state);
-                        dbContainer.Status = ContainerStatus.Stopped;
-                        dbContainer.StartedAtUtc = null;
-                    }
-                    // DB says Stopped but Docker says running
-                    else if (dbContainer.Status == ContainerStatus.Stopped && isRunning)
-                    {
-                        _logger.LogWarning("Container {Name} marked as Stopped in DB but Running in Docker — fixing", dbContainer.Name);
-                        dbContainer.Status = ContainerStatus.Running;
-                        dbContainer.StartedAtUtc = DateTime.UtcNow;
-                    }
+                    _logger.LogWarning("Container {Name} marked as Running in DB but {State} in Docker — fixing", dbContainer.Name, dc.State);
+                    dbContainer.Status = ContainerStatusEnum.Stopped;
+                    dbContainer.StartedAtUtc = null;
                 }
-                else
+                // DB says Stopped but Docker says running
+                else if (dbContainer.Status == ContainerStatusEnum.Stopped && isRunning)
                 {
-                    // Orphan container in Docker — remove it
-                    _logger.LogWarning("Orphan Docker container {DockerId} found — removing", dockerId);
-                    try
-                    {
-                        await _docker.SendRequestAsync<JsonElement>(
-                            "DELETE", $"/containers/{dockerId}?force=true&v=true", ct: ct);
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger.LogError(ex, "Failed to remove orphan container {DockerId}", dockerId);
-                    }
+                    _logger.LogWarning("Container {Name} marked as Stopped in DB but Running in Docker — fixing", dbContainer.Name);
+                    dbContainer.Status = ContainerStatusEnum.Running;
+                    dbContainer.StartedAtUtc = DateTime.UtcNow;
+                }
+            }
+            else
+            {
+                // Orphan container in Docker — remove it
+                _logger.LogWarning("Orphan Docker container {DockerId} found — removing", dc.ID);
+                try
+                {
+                    await _dockerClient.Containers.RemoveContainerAsync(dc.ID,
+                        new ContainerRemoveParameters { Force = true, RemoveVolumes = true }, ct);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to remove orphan container {DockerId}", dc.ID);
                 }
             }
         }
@@ -323,10 +342,10 @@ public sealed class ContainerService : IContainerService
 
         foreach (var dbContainer in dbContainersWithDocker)
         {
-            if (!dockerIds.Contains(dbContainer.DockerContainerId!) && dbContainer.Status == ContainerStatus.Running)
+            if (!dockerIds.Contains(dbContainer.DockerContainerId!) && dbContainer.Status == ContainerStatusEnum.Running)
             {
                 _logger.LogWarning("Container {Name} has Docker ID but not found in Docker — marking Stopped", dbContainer.Name);
-                dbContainer.Status = ContainerStatus.Stopped;
+                dbContainer.Status = ContainerStatusEnum.Stopped;
                 dbContainer.StartedAtUtc = null;
             }
         }
@@ -335,12 +354,36 @@ public sealed class ContainerService : IContainerService
         _logger.LogInformation("Container state synchronization complete");
     }
 
-    private static object BuildCreateContainerBody(Container container)
+    private static CreateContainerParameters BuildCreateContainerParameters(Container container)
     {
-        var cpuQuota = (long)(container.CpuLimitCores * 100000);
+        var portBindings = new Dictionary<string, IList<PortBinding>>();
+        var exposedPorts = new Dictionary<string, EmptyStruct>();
 
-        return new
+        // Add internal port
+        exposedPorts[$"{container.InternalPort}/tcp"] = new EmptyStruct();
+
+        // Add host port binding if specified
+        if (container.HostPort.HasValue)
         {
+            portBindings[$"{container.InternalPort}/tcp"] = new List<PortBinding>
+            {
+                new PortBinding { HostPort = container.HostPort.Value.ToString() }
+            };
+        }
+        else
+        {
+            // Bind to random host port if no specific port specified
+            portBindings[$"{container.InternalPort}/tcp"] = new List<PortBinding> { new PortBinding() };
+        }
+
+        // Use the specified network or default to realm network
+        var networkName = string.IsNullOrEmpty(container.NetworkName)
+            ? $"cloudios_{container.RealmId:N}"
+            : container.NetworkName;
+
+        return new CreateContainerParameters
+        {
+            Name = container.Name.Replace(" ", "-").ToLowerInvariant(),
             Image = container.ImageName,
             Hostname = container.Name.Replace(" ", "-").ToLowerInvariant(),
             Labels = new Dictionary<string, string>
@@ -349,28 +392,24 @@ public sealed class ContainerService : IContainerService
                 ["cloudios.container"] = container.Id.ToString(),
                 ["cloudios.managed"] = "true"
             },
-            HostConfig = new
+            HostConfig = new HostConfig
             {
-                CpuQuota = cpuQuota,
                 Memory = container.MemoryLimitBytes,
-                PortBindings = new Dictionary<string, object>
-                {
-                    [$"{container.InternalPort}/tcp"] = Array.Empty<object>()
-                },
+                PortBindings = portBindings,
                 Binds = container.Volumes.Select(v =>
                     $"{v.HostPath}:{v.ContainerPath}{(v.IsReadOnly ? ":ro" : "")}").ToList(),
-                RestartPolicy = new { Name = "unless-stopped" }
+                RestartPolicy = new RestartPolicy
+                {
+                    Name = RestartPolicyKind.UnlessStopped
+                }
             },
             Env = container.EnvironmentVariables.Select(e => $"{e.Key}={e.Value}").ToList(),
-            ExposedPorts = new Dictionary<string, object>
+            ExposedPorts = exposedPorts,
+            NetworkingConfig = new NetworkingConfig
             {
-                [$"{container.InternalPort}/tcp"] = new { }
-            },
-            NetworkingConfig = new
-            {
-                EndpointsConfig = new Dictionary<string, object>
+                EndpointsConfig = new Dictionary<string, EndpointSettings>
                 {
-                    ["cloudios_internal"] = new { }
+                    [networkName] = new EndpointSettings()
                 }
             }
         };
