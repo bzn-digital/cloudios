@@ -272,7 +272,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       <main className="main-content">
-        <Header />
+        {location.pathname !== '/' && <Header />}
         {location.pathname !== '/' && <Breadcrumb />}
         {children}
       </main>
