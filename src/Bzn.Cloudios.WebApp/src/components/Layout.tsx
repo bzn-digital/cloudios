@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { Breadcrumb } from './Breadcrumb';
+import { Header } from './Header';
 
 interface LayoutProps {
   children: ReactNode;
@@ -271,6 +272,7 @@ export function Layout({ children }: LayoutProps) {
       </aside>
 
       <main className="main-content">
+        <Header />
         {location.pathname !== '/' && <Breadcrumb />}
         {children}
       </main>
