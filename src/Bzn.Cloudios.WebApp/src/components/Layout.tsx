@@ -189,7 +189,10 @@ export function Layout({ children }: LayoutProps) {
     <div className="layout-container">
       <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <h1>☁ Cloudios</h1>
+          <h1>
+            <span className="logo-icon">☁</span>
+            <span className="logo-text">Cloudios</span>
+          </h1>
           <p>{user?.realmName}</p>
         </div>
 
