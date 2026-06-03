@@ -112,17 +112,19 @@ export function Dashboard() {
                     yAxisId="cpu" 
                     type="monotone" 
                     dataKey="cpu" 
-                    stroke="#2563eb" 
+                    stroke="#9333ea" 
                     name="CPU %"
                     strokeWidth={2}
+                    dot={{ fill: '#9333ea', r: 3 }}
                   />
                   <Line 
                     yAxisId="memory" 
                     type="monotone" 
                     dataKey="memory" 
-                    stroke="#16a34a" 
+                    stroke="#f97316" 
                     name="Memory (MB)"
                     strokeWidth={2}
+                    dot={{ fill: '#f97316', r: 3 }}
                   />
                 </LineChart>
               </ResponsiveContainer>

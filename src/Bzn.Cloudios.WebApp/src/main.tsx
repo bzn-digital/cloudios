@@ -1,5 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import './styles/bzn-theme.css'
 import './App.css'
 import App from './App.tsx'
 
