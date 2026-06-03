@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -95,13 +95,44 @@ const icons = {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   ),
+  pin: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+    </svg>
+  ),
+  pinFilled: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+    </svg>
+  ),
 };
 
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isPinned, setIsPinned] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
+
+  // Persist pin state in localStorage
+  useEffect(() => {
+    const savedPin = localStorage.getItem('sidebar-pinned');
+    if (savedPin === 'true') {
+      setIsPinned(true);
+      setIsCollapsed(false);
+    }
+  }, []);
+
+  const togglePin = () => {
+    const newPinned = !isPinned;
+    setIsPinned(newPinned);
+    localStorage.setItem('sidebar-pinned', String(newPinned));
+    if (newPinned) {
+      setIsCollapsed(false);
+    }
+  };
 
   const toggleMenu = (menuId: string) => {
     setExpandedMenus((prev) => {
@@ -236,6 +267,13 @@ export function Layout({ children }: LayoutProps) {
               <polyline points="15 18 9 12 15 6" />
             </svg>
           )}
+        </button>
+        <button
+          className={`sidebar-pin ${isPinned ? 'pinned' : ''}`}
+          onClick={togglePin}
+          title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+        >
+          {isPinned ? icons.pinFilled : icons.pin}
         </button>
       </aside>
 

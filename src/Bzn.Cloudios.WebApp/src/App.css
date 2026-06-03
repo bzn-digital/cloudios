@@ -650,6 +650,38 @@ body {
   box-shadow: var(--bzn-shadow-md);
 }
 
+.sidebar-pin {
+  position: absolute;
+  top: calc(50% + 32px);
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bzn-gray-500);
+  transition: all 0.2s ease;
+  z-index: 20;
+  box-shadow: var(--bzn-shadow);
+}
+
+.sidebar-pin:hover {
+  background: var(--bzn-surface-2);
+  color: var(--bzn-primary-hover);
+  border-color: var(--bzn-border-hover);
+  box-shadow: var(--bzn-shadow-md);
+}
+
+.sidebar-pin.pinned {
+  color: var(--bzn-primary-hover);
+  border-color: var(--bzn-primary-hover);
+  background: var(--bzn-primary-light);
+}
+
 .main-content {
   flex: 1;
   overflow: auto;
