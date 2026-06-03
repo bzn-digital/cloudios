@@ -89,6 +89,46 @@ const Home = () => {
       section: 'Networking',
     },
     {
+      id: 'accounts',
+      title: 'Accounts',
+      description: 'Manage user accounts and permissions',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+      path: '/security/accounts',
+      section: 'Security and IAM',
+    },
+    {
+      id: 'groups',
+      title: 'Groups',
+      description: 'Manage user groups and team access',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="9" cy="7" r="4" />
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+        </svg>
+      ),
+      path: '/security/groups',
+      section: 'Security and IAM',
+    },
+    {
+      id: 'role-rules',
+      title: 'Role Rules',
+      description: 'Configure role-based access control',
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      ),
+      path: '/security/role-rules',
+      section: 'Security and IAM',
+    },
+    {
       id: 'analytics',
       title: 'Analytics',
       description: 'View usage analytics and insights',
@@ -133,7 +173,7 @@ const Home = () => {
     },
   ];
 
-  const sections = ['Computing', 'Networking', 'Billing'] as const;
+  const sections = ['Computing', 'Networking', 'Security and IAM', 'Billing'] as const;
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
