@@ -233,7 +233,6 @@ export function Layout({ children }: LayoutProps) {
         { id: 'billing-management', label: 'Billing Management', icon: icons.billingManagement, path: '/billing/management' },
       ],
     },
-    { id: 'team', label: 'Team', icon: icons.team, path: '/team' },
   ];
 
   const renderMenuItem = (item: MenuItem, level: number = 0) => {

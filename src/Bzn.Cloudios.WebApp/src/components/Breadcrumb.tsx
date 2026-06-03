@@ -20,7 +20,6 @@ export function Breadcrumb() {
     analytics: 'Analytics',
     invoices: 'Invoices',
     management: 'Billing Management',
-    team: 'Team',
   };
 
   const formatBreadcrumbName = (name: string) => {
