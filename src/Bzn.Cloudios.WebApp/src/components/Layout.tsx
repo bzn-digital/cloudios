@@ -166,7 +166,7 @@ export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
   const savedPin = localStorage.getItem('sidebar-pinned') === 'true';
-  const [isCollapsed, setIsCollapsed] = useState(true);
+  const [isCollapsed, setIsCollapsed] = useState(!savedPin);
   const [isPinned, setIsPinned] = useState(savedPin);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
@@ -177,6 +177,8 @@ export function Layout({ children }: LayoutProps) {
     localStorage.setItem('sidebar-pinned', String(newPinned));
     if (newPinned) {
       setIsCollapsed(false);
+    } else {
+      setIsCollapsed(true);
     }
   };
 
