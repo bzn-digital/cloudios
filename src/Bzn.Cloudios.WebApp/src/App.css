@@ -368,11 +368,13 @@ body {
   z-index: 10;
   transition: width 0.3s ease;
   flex-shrink: 0;
+  overflow: visible;
 }
 
 .sidebar-nav {
   flex: 1;
   overflow-y: auto;
+  overflow-x: visible;
 }
 
 .sidebar.collapsed {
@@ -556,7 +558,7 @@ body {
   box-shadow: var(--bzn-shadow-lg);
   min-width: 200px;
   padding: 8px 0;
-  z-index: 100;
+  z-index: 1000;
   margin-left: 8px;
 }
 
