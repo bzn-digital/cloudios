@@ -170,7 +170,6 @@ export function Layout({ children }: LayoutProps) {
   const [isPinned, setIsPinned] = useState(savedPin);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set());
   const [isMobileOpen, setIsMobileOpen] = useState(false);
-  const [collapsedSubmenu, setCollapsedSubmenu] = useState<string | null>(null);
 
   const togglePin = () => {
     const newPinned = !isPinned;
@@ -184,19 +183,15 @@ export function Layout({ children }: LayoutProps) {
   };
 
   const toggleMenu = (menuId: string) => {
-    if (isCollapsed) {
-      setCollapsedSubmenu(collapsedSubmenu === menuId ? null : menuId);
-    } else {
-      setExpandedMenus((prev) => {
-        const next = new Set(prev);
-        if (next.has(menuId)) {
-          next.delete(menuId);
-        } else {
-          next.add(menuId);
-        }
-        return next;
-      });
-    }
+    setExpandedMenus((prev) => {
+      const next = new Set(prev);
+      if (next.has(menuId)) {
+        next.delete(menuId);
+      } else {
+        next.add(menuId);
+      }
+      return next;
+    });
   };
 
   const menuItems: MenuItem[] = [
@@ -247,7 +242,6 @@ export function Layout({ children }: LayoutProps) {
     const hasChildren = item.children && item.children.length > 0;
     const isExpanded = expandedMenus.has(item.id);
     const isActive = item.path && location.pathname === item.path;
-    const isCollapsedSubmenuOpen = collapsedSubmenu === item.id;
 
     if (hasChildren) {
       return (
@@ -270,17 +264,16 @@ export function Layout({ children }: LayoutProps) {
               {item.children!.map((child) => renderMenuItem(child, level + 1))}
             </ul>
           )}
-          {isCollapsed && isCollapsedSubmenuOpen && (
-            <ul className="submenu-popup">
+          {isExpanded && isCollapsed && (
+            <ul className="submenu-collapsed">
               {item.children!.map((child) => (
                 <li key={child.id}>
                   <Link
                     to={child.path!}
-                    className={`submenu-popup-item ${child.path === location.pathname ? 'active' : ''}`}
-                    onClick={() => setCollapsedSubmenu(null)}
+                    className={`submenu-collapsed-item ${child.path === location.pathname ? 'active' : ''}`}
+                    title={child.label}
                   >
                     {child.icon}
-                    <span>{child.label}</span>
                   </Link>
                 </li>
               ))}
