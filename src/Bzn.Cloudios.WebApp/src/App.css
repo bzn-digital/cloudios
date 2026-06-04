@@ -561,6 +561,7 @@ body {
   color: var(--bzn-gray-500);
   text-decoration: none;
   transition: all 0.2s ease;
+  border-radius: var(--bzn-radius);
 }
 
 .submenu-collapsed-item:hover {
@@ -572,6 +573,7 @@ body {
   background: var(--bzn-gradient-primary);
   color: white;
   box-shadow: var(--bzn-shadow), var(--bzn-shadow-glow-blue);
+  border-radius: var(--bzn-radius);
 }
 
 .nav-label {
