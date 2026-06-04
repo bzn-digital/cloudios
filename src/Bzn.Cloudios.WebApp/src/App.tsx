@@ -10,6 +10,7 @@ import { NewService } from './pages/NewService';
 import { ServiceDetail } from './pages/ServiceDetail';
 import ManagedDatabases from './pages/ManagedDatabases';
 import ManagedApps from './pages/ManagedApps';
+import VirtualNetworks from './pages/VirtualNetworks';
 import Analytics from './pages/Analytics';
 import Invoices from './pages/Invoices';
 import BillingManagement from './pages/BillingManagement';
@@ -76,6 +77,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <ManagedApps />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/networking/virtual-networks"
+              element={
+                <ProtectedRoute>
+                  <VirtualNetworks />
                 </ProtectedRoute>
               }
             />
