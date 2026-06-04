@@ -11,6 +11,7 @@ import { ServiceDetail } from './pages/ServiceDetail';
 import ManagedDatabases from './pages/ManagedDatabases';
 import ManagedApps from './pages/ManagedApps';
 import VirtualNetworks from './pages/VirtualNetworks';
+import Domains from './pages/Domains';
 import Analytics from './pages/Analytics';
 import Invoices from './pages/Invoices';
 import BillingManagement from './pages/BillingManagement';
@@ -85,6 +86,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <VirtualNetworks />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/networking/domains"
+              element={
+                <ProtectedRoute>
+                  <Domains />
                 </ProtectedRoute>
               }
             />
