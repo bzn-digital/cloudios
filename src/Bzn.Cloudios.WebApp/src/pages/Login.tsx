@@ -20,7 +20,7 @@ export function Login() {
     try {
       const credentials: LoginRequest = { email, password, realmName };
       await login(credentials);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError('Login failed. Please check your credentials.');
     } finally {
