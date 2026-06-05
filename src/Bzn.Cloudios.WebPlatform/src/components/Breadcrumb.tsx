@@ -6,6 +6,12 @@ export function Breadcrumb() {
 
   const breadcrumbMap: Record<string, string> = {
     dashboard: 'Dashboard',
+    computing: 'Computing',
+    containers: 'Containers',
+    services: 'Services',
+    templates: 'Templates',
+    realms: 'Realms',
+    settings: 'Settings',
   };
 
   const formatBreadcrumbName = (name: string) => {
