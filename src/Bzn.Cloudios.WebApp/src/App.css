@@ -1758,6 +1758,121 @@ body {
   background: var(--bzn-surface-3);
 }
 
+/* ── Notifications ──────────────────────────────────── */
+.notifications {
+  padding: 32px;
+  max-width: 1400px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.notifications-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.notifications-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--bzn-gray-900);
+  margin: 0;
+}
+
+.notifications-filters {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.notifications-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 16px;
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: var(--bzn-radius);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.notification-item:hover {
+  background: var(--bzn-surface-2);
+  border-color: var(--bzn-primary);
+}
+
+.notification-item.unread {
+  background: var(--bzn-surface-1);
+  border-left: 3px solid var(--bzn-primary);
+}
+
+.notification-item.read {
+  opacity: 0.7;
+}
+
+.notification-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bzn-surface-2);
+  border-radius: var(--bzn-radius);
+}
+
+.notification-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.notification-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 4px;
+  gap: 12px;
+}
+
+.notification-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--bzn-gray-900);
+  margin: 0;
+}
+
+.notification-time {
+  font-size: 12px;
+  color: var(--bzn-gray-500);
+  white-space: nowrap;
+}
+
+.notification-message {
+  font-size: 13px;
+  color: var(--bzn-gray-600);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 8px;
+  height: 8px;
+  background: var(--bzn-primary);
+  border-radius: 50%;
+}
+
 /* ── New Service page ──────────────────────────────────── */
 .new-service {
   padding: 32px;

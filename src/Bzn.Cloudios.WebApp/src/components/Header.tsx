@@ -142,7 +142,7 @@ export function Header({ onMobileMenuToggle }: HeaderProps) {
                 ))}
               </div>
               <div className="notification-footer">
-                <button className="view-all">View all notifications</button>
+                <button className="view-all" onClick={() => navigate('/notifications')}>View all notifications</button>
               </div>
             </div>
           )}

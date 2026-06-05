@@ -12,6 +12,7 @@ import ManagedDatabases from './pages/ManagedDatabases';
 import ManagedApps from './pages/ManagedApps';
 import VirtualNetworks from './pages/VirtualNetworks';
 import Domains from './pages/Domains';
+import Notifications from './pages/Notifications';
 import Analytics from './pages/Analytics';
 import Invoices from './pages/Invoices';
 import BillingManagement from './pages/BillingManagement';
@@ -94,6 +95,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Domains />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notifications />
                 </ProtectedRoute>
               }
             />
