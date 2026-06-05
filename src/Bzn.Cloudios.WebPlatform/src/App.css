@@ -527,6 +527,19 @@ body {
   transform: translateX(0);
 }
 
+.sidebar-nav a svg,
+.sidebar-menu-button svg,
+.sidebar-submenu a svg {
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.sidebar-nav a:hover svg,
+.sidebar-menu-button:hover svg,
+.sidebar-submenu a:hover svg {
+  transform: scale(1.1);
+}
+
 .sidebar-footer {
   padding: 16px 20px;
   border-top: 1px solid var(--bzn-border);
