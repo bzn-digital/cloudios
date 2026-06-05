@@ -9,13 +9,20 @@ interface LayoutProps {
 }
 
 interface MenuItem {
-  path: string;
+  id: string;
   label: string;
   icon: ReactNode;
-  submenu?: { path: string; label: string; icon: ReactNode }[];
+  path?: string;
+  children?: MenuItem[];
 }
 
 const icons = {
+  home: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+      <polyline points="9 22 9 12 15 12 15 22" />
+    </svg>
+  ),
   dashboard: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><rect x="3" y="14" width="7" height="7" />
@@ -28,22 +35,89 @@ const icons = {
       <line x1="12" y1="17" x2="12" y2="21" />
     </svg>
   ),
-  servers: (
+  services: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
-      <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
-      <line x1="6" y1="6" x2="6.01" y2="6" />
-      <line x1="6" y1="18" x2="6.01" y2="18" />
+      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
     </svg>
   ),
-  containers: (
+  databases: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <ellipse cx="12" cy="5" rx="9" ry="3" />
+      <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+      <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+    </svg>
+  ),
+  apps: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2L2 7l10 5 10-5-10-5z" />
       <path d="M2 17l10 5 10-5" />
       <path d="M2 12l10 5 10-5" />
     </svg>
   ),
-  servicesTemplates: (
+  billing: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="1" x2="12" y2="23" /><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+    </svg>
+  ),
+  networking: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+      <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+      <line x1="6" y1="6" x2="6.01" y2="6" />
+      <line x1="6" y1="18" x2="6.01" y2="18" />
+    </svg>
+  ),
+  virtualNetworks: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 17.58A5 5 0 0 0 18 8h-1.26A8 8 0 1 0 4 16.25" />
+      <line x1="8" y1="16" x2="8.01" y2="16" />
+      <line x1="8" y1="20" x2="8.01" y2="20" />
+      <line x1="12" y1="18" x2="12.01" y2="18" />
+      <line x1="12" y1="22" x2="12.01" y2="22" />
+      <line x1="16" y1="16" x2="16.01" y2="16" />
+      <line x1="16" y1="20" x2="16.01" y2="20" />
+    </svg>
+  ),
+  domains: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="2" y1="12" x2="22" y2="12" />
+      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+    </svg>
+  ),
+  security: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+    </svg>
+  ),
+  accounts: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+      <circle cx="12" cy="7" r="4" />
+    </svg>
+  ),
+  groups: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+      <circle cx="9" cy="7" r="4" />
+      <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+      <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  roleRules: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+    </svg>
+  ),
+  analytics: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="18" y1="20" x2="18" y2="10" />
+      <line x1="12" y1="20" x2="12" y2="4" />
+      <line x1="6" y1="20" x2="6" y2="14" />
+    </svg>
+  ),
+  invoices: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
       <polyline points="14 2 14 8 20 8" />
@@ -52,22 +126,20 @@ const icons = {
       <polyline points="10 9 9 9 8 9" />
     </svg>
   ),
-  realms: (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <line x1="2" y1="12" x2="22" y2="12" />
-      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
-    </svg>
-  ),
-  allServices: (
+  billingManagement: (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+      <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+      <line x1="1" y1="10" x2="23" y2="10" />
     </svg>
   ),
-  settings: (
+  team: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+    </svg>
+  ),
+  chevronDown: (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   ),
   chevronRight: (
@@ -109,113 +181,105 @@ export function Layout({ children }: LayoutProps) {
   };
 
   const menuItems: MenuItem[] = [
-    { path: '/dashboard', label: 'Global Dashboard', icon: icons.dashboard },
-    { 
-      path: '/computing', 
+    { id: 'dashboard', label: 'Global Dashboard', icon: icons.dashboard, path: '/dashboard' },
+    {
+      id: 'computing',
       label: 'Computing',
       icon: icons.computing,
-      submenu: [
-        { path: '/computing/servers', label: 'Servers', icon: icons.servers },
-        { path: '/computing/containers', label: 'Containers', icon: icons.containers },
-        { path: '/computing/services-templates', label: 'Services Templates', icon: icons.servicesTemplates },
-      ]
+      children: [
+        { id: 'services', label: 'Services', icon: icons.services, path: '/computing/services' },
+        { id: 'databases', label: 'Managed Databases', icon: icons.databases, path: '/computing/databases' },
+        { id: 'apps', label: 'Managed Apps', icon: icons.apps, path: '/computing/apps' },
+      ],
     },
-    { path: '/realms', label: 'Realms', icon: icons.realms },
-    { path: '/services', label: 'All Services', icon: icons.allServices },
-    { path: '/settings', label: 'Settings', icon: icons.settings },
+    { id: 'realms', label: 'Realms', icon: icons.domains, path: '/realms' },
+    { id: 'services', label: 'All Services', icon: icons.services, path: '/services' },
+    { id: 'settings', label: 'Settings', icon: icons.team, path: '/settings' },
   ];
 
-  const toggleMenu = (path: string) => {
+  const toggleMenu = (menuId: string) => {
     const newExpanded = new Set(expandedMenus);
-    if (newExpanded.has(path)) {
-      newExpanded.delete(path);
+    if (newExpanded.has(menuId)) {
+      newExpanded.delete(menuId);
     } else {
-      newExpanded.add(path);
+      newExpanded.add(menuId);
     }
     setExpandedMenus(newExpanded);
   };
 
-  const isMenuActive = (item: MenuItem): boolean => {
-    if (item.submenu) {
-      return item.submenu.some(sub => location.pathname === sub.path) || location.pathname === item.path;
-    }
-    return location.pathname === item.path;
-  };
+  const renderMenuItem = (item: MenuItem) => {
+    const hasChildren = item.children && item.children.length > 0;
+    const isExpanded = expandedMenus.has(item.id);
+    const isActive = item.path && location.pathname === item.path;
 
-  const isSubmenuActive = (path: string): boolean => {
-    return location.pathname === path;
+    if (hasChildren) {
+      return (
+        <li key={item.id} className="menu-item-wrapper">
+          <button
+            className={`menu-item has-children ${isExpanded ? 'expanded' : ''}`}
+            onClick={() => toggleMenu(item.id)}
+            title={item.label}
+          >
+            {item.icon}
+            <span className="nav-label">{item.label}</span>
+            {!isCollapsed && (
+              <span className="chevron">
+                {isExpanded ? icons.chevronDown : icons.chevronRight}
+              </span>
+            )}
+          </button>
+          {isExpanded && !isCollapsed && (
+            <ul className="submenu">
+              {item.children!.map((child) => renderMenuItem(child))}
+            </ul>
+          )}
+          {isExpanded && isCollapsed && (
+            <ul className="submenu-collapsed">
+              {item.children!.map((child) => (
+                <li key={child.id}>
+                  <Link
+                    to={child.path!}
+                    className={`submenu-collapsed-item ${child.path === location.pathname ? 'active' : ''}`}
+                    title={child.label}
+                  >
+                    {child.icon}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </li>
+      );
+    }
+
+    return (
+      <li key={item.id}>
+        <Link
+          to={item.path!}
+          className={`menu-item ${isActive ? 'active' : ''}`}
+          title={item.label}
+        >
+          {item.icon}
+          <span className="nav-label">{item.label}</span>
+        </Link>
+      </li>
+    );
   };
 
   return (
     <div className="layout-container">
       <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
-          <h1>Cloudios Admin</h1>
-          <p>Platform Administration</p>
+          <h1>
+            <span className="logo-icon">☁</span>
+            <span className="logo-text">Cloudios</span>
+          </h1>
+          <p>{user?.realmName}</p>
         </div>
 
         <nav className="sidebar-nav">
           <ul>
-            {menuItems.map((item) => (
-              <li key={item.path}>
-                {item.submenu ? (
-                  <>
-                    <button
-                      onClick={() => toggleMenu(item.path)}
-                      className={`sidebar-menu-button ${isMenuActive(item) ? 'active' : ''}`}
-                      title={item.label}
-                    >
-                      {item.icon}
-                      <span className="nav-label">{item.label}</span>
-                      {!isCollapsed && (
-                        <span className={`sidebar-arrow ${expandedMenus.has(item.path) ? 'expanded' : ''}`}>
-                          {icons.chevronRight}
-                        </span>
-                      )}
-                    </button>
-                    {expandedMenus.has(item.path) && !isCollapsed && (
-                      <ul className="sidebar-submenu">
-                        {item.submenu.map((sub) => (
-                          <li key={sub.path}>
-                            <Link
-                              to={sub.path}
-                              className={isSubmenuActive(sub.path) ? 'active' : ''}
-                            >
-                              {sub.icon}
-                              <span className="nav-label">{sub.label}</span>
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                    {expandedMenus.has(item.path) && isCollapsed && (
-                      <ul className="sidebar-submenu-collapsed">
-                        {item.submenu.map((sub) => (
-                          <li key={sub.path}>
-                            <Link
-                              to={sub.path}
-                              className={isSubmenuActive(sub.path) ? 'active' : ''}
-                              title={sub.label}
-                            >
-                              {sub.icon}
-                            </Link>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
-                  </>
-                ) : (
-                  <Link
-                    to={item.path}
-                    className={location.pathname === item.path ? 'active' : ''}
-                    title={item.label}
-                  >
-                    {item.icon}
-                    <span className="nav-label">{item.label}</span>
-                  </Link>
-                )}
-              </li>
-            ))}
+            {menuItems.map((item) => renderMenuItem(item))}
           </ul>
         </nav>
 
