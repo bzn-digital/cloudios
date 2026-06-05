@@ -652,20 +652,17 @@ body {
 /* Dashboard styles (dark mode) */
 .dashboard {
   padding: 32px;
+  max-width: 1800px;
   position: relative;
   z-index: 1;
 }
 
 .dashboard h1 {
-  font-size: 32px;
+  font-size: 28px;
   font-weight: 800;
-  color: var(--bzn-gray-800);
-  margin-bottom: 32px;
-  background: var(--bzn-gradient-primary);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  letter-spacing: -0.03em;
+  color: var(--bzn-gray-900);
+  margin-bottom: 28px;
+  letter-spacing: -0.02em;
 }
 
 .dashboard-cards {
@@ -693,19 +690,18 @@ body {
 }
 
 .dashboard-card h3 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--bzn-gray-500);
-  margin-bottom: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+  margin-bottom: 12px;
 }
 
 .dashboard-card p {
-  font-size: 32px;
-  font-weight: 700;
+  font-size: 36px;
+  font-weight: 800;
   margin: 0;
-  line-height: 1;
   letter-spacing: -0.02em;
 }
 
@@ -737,11 +733,10 @@ body {
 }
 
 .dashboard-section h2 {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 700;
-  color: var(--bzn-gray-800);
-  margin-bottom: 16px;
-  letter-spacing: -0.02em;
+  color: var(--bzn-gray-900);
+  margin-bottom: 20px;
 }
 
 .dashboard-section p {
