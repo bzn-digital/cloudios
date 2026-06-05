@@ -77,11 +77,11 @@ export function Layout({ children }: LayoutProps) {
                       className={`sidebar-menu-button ${isMenuActive(item) ? 'active' : ''}`}
                     >
                       <span className="sidebar-menu-label">
-                        <span className="sidebar-icon">{item.icon}</span>
+                        {item.icon}
                         {item.label}
                       </span>
                       <span className={`sidebar-arrow ${expandedMenus.has(item.path) ? 'expanded' : ''}`}>
-                        ▼
+                        ▶
                       </span>
                     </button>
                     {expandedMenus.has(item.path) && (
@@ -92,7 +92,7 @@ export function Layout({ children }: LayoutProps) {
                               to={sub.path}
                               className={isSubmenuActive(sub.path) ? 'active' : ''}
                             >
-                              <span className="sidebar-icon">{sub.icon}</span>
+                              {sub.icon}
                               {sub.label}
                             </Link>
                           </li>
@@ -105,7 +105,7 @@ export function Layout({ children }: LayoutProps) {
                     to={item.path}
                     className={location.pathname === item.path ? 'active' : ''}
                   >
-                    <span className="sidebar-icon">{item.icon}</span>
+                    {item.icon}
                     {item.label}
                   </Link>
                 )}

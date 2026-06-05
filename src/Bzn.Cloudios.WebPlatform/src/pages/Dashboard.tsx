@@ -1,28 +1,10 @@
-import { useEffect } from 'react';
 import { Layout } from '../components/Layout';
 
 export function Dashboard() {
-  // Mouse tracking for spotlight effect on cards
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      const cards = document.querySelectorAll('.dashboard-card, .dashboard-section');
-      cards.forEach((card) => {
-        const rect = card.getBoundingClientRect();
-        const x = ((e.clientX - rect.left) / rect.width) * 100;
-        const y = ((e.clientY - rect.top) / rect.height) * 100;
-        (card as HTMLElement).style.setProperty('--mouse-x', `${x}%`);
-        (card as HTMLElement).style.setProperty('--mouse-y', `${y}%`);
-      });
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    return () => document.removeEventListener('mousemove', handleMouseMove);
-  }, []);
-
   return (
     <Layout>
       <div className="dashboard">
-        <h1 data-text="Global Dashboard">Global Dashboard</h1>
+        <h1>Global Dashboard</h1>
         
         <div className="dashboard-cards">
           <div className="dashboard-card">
