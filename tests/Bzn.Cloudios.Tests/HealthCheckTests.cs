@@ -40,11 +40,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerNetwork = new MockDockerNetworkServiceForHealth(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerNetwork, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Healthy", result.Status);
@@ -58,11 +58,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: false);
+        var dockerNetwork = new MockDockerNetworkServiceForHealth(healthy: false);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerNetwork, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Degraded", result.Status);
@@ -76,11 +76,11 @@ public class HealthCheckTests
         var metricsDb = CreateInMemoryMetricsDb();
         // Simulate database failure by disposing the context
         await mainDb.DisposeAsync();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerNetwork = new MockDockerNetworkServiceForHealth(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerNetwork, lifetime, config);
         var result = await service.CheckHealthAsync(CancellationToken.None);
 
         Assert.Equal("Unhealthy", result.Status);
@@ -91,13 +91,13 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true);
+        var dockerNetwork = new MockDockerNetworkServiceForHealth(healthy: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder()
             .AddInMemoryCollection(new[] { new KeyValuePair<string, string?>("CLOUDIOS_VERSION", "2.0.0") })
             .Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerNetwork, lifetime, config);
         var result = service.CheckHealthAsync(CancellationToken.None).Result;
 
         Assert.Equal("2.0.0", result.Version);
@@ -108,11 +108,11 @@ public class HealthCheckTests
     {
         var mainDb = CreateInMemoryDb();
         var metricsDb = CreateInMemoryMetricsDb();
-        var docker = new MockDockerNetworkServiceForHealth(healthy: true, returnSystemInfo: true);
+        var dockerNetwork = new MockDockerNetworkServiceForHealth(healthy: true, returnSystemInfo: true);
         var lifetime = new MockHostApplicationLifetime();
         var config = new ConfigurationBuilder().Build();
 
-        var service = new HealthCheckService(mainDb, metricsDb, docker, lifetime, config);
+        var service = new HealthCheckService(mainDb, metricsDb, dockerNetwork, lifetime, config);
         var metrics = await service.GetHostMetricsAsync(CancellationToken.None);
 
         Assert.NotNull(metrics);
@@ -134,6 +134,8 @@ public class MockDockerNetworkServiceForHealth : IDockerNetworkService
     }
 
     public Task EnsureNetworkAsync(CancellationToken ct = default) => Task.CompletedTask;
+    public Task EnsureRealmNetworkAsync(Guid realmId, CancellationToken ct = default) => Task.CompletedTask;
+    public Task<List<string>> ListNetworksAsync(CancellationToken ct = default) => Task.FromResult(new List<string>());
     public Task<List<ContainerStats>> GetContainerStatsAsync(CancellationToken ct = default) => Task.FromResult(new List<ContainerStats>());
     public Task<List<ContainerLogEntry>> GetContainerLogsAsync(string dockerContainerId, int tail = 100, CancellationToken ct = default) => Task.FromResult(new List<ContainerLogEntry>());
 

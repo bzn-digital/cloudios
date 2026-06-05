@@ -73,6 +73,9 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.Property<string>("DockerContainerId")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("HostPort")
+                        .HasColumnType("INTEGER");
+
                     b.Property<string>("ImageName")
                         .IsRequired()
                         .HasColumnType("TEXT");
@@ -90,6 +93,10 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("NetworkName")
+                        .IsRequired()
                         .HasColumnType("TEXT");
 
                     b.Property<Guid>("RealmId")

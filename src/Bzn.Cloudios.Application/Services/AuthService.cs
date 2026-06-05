@@ -26,23 +26,43 @@ public sealed class AuthService
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request, CancellationToken ct = default)
     {
+        _logger.LogInformation("Login attempt for {Email} in realm {RealmName}", request.Email, request.RealmName);
+
         var user = await _context.Users
             .Include(u => u.Realm)
             .FirstOrDefaultAsync(u => u.Email == request.Email && u.Realm.Name == request.RealmName, ct);
 
-        if (user is null || user.IsBlocked)
+        if (user is null)
         {
-            _logger.LogWarning("Login failed for {Email}: user not found or blocked", request.Email);
+            _logger.LogWarning("Login failed for {Email}: user not found in realm {RealmName}", request.Email, request.RealmName);
+            
+            // Log all users for debugging
+            var allUsers = await _context.Users.Include(u => u.Realm).ToListAsync(ct);
+            _logger.LogInformation("Total users in database: {Count}", allUsers.Count);
+            foreach (var u in allUsers)
+            {
+                _logger.LogInformation("User: {Email}, Realm: {RealmName}, Role: {Role}, Blocked: {Blocked}", 
+                    u.Email, u.Realm?.Name, u.Role, u.IsBlocked);
+            }
+            
             return null;
         }
 
-        // TODO: Replace with proper BCrypt verification when password hashing is implemented
-        // For now, compare against stored hash (admin seeded with configured hash)
+        if (user.IsBlocked)
+        {
+            _logger.LogWarning("Login failed for {Email}: user is blocked", request.Email);
+            return null;
+        }
+
+        _logger.LogInformation("User found: {Email}, verifying password", request.Email);
+
         if (!VerifyPassword(request.Password, user.PasswordHash))
         {
             _logger.LogWarning("Login failed for {Email}: invalid password", request.Email);
             return null;
         }
+
+        _logger.LogInformation("Login successful for {Email}", request.Email);
 
         var token = GenerateJwt(user);
         var expiresAt = DateTime.UtcNow.AddHours(8);

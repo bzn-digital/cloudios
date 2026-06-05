@@ -10,6 +10,8 @@ public sealed class Container
     public string? DockerContainerId { get; set; }
     public string ImageName { get; set; } = string.Empty;
     public int InternalPort { get; set; } = 8080;
+    public int? HostPort { get; set; }
+    public string NetworkName { get; set; } = string.Empty;
     public ContainerStatus Status { get; set; } = ContainerStatus.Stopped;
     public double CpuLimitCores { get; set; } = 0.5;
     public long MemoryLimitBytes { get; set; } = 536870912;

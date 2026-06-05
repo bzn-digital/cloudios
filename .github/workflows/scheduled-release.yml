@@ -1,0 +1,151 @@
+name: Scheduled Release
+
+on:
+  schedule:
+    - cron: '0 2 * * 2,4'   # Every Tuesday and Thursday at 02:00 UTC
+  workflow_dispatch:          # Allow manual trigger
+    inputs:
+      version_bump:
+        description: 'Version bump type (patch, minor, major)'
+        required: false
+        default: 'patch'
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    if: github.repository == 'bzn-digital/cloudios'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: development
+
+      - name: Configure Git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Check for new commits
+        id: check
+        run: |
+          LATEST_TAG=$(git tag --sort=-v:refname | head -1)
+          echo "latest_tag=$LATEST_TAG" >> $GITHUB_OUTPUT
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "No existing tags, will create initial release"
+            echo "has_new_commits=true" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          NEW_COMMITS=$(git log "${LATEST_TAG}..development" --oneline --no-merges | wc -l)
+          echo "new_commits=$NEW_COMMITS" >> $GITHUB_OUTPUT
+
+          if [ "$NEW_COMMITS" -eq 0 ]; then
+            echo "No new commits on development since ${LATEST_TAG}. Skipping release."
+            echo "has_new_commits=false" >> $GITHUB_OUTPUT
+          else
+            echo "Found ${NEW_COMMITS} new commits since ${LATEST_TAG}"
+            echo "has_new_commits=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Calculate next version
+        id: version
+        if: steps.check.outputs.has_new_commits == 'true'
+        run: |
+          LATEST_TAG="${{ steps.check.outputs.latest_tag }}"
+          BUMP_TYPE="${{ inputs.version_bump || 'patch' }}"
+
+          if [ -z "$LATEST_TAG" ]; then
+            echo "next_version=v0.1.0" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Strip 'v' prefix
+          VERSION="${LATEST_TAG#v}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+
+          case "$BUMP_TYPE" in
+            major) MAJOR=$((MAJOR + 1)); MINOR=0; PATCH=0 ;;
+            minor) MINOR=$((MINOR + 1)); PATCH=0 ;;
+            patch) PATCH=$((PATCH + 1)) ;;
+          esac
+
+          NEXT="v${MAJOR}.${MINOR}.${PATCH}"
+          echo "next_version=${NEXT}" >> $GITHUB_OUTPUT
+          echo "Next version: ${NEXT}"
+
+      - name: Create release branch and PR
+        if: steps.check.outputs.has_new_commits == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_VERSION="${{ steps.version.outputs.next_version }}"
+          RELEASE_BRANCH="release/${NEXT_VERSION#v}"
+
+          # Create release branch from development
+          git checkout -b "${RELEASE_BRANCH}"
+          git push origin "${RELEASE_BRANCH}"
+
+          # Create PR from release branch to main
+          gh pr create \
+            --base main \
+            --head "${RELEASE_BRANCH}" \
+            --title "release: ${NEXT_VERSION}" \
+            --body "## 🤖 Automated Release ${NEXT_VERSION}
+
+          This release was automatically generated from the \`development\` branch.
+
+          ### Changes since ${{ steps.check.outputs.latest_tag }}
+          $(git log '${{ steps.check.outputs.latest_tag }}..${RELEASE_BRANCH}' --oneline --no-merges | head -30)
+
+          ---
+          *Triggered by: scheduled-release workflow*" \
+            --label "release"
+
+      - name: Merge release PR
+        if: steps.check.outputs.has_new_commits == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          NEXT_VERSION="${{ steps.version.outputs.next_version }}"
+          RELEASE_BRANCH="release/${NEXT_VERSION#v}"
+
+          # Wait for CI checks (simple wait)
+          sleep 30
+
+          # Merge the PR
+          gh pr merge "${RELEASE_BRANCH}" \
+            --base main \
+            --merge \
+            --admin
+
+      - name: Tag release and sync develop
+        if: steps.check.outputs.has_new_commits == 'true'
+        run: |
+          NEXT_VERSION="${{ steps.version.outputs.next_version }}"
+
+          # Fetch updated main
+          git fetch origin main
+
+          # Create tag on main
+          git tag "${NEXT_VERSION}" origin/main
+          git push origin "${NEXT_VERSION}"
+
+          # Sync main back to development
+          git checkout development
+          git pull origin development
+          git merge origin/main --no-edit
+          git push origin development
+
+          echo "✅ Release ${NEXT_VERSION} created successfully!"

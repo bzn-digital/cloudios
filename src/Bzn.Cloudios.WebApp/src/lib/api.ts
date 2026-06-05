@@ -131,6 +131,10 @@ class ApiClient {
     return this.get(`/containers/${id}/logs?tail=${tail}`);
   }
 
+  async getNetworks() {
+    return this.get('/networks');
+  }
+
   // Registration endpoint
   async register(data: { realmName: string; email: string; password: string }) {
     return this.post('/register', data);

@@ -24,7 +24,10 @@ services:
       - ConnectionStrings:MetricsDb=Data Source=/app/data/cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared
     volumes:
       - cloudios-data:/app/data
-      - /var/run/docker.sock:/var/run/docker.sock
+      # Mount Podman socket - adjust path based on host OS
+      # Windows (WSL2): /run/podman/podman.sock
+      # Linux: /run/podman/podman.sock (rootless) or /run/podman/podman.sock (root)
+      - /run/podman/podman.sock:/var/run/docker.sock
     networks:
       - cloudios-network
     restart: unless-stopped
@@ -36,6 +39,8 @@ services:
     container_name: cloudios-webapp
     ports:
       - "80:80"
+    environment:
+      - VITE_API_BASE_URL=http://localhost:5022
     depends_on:
       - webapi
     networks:

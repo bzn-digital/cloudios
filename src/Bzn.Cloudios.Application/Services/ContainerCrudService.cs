@@ -163,24 +163,14 @@ public sealed class ContainerCrudService
             Name = request.Name,
             ImageName = request.ImageName,
             InternalPort = request.InternalPort,
+            HostPort = request.HostPort,
+            NetworkName = request.NetworkName,
             CpuLimitCores = request.CpuLimitCores,
             MemoryLimitBytes = request.MemoryLimitBytes,
             CostPerHourBRL = request.CostPerHourBRL,
             Status = ContainerStatus.Stopped,
             CreatedAt = DateTime.UtcNow
         };
-
-        foreach (var vol in request.Volumes)
-        {
-            container.Volumes.Add(new ContainerVolume
-            {
-                Id = Guid.NewGuid(),
-                ContainerId = container.Id,
-                HostPath = vol.HostPath,
-                ContainerPath = vol.ContainerPath,
-                IsReadOnly = vol.IsReadOnly
-            });
-        }
 
         foreach (var (key, value) in request.EnvironmentVariables)
         {

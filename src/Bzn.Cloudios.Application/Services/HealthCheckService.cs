@@ -13,20 +13,20 @@ public sealed class HealthCheckService
 {
     private readonly CloudiosDbContext _mainDb;
     private readonly MetricsDbContext _metricsDb;
-    private readonly IDockerNetworkService _docker;
+    private readonly IDockerNetworkService _dockerNetwork;
     private readonly IHostApplicationLifetime _lifetime;
     private readonly IConfiguration _configuration;
 
     public HealthCheckService(
         CloudiosDbContext mainDb,
         MetricsDbContext metricsDb,
-        IDockerNetworkService docker,
+        IDockerNetworkService dockerNetwork,
         IHostApplicationLifetime lifetime,
         IConfiguration configuration)
     {
         _mainDb = mainDb;
         _metricsDb = metricsDb;
-        _docker = docker;
+        _dockerNetwork = dockerNetwork;
         _lifetime = lifetime;
         _configuration = configuration;
     }
@@ -70,7 +70,7 @@ public sealed class HealthCheckService
         // Check Docker socket
         try
         {
-            await _docker.SendRequestAsync<object>("GET", "/_ping", ct: ct);
+            await _dockerNetwork.SendRequestAsync<object>("GET", "/_ping", ct: ct);
             response.Details["docker"] = "connected";
         }
         catch (Exception ex)
@@ -96,13 +96,10 @@ public sealed class HealthCheckService
 
         try
         {
-            var systemInfo = await _docker.SendRequestAsync<JsonElement>("GET", "/system/info", ct: ct);
+            var systemInfo = await _dockerNetwork.SendRequestAsync<JsonElement>("GET", "/system/info", ct: ct);
             if (systemInfo.ValueKind != JsonValueKind.Undefined)
             {
-                // CPU percentage calculation (simplified)
                 cpuPercent = systemInfo.TryGetProperty("NCPU", out var ncpu) ? ncpu.GetInt32() * 1.0 : 0.0;
-
-                // Memory info
                 if (systemInfo.TryGetProperty("MemTotal", out var memTotal))
                 {
                     memoryTotal = memTotal.GetInt64();
@@ -127,7 +124,7 @@ public sealed class HealthCheckService
         var activeContainers = 0;
         try
         {
-            var containers = await _docker.SendRequestAsync<JsonElement>("GET", "/containers/json?all=false&filters={\"label\":[\"cloudios.managed=true\"]}", ct: ct);
+            var containers = await _dockerNetwork.SendRequestAsync<JsonElement>("GET", "/containers/json?all=false&filters={\"label\":[\"cloudios.managed=true\"]}", ct: ct);
             if (containers.ValueKind != JsonValueKind.Undefined && containers.ValueKind == JsonValueKind.Array)
             {
                 activeContainers = containers.GetArrayLength();

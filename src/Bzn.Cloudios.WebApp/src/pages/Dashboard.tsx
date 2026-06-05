@@ -103,26 +103,30 @@ export function Dashboard() {
             <div className="metrics-chart">
               <ResponsiveContainer width="100%" height={300}>
                 <LineChart data={chartData}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <XAxis dataKey="time" />
-                  <YAxis yAxisId="cpu" orientation="left" />
-                  <YAxis yAxisId="memory" orientation="right" />
-                  <Tooltip />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                  <XAxis dataKey="time" stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} />
+                  <YAxis yAxisId="cpu" orientation="left" stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} />
+                  <YAxis yAxisId="memory" orientation="right" stroke="rgba(255,255,255,0.3)" tick={{ fill: 'rgba(255,255,255,0.5)', fontSize: 12 }} />
+                  <Tooltip contentStyle={{ background: '#1a1a35', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '8px', color: '#d4d4e4' }} />
                   <Line 
                     yAxisId="cpu" 
                     type="monotone" 
                     dataKey="cpu" 
-                    stroke="#2563eb" 
+                    stroke="#c084fc" 
                     name="CPU %"
                     strokeWidth={2}
+                    dot={{ fill: '#c084fc', r: 3 }}
+                    activeDot={{ r: 5, fill: '#c084fc' }}
                   />
                   <Line 
                     yAxisId="memory" 
                     type="monotone" 
                     dataKey="memory" 
-                    stroke="#16a34a" 
+                    stroke="#fb923c" 
                     name="Memory (MB)"
                     strokeWidth={2}
+                    dot={{ fill: '#fb923c', r: 3 }}
+                    activeDot={{ r: 5, fill: '#fb923c' }}
                   />
                 </LineChart>
               </ResponsiveContainer>

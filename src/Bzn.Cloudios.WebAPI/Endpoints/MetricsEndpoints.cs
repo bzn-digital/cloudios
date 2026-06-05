@@ -1,3 +1,4 @@
+using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
 
@@ -18,6 +19,14 @@ public static class MetricsEndpoints
         app.MapGet("/api/metrics/host", async (MetricsService service, CancellationToken ct) =>
         {
             var result = await service.GetHostMetricsAsync(ct);
+            return Results.Ok(result);
+        });
+
+        app.MapGet("/api/metrics/realm/history", async (ITenantProvider tenant, MetricsService service, string from, string to, CancellationToken ct) =>
+        {
+            var fromDate = DateTime.Parse(from);
+            var toDate = DateTime.Parse(to);
+            var result = await service.GetRealmMetricsAsync(tenant.RealmId, fromDate, toDate, ct);
             return Results.Ok(result);
         });
     }

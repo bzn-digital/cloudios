@@ -21,35 +21,58 @@ public sealed class DatabaseSeeder
     {
         await _context.Database.MigrateAsync(ct);
 
-        if (await _context.Realms.AnyAsync(ct))
-            return;
+        var systemRealmId = Guid.Parse("00000000-0000-0000-0000-000000000001");
+        var systemRealm = await _context.Realms.FindAsync([systemRealmId], ct);
 
-        _logger.LogInformation("Seeding initial data...");
-
-        var systemRealm = new Realm
+        if (systemRealm is null)
         {
-            Id = Guid.NewGuid(),
-            Name = "system",
-            IsActive = true,
-            CreatedAt = DateTime.UtcNow
-        };
+            _logger.LogInformation("Seeding initial data...");
 
-        var adminUser = new User
+            systemRealm = new Realm
+            {
+                Id = systemRealmId,
+                Name = "system",
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Realms.Add(systemRealm);
+            await _context.SaveChangesAsync(ct);
+        }
+
+        // Ensure admin user exists and is up to date
+        var adminUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == adminEmail && u.RealmId == systemRealmId, ct);
+
+        if (adminUser is null)
         {
-            Id = Guid.NewGuid(),
-            RealmId = systemRealm.Id,
-            Email = adminEmail,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-            Role = UserRole.PlatformAdmin,
-            IsBlocked = false,
-            CreatedAt = DateTime.UtcNow
-        };
+            _logger.LogInformation("Creating admin user...");
 
-        _context.Realms.Add(systemRealm);
-        _context.Users.Add(adminUser);
+            adminUser = new User
+            {
+                Id = Guid.NewGuid(),
+                RealmId = systemRealmId,
+                Email = adminEmail,
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+                Role = UserRole.PlatformAdmin,
+                IsBlocked = false,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.Users.Add(adminUser);
+        }
+        else
+        {
+            _logger.LogInformation("Updating admin user password...");
+
+            adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
+            adminUser.Role = UserRole.PlatformAdmin;
+            adminUser.IsBlocked = false;
+            _context.Users.Update(adminUser);
+        }
 
         await _context.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Seeding complete: system realm + admin user created");
+        _logger.LogInformation("Seeding complete: admin user ensured");
     }
 }

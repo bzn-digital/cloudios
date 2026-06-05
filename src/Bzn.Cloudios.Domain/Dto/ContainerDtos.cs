@@ -47,10 +47,11 @@ public sealed class CreateContainerRequest
     public string Name { get; set; } = string.Empty;
     public string ImageName { get; set; } = string.Empty;
     public int InternalPort { get; set; }
+    public int? HostPort { get; set; }
+    public string NetworkName { get; set; } = string.Empty;
     public double CpuLimitCores { get; set; }
     public long MemoryLimitBytes { get; set; }
     public decimal CostPerHourBRL { get; set; }
-    public List<ContainerVolumeDto> Volumes { get; set; } = [];
     public Dictionary<string, string> EnvironmentVariables { get; set; } = [];
 }
 

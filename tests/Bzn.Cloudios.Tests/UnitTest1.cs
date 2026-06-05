@@ -46,10 +46,9 @@ public class DomainDtoTests
     }
 
     [Fact]
-    public void CreateContainerRequest_Volumes_And_EnvVars_Default_ToEmpty()
+    public void CreateContainerRequest_EnvVars_Default_ToEmpty()
     {
         var req = new CreateContainerRequest();
-        Assert.Empty(req.Volumes);
         Assert.Empty(req.EnvironmentVariables);
     }
 
