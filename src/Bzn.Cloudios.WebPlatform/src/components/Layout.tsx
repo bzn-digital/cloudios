@@ -26,6 +26,7 @@ export function Layout({ children }: LayoutProps) {
       label: 'Computing',
       submenu: [
         { path: '/computing/containers', label: 'Containers' },
+        { path: '/computing/servers', label: 'Servers' },
         { path: '/computing/services-templates', label: 'Services Templates' },
       ]
     },
