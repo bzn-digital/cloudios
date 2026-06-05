@@ -591,16 +591,37 @@ body {
 }
 
 .dashboard h1 {
-  font-size: 36px;
-  font-weight: 800;
+  font-size: 48px;
+  font-weight: 900;
   color: var(--bzn-gray-100);
   margin-bottom: 40px;
   background: var(--bzn-gradient-primary);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
-  letter-spacing: -1px;
+  letter-spacing: -2px;
+  position: relative;
+  display: inline-block;
   animation: textGlow 3s ease-in-out infinite;
+}
+
+.dashboard h1::before {
+  content: attr(data-text);
+  position: absolute;
+  left: 0;
+  top: 0;
+  background: var(--bzn-gradient-secondary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  opacity: 0;
+  filter: blur(8px);
+  animation: textBlur 3s ease-in-out infinite;
+}
+
+@keyframes textBlur {
+  0%, 100% { opacity: 0; filter: blur(8px); }
+  50% { opacity: 0.5; filter: blur(12px); }
 }
 
 .dashboard-cards {

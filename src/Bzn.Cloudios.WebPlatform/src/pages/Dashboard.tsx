@@ -22,7 +22,7 @@ export function Dashboard() {
   return (
     <Layout>
       <div className="dashboard">
-        <h1>Global Dashboard</h1>
+        <h1 data-text="Global Dashboard">Global Dashboard</h1>
         
         <div className="dashboard-cards">
           <div className="dashboard-card">
