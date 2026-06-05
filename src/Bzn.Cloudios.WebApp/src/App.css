@@ -1873,6 +1873,28 @@ body {
   border-radius: 50%;
 }
 
+.mark-read-btn {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bzn-surface-2);
+  border: 1px solid var(--bzn-border);
+  border-radius: var(--bzn-radius);
+  color: var(--bzn-gray-500);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+}
+
+.mark-read-btn:hover {
+  background: var(--bzn-success-light);
+  border-color: var(--bzn-success);
+  color: var(--bzn-success);
+}
+
 /* ── New Service page ──────────────────────────────────── */
 .new-service {
   padding: 32px;

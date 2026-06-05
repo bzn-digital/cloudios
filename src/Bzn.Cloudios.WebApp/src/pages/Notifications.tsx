@@ -13,8 +13,7 @@ interface Notification {
 const Notifications = () => {
   const [filter, setFilter] = useState<'all' | 'unread' | 'error' | 'warning' | 'info' | 'success'>('all');
   const [searchQuery, setSearchQuery] = useState('');
-
-  const notifications: Notification[] = [
+  const [notifications, setNotifications] = useState<Notification[]>([
     {
       id: '1',
       type: 'error',
@@ -55,7 +54,7 @@ const Notifications = () => {
       time: '3 hours ago',
       read: true,
     },
-  ];
+  ]);
 
   const getNotificationIcon = (type: Notification['type']) => {
     switch (type) {
@@ -116,13 +115,15 @@ const Notifications = () => {
   });
 
   const markAsRead = (id: string) => {
-    // In a real app, this would update the backend
-    console.log('Mark as read:', id);
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
   };
 
   const markAllAsRead = () => {
-    // In a real app, this would update the backend
-    console.log('Mark all as read');
+    setNotifications((prev) => prev.map((notification) => ({ ...notification, read: true })));
   };
 
   return (
@@ -165,7 +166,6 @@ const Notifications = () => {
               <div
                 key={notification.id}
                 className={`notification-item ${notification.read ? 'read' : 'unread'}`}
-                onClick={() => markAsRead(notification.id)}
               >
                 <div
                   className="notification-icon"
@@ -180,7 +180,17 @@ const Notifications = () => {
                   </div>
                   <p className="notification-message">{notification.message}</p>
                 </div>
-                {!notification.read && <div className="notification-dot" />}
+                {!notification.read && (
+                  <button
+                    className="mark-read-btn"
+                    onClick={() => markAsRead(notification.id)}
+                    title="Mark as read"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                  </button>
+                )}
               </div>
             ))
           )}
