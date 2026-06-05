@@ -11,7 +11,8 @@ interface LayoutProps {
 interface MenuItem {
   path: string;
   label: string;
-  submenu?: { path: string; label: string }[];
+  icon: string;
+  submenu?: { path: string; label: string; icon: string }[];
 }
 
 export function Layout({ children }: LayoutProps) {
@@ -20,19 +21,20 @@ export function Layout({ children }: LayoutProps) {
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
 
   const menuItems: MenuItem[] = [
-    { path: '/dashboard', label: 'Global Dashboard' },
+    { path: '/dashboard', label: 'Global Dashboard', icon: '📊' },
     { 
       path: '/computing', 
       label: 'Computing',
+      icon: '💻',
       submenu: [
-        { path: '/computing/servers', label: 'Servers' },
-        { path: '/computing/containers', label: 'Containers' },
-        { path: '/computing/services-templates', label: 'Services Templates' },
+        { path: '/computing/servers', label: 'Servers', icon: '🖥️' },
+        { path: '/computing/containers', label: 'Containers', icon: '📦' },
+        { path: '/computing/services-templates', label: 'Services Templates', icon: '📋' },
       ]
     },
-    { path: '/realms', label: 'Realms' },
-    { path: '/services', label: 'All Services' },
-    { path: '/settings', label: 'Settings' },
+    { path: '/realms', label: 'Realms', icon: '🌐' },
+    { path: '/services', label: 'All Services', icon: '⚙️' },
+    { path: '/settings', label: 'Settings', icon: '🔧' },
   ];
 
   const toggleMenu = (path: string) => {
@@ -74,7 +76,10 @@ export function Layout({ children }: LayoutProps) {
                       onClick={() => toggleMenu(item.path)}
                       className={`sidebar-menu-button ${isMenuActive(item) ? 'active' : ''}`}
                     >
-                      <span>{item.label}</span>
+                      <span className="sidebar-menu-label">
+                        <span className="sidebar-icon">{item.icon}</span>
+                        {item.label}
+                      </span>
                       <span className={`sidebar-arrow ${expandedMenus.has(item.path) ? 'expanded' : ''}`}>
                         ▼
                       </span>
@@ -87,6 +92,7 @@ export function Layout({ children }: LayoutProps) {
                               to={sub.path}
                               className={isSubmenuActive(sub.path) ? 'active' : ''}
                             >
+                              <span className="sidebar-icon">{sub.icon}</span>
                               {sub.label}
                             </Link>
                           </li>
@@ -99,6 +105,7 @@ export function Layout({ children }: LayoutProps) {
                     to={item.path}
                     className={location.pathname === item.path ? 'active' : ''}
                   >
+                    <span className="sidebar-icon">{item.icon}</span>
                     {item.label}
                   </Link>
                 )}
