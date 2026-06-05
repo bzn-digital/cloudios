@@ -602,7 +602,6 @@ body {
   letter-spacing: -2px;
   position: relative;
   display: inline-block;
-  animation: textGlow 3s ease-in-out infinite;
 }
 
 .dashboard h1::before {
@@ -615,13 +614,13 @@ body {
   -webkit-text-fill-color: transparent;
   background-clip: text;
   opacity: 0;
-  filter: blur(8px);
-  animation: textBlur 3s ease-in-out infinite;
+  filter: blur(4px);
+  animation: textBlur 4s ease-in-out infinite;
 }
 
 @keyframes textBlur {
-  0%, 100% { opacity: 0; filter: blur(8px); }
-  50% { opacity: 0.5; filter: blur(12px); }
+  0%, 100% { opacity: 0; filter: blur(4px); }
+  50% { opacity: 0.15; filter: blur(6px); }
 }
 
 .dashboard-cards {
