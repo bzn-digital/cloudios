@@ -137,7 +137,7 @@ export function Layout({ children }: LayoutProps) {
 
   const isMenuActive = (item: MenuItem): boolean => {
     if (item.submenu) {
-      return item.submenu.some(sub => location.pathname === sub.path);
+      return item.submenu.some(sub => location.pathname === sub.path) || location.pathname === item.path;
     }
     return location.pathname === item.path;
   };

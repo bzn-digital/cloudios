@@ -461,7 +461,9 @@ body {
 }
 
 .sidebar-nav a .nav-label {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .sidebar-nav a {
@@ -471,8 +473,8 @@ body {
 
 .sidebar.collapsed .sidebar-nav a .nav-label {
   opacity: 0;
+  width: 0;
   pointer-events: none;
-  position: absolute;
 }
 
 .sidebar.collapsed .sidebar-nav a:hover {
@@ -513,7 +515,9 @@ body {
   display: flex;
   align-items: center;
   gap: 12px;
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .sidebar-menu-button {
@@ -523,8 +527,8 @@ body {
 
 .sidebar.collapsed .sidebar-menu-button .nav-label {
   opacity: 0;
+  width: 0;
   pointer-events: none;
-  position: absolute;
 }
 
 .sidebar.collapsed .sidebar-arrow {
@@ -619,13 +623,15 @@ body {
 }
 
 .sidebar-submenu a .nav-label {
-  transition: opacity 0.3s ease;
+  transition: opacity 0.2s ease, width 0.2s ease;
+  white-space: nowrap;
+  overflow: hidden;
 }
 
 .sidebar.collapsed .sidebar-submenu a .nav-label {
   opacity: 0;
+  width: 0;
   pointer-events: none;
-  position: absolute;
 }
 
 .sidebar-submenu-collapsed {
