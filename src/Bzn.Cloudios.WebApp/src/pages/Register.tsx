@@ -120,7 +120,7 @@ export function Register() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#6b7280' }}>
+        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: 'var(--bzn-gray-500)' }}>
           Already have an account?{' '}
           <button
             type="button"
@@ -128,11 +128,12 @@ export function Register() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#2563eb',
+              color: 'var(--bzn-primary-hover)',
               cursor: 'pointer',
-              textDecoration: 'underline',
+              textDecoration: 'none',
               padding: 0,
               fontSize: '14px',
+              fontWeight: 600,
             }}
           >
             Log in

@@ -20,7 +20,7 @@ export function Login() {
     try {
       const credentials: LoginRequest = { email, password, realmName };
       await login(credentials);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       setError('Login failed. Please check your credentials.');
     } finally {
@@ -86,7 +86,7 @@ export function Login() {
           </button>
         </form>
 
-        <p style={{ textAlign: 'center', marginTop: '16px', fontSize: '14px', color: '#6b7280' }}>
+        <p style={{ textAlign: 'center', marginTop: '20px', fontSize: '14px', color: 'var(--bzn-gray-500)' }}>
           Don't have an account?{' '}
           <button
             type="button"
@@ -94,11 +94,12 @@ export function Login() {
             style={{
               background: 'none',
               border: 'none',
-              color: '#2563eb',
+              color: 'var(--bzn-primary-hover)',
               cursor: 'pointer',
-              textDecoration: 'underline',
+              textDecoration: 'none',
               padding: 0,
               fontSize: '14px',
+              fontWeight: 600,
             }}
           >
             Sign up

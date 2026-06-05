@@ -36,7 +36,19 @@ public sealed class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            var adminUser = new User
+            _context.Realms.Add(systemRealm);
+            await _context.SaveChangesAsync(ct);
+        }
+
+        // Ensure admin user exists and is up to date
+        var adminUser = await _context.Users
+            .FirstOrDefaultAsync(u => u.Email == adminEmail && u.RealmId == systemRealmId, ct);
+
+        if (adminUser is null)
+        {
+            _logger.LogInformation("Creating admin user...");
+
+            adminUser = new User
             {
                 Id = Guid.NewGuid(),
                 RealmId = systemRealmId,
@@ -47,12 +59,20 @@ public sealed class DatabaseSeeder
                 CreatedAt = DateTime.UtcNow
             };
 
-            _context.Realms.Add(systemRealm);
             _context.Users.Add(adminUser);
-
-            await _context.SaveChangesAsync(ct);
-
-            _logger.LogInformation("Seeding complete: system realm + admin user created");
         }
+        else
+        {
+            _logger.LogInformation("Updating admin user password...");
+
+            adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
+            adminUser.Role = UserRole.PlatformAdmin;
+            adminUser.IsBlocked = false;
+            _context.Users.Update(adminUser);
+        }
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Seeding complete: admin user ensured");
     }
 }

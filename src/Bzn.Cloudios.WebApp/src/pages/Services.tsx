@@ -218,25 +218,29 @@ export function Services() {
 
         {error && <p className="error">{error}</p>}
 
-        {containers.length === 0 ? (
-          <p className="empty-state">No services found.</p>
-        ) : (
-          <div className="services-table">
-            <table>
-              <thead>
+        <div className="services-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Status</th>
+                <th>Name</th>
+                <th>Image</th>
+                <th>Public URL</th>
+                <th>CPU Limit</th>
+                <th>RAM Limit</th>
+                <th>Cost (Month)</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {containers.length === 0 ? (
                 <tr>
-                  <th>Status</th>
-                  <th>Name</th>
-                  <th>Image</th>
-                  <th>Public URL</th>
-                  <th>CPU Limit</th>
-                  <th>RAM Limit</th>
-                  <th>Cost (Month)</th>
-                  <th>Actions</th>
+                  <td colSpan={8}>
+                    <p className="empty-state">No services deployed yet.</p>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {containers.map((container) => (
+              ) : (
+                containers.map((container) => (
                   <tr key={container.id}>
                     <td>
                       <span className={`status-badge status-${container.status.toLowerCase()}`}>
@@ -308,11 +312,11 @@ export function Services() {
                       </div>
                     </td>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <Modal
