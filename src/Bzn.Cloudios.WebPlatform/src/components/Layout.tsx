@@ -163,16 +163,17 @@ export function Layout({ children }: LayoutProps) {
                     <button
                       onClick={() => toggleMenu(item.path)}
                       className={`sidebar-menu-button ${isMenuActive(item) ? 'active' : ''}`}
+                      title={item.label}
                     >
-                      <span className="sidebar-menu-label">
-                        {item.icon}
-                        {item.label}
-                      </span>
-                      <span className={`sidebar-arrow ${expandedMenus.has(item.path) ? 'expanded' : ''}`}>
-                        {icons.chevronRight}
-                      </span>
+                      {item.icon}
+                      <span className="nav-label">{item.label}</span>
+                      {!isCollapsed && (
+                        <span className={`sidebar-arrow ${expandedMenus.has(item.path) ? 'expanded' : ''}`}>
+                          {icons.chevronRight}
+                        </span>
+                      )}
                     </button>
-                    {expandedMenus.has(item.path) && (
+                    {expandedMenus.has(item.path) && !isCollapsed && (
                       <ul className="sidebar-submenu">
                         {item.submenu.map((sub) => (
                           <li key={sub.path}>
@@ -181,7 +182,22 @@ export function Layout({ children }: LayoutProps) {
                               className={isSubmenuActive(sub.path) ? 'active' : ''}
                             >
                               {sub.icon}
-                              {sub.label}
+                              <span className="nav-label">{sub.label}</span>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {expandedMenus.has(item.path) && isCollapsed && (
+                      <ul className="sidebar-submenu-collapsed">
+                        {item.submenu.map((sub) => (
+                          <li key={sub.path}>
+                            <Link
+                              to={sub.path}
+                              className={isSubmenuActive(sub.path) ? 'active' : ''}
+                              title={sub.label}
+                            >
+                              {sub.icon}
                             </Link>
                           </li>
                         ))}
@@ -192,9 +208,10 @@ export function Layout({ children }: LayoutProps) {
                   <Link
                     to={item.path}
                     className={location.pathname === item.path ? 'active' : ''}
+                    title={item.label}
                   >
                     {item.icon}
-                    {item.label}
+                    <span className="nav-label">{item.label}</span>
                   </Link>
                 )}
               </li>
@@ -208,7 +225,17 @@ export function Layout({ children }: LayoutProps) {
               <p>{user?.email}</p>
               <p>{user?.role}</p>
             </div>
-            <button onClick={logout}>Logout</button>
+            <button onClick={logout}>
+              {isCollapsed ? (
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+              ) : (
+                <span>Logout</span>
+              )}
+            </button>
           </div>
         </div>
 
