@@ -95,6 +95,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - WebAPI: removed static file serving and Blazor-specific middleware
 - WebAPI: removed project reference to WebApp (now separate React application)
 - WebAPI: CORS enabled for React frontend development
+- WebPlatform styles synchronized with WebApp BZN theme:
+  - Updated CSS variables for colors, shadows, gradients, and glassmorphism
+  - Sidebar now matches WebApp exactly (width, padding, font sizes, colors, transitions)
+  - Replaced emoji icons with SVG icons (Lucide-style) matching WebApp
+  - Page title styles updated to match WebApp (font sizes, weights, letter-spacing)
+  - Added sidebar collapse/pin buttons with localStorage persistence
+  - Smooth collapse/expand transitions (0.2s ease) with centered icons when collapsed
+  - Removed mouse tracking effects from Login and Dashboard pages
+  - Sidebar header updated with logo icon + text structure matching WebApp
+  - Navigation items using .menu-item class with exact WebApp styling
 
 ### Removed
 - Blazor WebAssembly projects: WebApp and WebPlatform (replaced by React)
