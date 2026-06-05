@@ -75,12 +75,38 @@ const icons = {
       <polyline points="9 18 15 12 9 6" />
     </svg>
   ),
+  pin: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+    </svg>
+  ),
+  pinFilled: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="12" y1="17" x2="12" y2="22" />
+      <path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z" />
+    </svg>
+  ),
 };
 
 export function Layout({ children }: LayoutProps) {
   const { user, logout } = useAuth();
   const location = useLocation();
+  const savedPin = localStorage.getItem('sidebar-pinned') === 'true';
+  const [isCollapsed, setIsCollapsed] = useState(!savedPin);
+  const [isPinned, setIsPinned] = useState(savedPin);
   const [expandedMenus, setExpandedMenus] = useState<Set<string>>(new Set(['computing']));
+
+  const togglePin = () => {
+    const newPinned = !isPinned;
+    setIsPinned(newPinned);
+    localStorage.setItem('sidebar-pinned', String(newPinned));
+    if (newPinned) {
+      setIsCollapsed(false);
+    } else {
+      setIsCollapsed(true);
+    }
+  };
 
   const menuItems: MenuItem[] = [
     { path: '/dashboard', label: 'Global Dashboard', icon: icons.dashboard },
@@ -122,7 +148,7 @@ export function Layout({ children }: LayoutProps) {
 
   return (
     <div className="layout-container">
-      <aside className="sidebar">
+      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <h1>Cloudios Admin</h1>
           <p>Platform Administration</p>
@@ -185,6 +211,29 @@ export function Layout({ children }: LayoutProps) {
             <button onClick={logout}>Logout</button>
           </div>
         </div>
+
+        <button
+          className="sidebar-toggle"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          title={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+        >
+          {isCollapsed ? (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="9 18 15 12 9 6" />
+            </svg>
+          ) : (
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 18 9 12 15 6" />
+            </svg>
+          )}
+        </button>
+        <button
+          className={`sidebar-pin ${isPinned ? 'pinned' : ''}`}
+          onClick={togglePin}
+          title={isPinned ? 'Unpin sidebar' : 'Pin sidebar'}
+        >
+          {isPinned ? icons.pinFilled : icons.pin}
+        </button>
       </aside>
 
       <main className="main-content">

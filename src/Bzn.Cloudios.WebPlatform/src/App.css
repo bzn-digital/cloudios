@@ -342,6 +342,11 @@ body {
   position: relative;
   z-index: 10;
   box-shadow: var(--bzn-shadow);
+  transition: width 0.3s ease;
+}
+
+.sidebar.collapsed {
+  width: 72px;
 }
 
 .sidebar::before {
@@ -363,6 +368,11 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
+  transition: padding 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-header {
+  padding: 20px 16px;
 }
 
 .sidebar-header::before {
@@ -385,6 +395,18 @@ body {
   align-items: center;
   justify-content: center;
   gap: 8px;
+  transition: font-size 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-header h1 {
+  font-size: 24px;
+  margin-bottom: 0;
+}
+
+.sidebar.collapsed .sidebar-header h1 span:last-child {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 .sidebar-header p {
@@ -392,12 +414,23 @@ body {
   color: rgba(255, 255, 255, 0.7);
   position: relative;
   white-space: nowrap;
+  transition: opacity 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-header p {
+  opacity: 0;
+  pointer-events: none;
 }
 
 .sidebar-nav {
   flex: 1;
   padding: 16px 12px;
   overflow-y: auto;
+  transition: padding 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-nav {
+  padding: 16px 8px;
 }
 
 .sidebar-nav ul {
@@ -425,6 +458,21 @@ body {
   cursor: pointer;
   width: 100%;
   text-align: left;
+}
+
+.sidebar.collapsed .sidebar-nav a {
+  padding: 10px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-nav a span:last-child {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.sidebar.collapsed .sidebar-nav a:hover {
+  transform: translateX(0);
 }
 
 .sidebar-nav a:hover {
@@ -455,6 +503,27 @@ body {
   cursor: pointer;
   transition: all 0.2s ease;
   text-align: left;
+}
+
+.sidebar.collapsed .sidebar-menu-button {
+  padding: 10px;
+  justify-content: center;
+}
+
+.sidebar.collapsed .sidebar-menu-label {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.sidebar.collapsed .sidebar-arrow {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.sidebar.collapsed .sidebar-menu-button:hover {
+  transform: translateX(0);
 }
 
 .sidebar-menu-label {
@@ -493,6 +562,10 @@ body {
   display: flex;
   flex-direction: column;
   gap: 2px;
+}
+
+.sidebar.collapsed .sidebar-submenu {
+  display: none;
 }
 
 .sidebar-submenu a {
@@ -544,12 +617,31 @@ body {
   padding: 16px 20px;
   border-top: 1px solid var(--bzn-border);
   background: var(--bzn-surface-0);
+  transition: padding 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-footer {
+  padding: 16px 8px;
 }
 
 .sidebar-footer-content {
   display: flex;
   align-items: center;
   justify-content: space-between;
+}
+
+.sidebar.collapsed .sidebar-footer-content {
+  justify-content: center;
+}
+
+.sidebar-footer-info {
+  transition: opacity 0.3s ease;
+}
+
+.sidebar.collapsed .sidebar-footer-info {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
 }
 
 .sidebar-footer-info p {
@@ -588,6 +680,65 @@ body {
   border-color: var(--bzn-error);
   color: var(--bzn-error);
   background: var(--bzn-error-light);
+}
+
+.sidebar-toggle {
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 24px;
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bzn-gray-500);
+  transition: all 0.2s ease;
+  z-index: 20;
+  box-shadow: var(--bzn-shadow);
+}
+
+.sidebar-toggle:hover {
+  background: var(--bzn-surface-2);
+  color: var(--bzn-primary-hover);
+  border-color: var(--bzn-border-hover);
+  box-shadow: var(--bzn-shadow-md);
+}
+
+.sidebar-pin {
+  position: absolute;
+  top: calc(50% + 32px);
+  right: -12px;
+  width: 24px;
+  height: 24px;
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--bzn-gray-500);
+  transition: all 0.2s ease;
+  z-index: 20;
+  box-shadow: var(--bzn-shadow);
+}
+
+.sidebar-pin:hover {
+  background: var(--bzn-surface-2);
+  color: var(--bzn-primary-hover);
+  border-color: var(--bzn-border-hover);
+  box-shadow: var(--bzn-shadow-md);
+}
+
+.sidebar-pin.pinned {
+  color: var(--bzn-primary-hover);
+  border-color: var(--bzn-primary-hover);
+  background: var(--bzn-primary-light);
 }
 
 .main-content {
