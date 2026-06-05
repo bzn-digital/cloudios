@@ -8,8 +8,7 @@ export function Breadcrumb() {
     dashboard: 'Dashboard',
     computing: 'Computing',
     containers: 'Containers',
-    services: 'Services',
-    templates: 'Templates',
+    'services-templates': 'Services Templates',
     realms: 'Realms',
     settings: 'Settings',
   };
