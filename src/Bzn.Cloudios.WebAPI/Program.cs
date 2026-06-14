@@ -59,22 +59,10 @@ builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
 
 // Docker client (singleton for Podman socket connection)
-// When running locally on Windows, use TCP connection to Podman machine
-var socketPath = builder.Configuration["Docker:SocketPath"];
-DockerClient dockerClient;
-
-if (string.IsNullOrEmpty(socketPath))
-{
-    // Default to TCP connection to Podman machine for local development
-    // Podman system service must be running: podman system service --time=0 tcp:0.0.0.0:2375
-    var tcpUri = new Uri("http://localhost:2375");
-    dockerClient = new DockerClientConfiguration(tcpUri).CreateClient();
-}
-else
-{
-    var engineUri = new Uri($"unix://{socketPath}");
-    dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
-}
+// Linux + Podman: Use Unix socket by default
+var socketPath = builder.Configuration["Docker:SocketPath"] ?? "/run/podman/podman.sock";
+var engineUri = new Uri($"unix://{socketPath}");
+var dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
 
 builder.Services.AddSingleton(dockerClient);
 
