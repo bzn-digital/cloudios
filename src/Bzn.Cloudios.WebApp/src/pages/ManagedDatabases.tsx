@@ -1,12 +1,97 @@
+import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
+import { Modal } from '../components/Modal';
+
+interface MemoryTier {
+  mb: number;
+  label: string;
+  costPerHour: number;
+}
+
+const MEMORY_TIERS: MemoryTier[] = [
+  { mb: 512, label: '512 MB', costPerHour: 0.015 },
+  { mb: 1024, label: '1 GB', costPerHour: 0.025 },
+  { mb: 2048, label: '2 GB', costPerHour: 0.045 },
+  { mb: 4096, label: '4 GB', costPerHour: 0.085 },
+  { mb: 8192, label: '8 GB', costPerHour: 0.16 },
+];
 
 const ManagedDatabases = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [networks, setNetworks] = useState<string[]>([]);
+  const [networksLoading, setNetworksLoading] = useState(false);
+  const [formData, setFormData] = useState({
+    instanceName: '',
+    databaseType: 'mysql',
+    memoryTier: 1,
+    networkName: '',
+  });
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    const loadNetworks = async () => {
+      try {
+        setNetworksLoading(true);
+        // Simulate API call - replace with actual API call
+        // const data = await apiClient.getNetworks() as { networks: string[] };
+        setNetworks(['default', 'production', 'staging']);
+      } catch (err) {
+        console.error('Failed to load networks:', err);
+      } finally {
+        setNetworksLoading(false);
+      }
+    };
+    loadNetworks();
+  }, []);
+
+  const selectedTier = MEMORY_TIERS[formData.memoryTier];
+  const costPerHour = selectedTier.costPerHour;
+  const costPerMonth = costPerHour * 24 * 30;
+
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+    setErrors({});
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setFormData({
+      instanceName: '',
+      databaseType: 'mysql',
+      memoryTier: 1,
+      networkName: '',
+    });
+    setErrors({});
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const newErrors: Record<string, string> = {};
+
+    if (!formData.instanceName.trim()) {
+      newErrors.instanceName = 'Instance name is required';
+    } else if (!/^[a-z0-9-]+$/.test(formData.instanceName)) {
+      newErrors.instanceName = 'Only lowercase letters, numbers, and hyphens allowed';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    // TODO: Call API to create database
+    console.log('Creating database:', formData);
+    handleCloseModal();
+  };
+
   return (
     <Layout>
       <div className="services">
         <div className="services-header">
           <h1>Managed Databases</h1>
-          <button className="btn btn-primary">+ Create Database</button>
+          <button className="btn btn-primary" onClick={handleOpenModal}>
+            + Create Database
+          </button>
         </div>
 
         <div className="services-filters">
@@ -45,6 +130,107 @@ const ManagedDatabases = () => {
           </table>
         </div>
       </div>
+
+      <Modal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        title="Create Managed Database"
+      >
+        <form onSubmit={handleSubmit} className="create-database-form">
+          <div className="form-group">
+            <label htmlFor="instanceName">Instance Name *</label>
+            <input
+              id="instanceName"
+              type="text"
+              value={formData.instanceName}
+              onChange={(e) => setFormData({ ...formData, instanceName: e.target.value })}
+              placeholder="my-database"
+              className={errors.instanceName ? 'modal-input error' : 'modal-input'}
+            />
+            {errors.instanceName && <small className="error-text">{errors.instanceName}</small>}
+            <small>Only lowercase letters, numbers, and hyphens (e.g., my-database)</small>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="databaseType">Database Type *</label>
+            <select
+              id="databaseType"
+              value={formData.databaseType}
+              onChange={(e) => setFormData({ ...formData, databaseType: e.target.value })}
+              className="modal-input"
+            >
+              <option value="mysql">MySQL</option>
+              <option value="mongodb">MongoDB</option>
+            </select>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="memoryTier">Memory Allocation *</label>
+            <div className="memory-slider-container">
+              <input
+                id="memoryTier"
+                type="range"
+                min="0"
+                max={MEMORY_TIERS.length - 1}
+                value={formData.memoryTier}
+                onChange={(e) => setFormData({ ...formData, memoryTier: parseInt(e.target.value) })}
+                className="memory-slider"
+              />
+              <div className="memory-tiers">
+                {MEMORY_TIERS.map((tier, index) => (
+                  <span
+                    key={tier.mb}
+                    className={`memory-tier ${index === formData.memoryTier ? 'active' : ''}`}
+                  >
+                    {tier.label}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="networkName">Network</label>
+            <select
+              id="networkName"
+              value={formData.networkName}
+              onChange={(e) => setFormData({ ...formData, networkName: e.target.value })}
+              disabled={networksLoading}
+              className="modal-input"
+            >
+              <option value="">Default realm network</option>
+              {networks.map((network) => (
+                <option key={network} value={network}>
+                  {network}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="billing-preview">
+            <h3>Billing Preview</h3>
+            <div className="billing-costs">
+              <div className="cost-item">
+                <span className="cost-label">Cost per hour</span>
+                <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+              </div>
+              <div className="cost-item">
+                <span className="cost-label">Cost per month (720h)</span>
+                <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="modal-footer">
+            <button type="button" className="btn btn-secondary" onClick={handleCloseModal}>
+              Cancel
+            </button>
+            <button type="submit" className="btn btn-primary">
+              Create Database
+            </button>
+          </div>
+        </form>
+      </Modal>
     </Layout>
   );
 };

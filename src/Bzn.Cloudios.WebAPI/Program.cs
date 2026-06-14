@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,10 +47,37 @@ builder.Services.AddCors(options =>
 });
 
 // --- Authentication (JWT Bearer with symmetric key) ---
-// Temporarily disabled for local testing
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyForDevelopmentOnly12345678901234567890";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 // --- Authorization Policies ---
-// Temporarily disabled for local testing
+builder.Services.AddAuthorization(options =>
+{
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
+    options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
+    options.AddPolicy("RealmOwner", policy => policy.RequireRole("RealmOwner"));
+    options.AddPolicy("RealmMember", policy => policy.RequireRole("RealmOwner", "RealmAdmin", "RealmUser", "RealmSre"));
+});
 
 // --- Application Services ---
 builder.Services.AddHttpContextAccessor();
@@ -59,22 +87,27 @@ builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
 
 // Docker client (singleton for Podman socket connection)
-// When running locally on Windows, use TCP connection to Podman machine
-var socketPath = builder.Configuration["Docker:SocketPath"];
-DockerClient dockerClient;
+// Linux + Podman: Use user-level Unix socket by default
+var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{GetCurrentUid()}/podman/podman.sock";
 
-if (string.IsNullOrEmpty(socketPath))
+static string GetCurrentUid()
 {
-    // Default to TCP connection to Podman machine for local development
-    // Podman system service must be running: podman system service --time=0 tcp:0.0.0.0:2375
-    var tcpUri = new Uri("http://localhost:2375");
-    dockerClient = new DockerClientConfiguration(tcpUri).CreateClient();
+    if (OperatingSystem.IsLinux())
+    {
+        try
+        {
+            foreach (var line in File.ReadLines("/proc/self/status"))
+            {
+                if (line.StartsWith("Uid:"))
+                    return line.Split('\t', StringSplitOptions.RemoveEmptyEntries)[1];
+            }
+        }
+        catch { }
+    }
+    return "1000";
 }
-else
-{
-    var engineUri = new Uri($"unix://{socketPath}");
-    dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
-}
+var engineUri = new Uri($"unix://{socketPath}");
+var dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
 
 builder.Services.AddSingleton(dockerClient);
 
@@ -160,12 +193,14 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // --- Middleware pipeline ---
 app.UseRouting();
 app.UseCors("AllowReactApps");
-// app.UseAuthentication(); // Temporarily disabled for local testing
-// app.UseAuthorization(); // Temporarily disabled for local testing
+app.UseAuthentication();
+app.UseAuthorization();
 
 // --- API Endpoints ---
 RegistrationEndpoints.MapRegistrationEndpoints(app);
 AuthEndpoints.MapAuthEndpoints(app);
+RealmEndpoints.MapRealmEndpoints(app);
+UserEndpoints.MapUserEndpoints(app);
 ContainerEndpoints.MapContainerEndpoints(app);
 ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);

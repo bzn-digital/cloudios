@@ -7,4 +7,7 @@ export default defineConfig({
   server: {
     port: 5174,
   },
+  define: {
+    'import.meta.env.VITE_API_BASE_URL': JSON.stringify('http://localhost:5021/api')
+  }
 })

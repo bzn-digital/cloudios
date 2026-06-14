@@ -1,5 +1,6 @@
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bzn.Cloudios.WebAPI.Endpoints;
 
@@ -39,7 +40,7 @@ public static class RegistrationEndpoints
                 RealmId = realm.Id,
                 UserId = user!.Id
             });
-        });
+        }).AllowAnonymous();
     }
 }
 

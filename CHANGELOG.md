@@ -90,6 +90,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Docker containerization for React apps with nginx serving production builds
 - Tailwind CSS for styling in both React applications
 - Updated .gitignore with React/Node.js patterns (node_modules, dist, build, logs)
+- Managed databases data model: `DatabaseTier` (instance templates) and `ManagedDatabaseInstance` (Id, Name, Type MySQL/MongoDB, TierId, RealmId, NetworkId, CpuLimit, MemoryLimit, Status) entities with Realm isolation (RealmId FK, indexes, CASCADE delete)
+- `ManagedDatabaseType` (MySQL, MongoDB) and `ManagedDatabaseStatus` (Provisioning, Running, Stopped, Failed) enums with CHECK constraints
+- EF Core migration `AddManagedDatabaseTiers` seeding 10 tiers (`dbl-micro-1s` through `dbl-large-3s`) via `HasData`
 
 ### Changed
 - WebAPI: removed static file serving and Blazor-specific middleware

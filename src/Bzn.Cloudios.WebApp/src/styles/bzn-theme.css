@@ -185,3 +185,24 @@
   background: rgba(59, 130, 246, 0.3);
   color: #fff;
 }
+
+/* ── Internal Connection Code ─────────────────────────────── */
+.internal-connection {
+  background: var(--bzn-surface-3);
+  color: var(--bzn-purple-400);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--bzn-radius-sm);
+  font-family: var(--bzn-font-mono);
+  font-size: 0.875rem;
+  border: 1px solid var(--bzn-border);
+}
+
+/* ── Network Badge ─────────────────────────────────────────── */
+.network-badge {
+  background: var(--bzn-surface-3);
+  color: var(--bzn-blue-400);
+  padding: 0.25rem 0.5rem;
+  border-radius: var(--bzn-radius-sm);
+  font-size: 0.875rem;
+  border: 1px solid var(--bzn-border);
+}

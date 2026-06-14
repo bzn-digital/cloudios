@@ -118,6 +118,12 @@ public sealed class MetricsCollectionWorker : BackgroundService
 
     private async Task SynchronizeContainerStateAsync(CloudiosDbContext mainDb, CancellationToken ct)
     {
+        if (_dockerClient == null)
+        {
+            _logger.LogDebug("DockerClient is null, skipping container state synchronization");
+            return;
+        }
+
         var dockerContainers = await _dockerClient.Containers.ListContainersAsync(
             new ContainersListParameters
             {
