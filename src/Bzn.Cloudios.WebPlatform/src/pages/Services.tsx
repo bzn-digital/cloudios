@@ -10,13 +10,11 @@ export function Services() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [realmFilter, setRealmFilter] = useState('');
-  const [idFilter, setIdFilter] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
   useEffect(() => {
     loadContainers();
-  }, [search, realmFilter, idFilter]);
+  }, [search]);
 
   const loadContainers = async () => {
     try {
@@ -28,21 +26,13 @@ export function Services() {
       // Filter out system realm containers
       filtered = filtered.filter(c => c.realmName !== 'system');
       
+      // Unified search across ID, realm name, and container name
       if (search) {
+        const searchLower = search.toLowerCase();
         filtered = filtered.filter(c => 
-          c.name.toLowerCase().includes(search.toLowerCase())
-        );
-      }
-      
-      if (realmFilter) {
-        filtered = filtered.filter(c => 
-          c.realmName.toLowerCase().includes(realmFilter.toLowerCase())
-        );
-      }
-      
-      if (idFilter) {
-        filtered = filtered.filter(c => 
-          c.id.toLowerCase().includes(idFilter.toLowerCase())
+          c.name.toLowerCase().includes(searchLower) ||
+          c.realmName.toLowerCase().includes(searchLower) ||
+          c.id.toLowerCase().includes(searchLower)
         );
       }
       
@@ -104,23 +94,9 @@ export function Services() {
         <div className="services-filters">
           <input
             type="text"
-            placeholder="Search by name..."
+            placeholder="Search by ID, realm, or service name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="search-input"
-          />
-          <input
-            type="text"
-            placeholder="Filter by realm..."
-            value={realmFilter}
-            onChange={(e) => setRealmFilter(e.target.value)}
-            className="search-input"
-          />
-          <input
-            type="text"
-            placeholder="Filter by ID..."
-            value={idFilter}
-            onChange={(e) => setIdFilter(e.target.value)}
             className="search-input"
           />
         </div>
