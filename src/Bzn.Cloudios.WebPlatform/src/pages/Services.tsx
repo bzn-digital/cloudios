@@ -21,7 +21,7 @@ export function Services() {
     if (query.includes('=') && query.includes('&&')) {
       const conditions = query.split('&&').map(c => c.trim());
       const filters: { field: string; value: string }[] = [];
-      
+
       for (const condition of conditions) {
         const match = condition.match(/^(\w+)=(.+)$/);
         if (match) {
@@ -31,22 +31,22 @@ export function Services() {
           filters.push({ field, value: cleanValue });
         }
       }
-      
-      return { type: 'advanced', filters };
+
+      return { type: 'advanced' as const, filters };
     }
-    
+
     // Check if query contains single key=value
     if (query.includes('=')) {
       const match = query.match(/^(\w+)=(.+)$/);
       if (match) {
         const [, field, value] = match;
         const cleanValue = value.replace(/^["']|["']$/g, '');
-        return { type: 'advanced', filters: [{ field, value: cleanValue }] };
+        return { type: 'advanced' as const, filters: [{ field, value: cleanValue }] };
       }
     }
-    
+
     // Default to literal search
-    return { type: 'literal', query };
+    return { type: 'literal' as const, query };
   };
 
   const loadContainers = async () => {
@@ -68,10 +68,10 @@ export function Services() {
   // Filter containers based on search query using useMemo to prevent re-renders
   const filteredContainers = useMemo(() => {
     if (!search) return allContainers;
-    
+
     const parsed = parseSearchQuery(search);
-    
-    if (parsed.type === 'advanced') {
+
+    if (parsed.type === 'advanced' && parsed.filters) {
       // Apply advanced filters
       return allContainers.filter(c => {
         return parsed.filters.every(filter => {
@@ -95,10 +95,10 @@ export function Services() {
           }
         });
       });
-    } else {
+    } else if (parsed.type === 'literal' && parsed.query) {
       // Literal search across all fields
       const searchLower = parsed.query.toLowerCase();
-      return allContainers.filter(c => 
+      return allContainers.filter(c =>
         c.name.toLowerCase().includes(searchLower) ||
         c.realmName.toLowerCase().includes(searchLower) ||
         c.id.toLowerCase().includes(searchLower) ||
@@ -106,6 +106,8 @@ export function Services() {
         c.status.toLowerCase().includes(searchLower)
       );
     }
+
+    return allContainers;
   }, [allContainers, search]);
 
   const handleAction = async (id: string, action: () => Promise<unknown>, successMessage: string) => {
