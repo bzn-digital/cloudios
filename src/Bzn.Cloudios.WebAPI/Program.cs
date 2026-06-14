@@ -27,9 +27,6 @@ var mainDbPath = builder.Configuration["ConnectionStrings:MainDb"] ?? "Data Sour
 var metricsDbPath = builder.Configuration["ConnectionStrings:MetricsDb"] ?? "Data Source=cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared";
 var pragmaInterceptor = new SqlitePragmaInterceptor();
 
-// Configure default realm for testing when auth is disabled
-builder.Configuration["DefaultRealmId"] = builder.Configuration["DefaultRealmId"] ?? "17d84059-5461-483c-ad1c-17a347567ab2"; // bznteste realm
-
 builder.Services.AddDbContext<CloudiosDbContext>(options =>
     options.UseSqlite(mainDbPath).AddInterceptors(pragmaInterceptor));
 builder.Services.AddDbContext<MetricsDbContext>(options =>
@@ -176,8 +173,8 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // --- Middleware pipeline ---
 app.UseRouting();
 app.UseCors("AllowReactApps");
-// app.UseAuthentication(); // Temporarily disabled for local testing
-// app.UseAuthorization(); // Temporarily disabled for local testing
+app.UseAuthentication();
+app.UseAuthorization();
 
 // --- API Endpoints ---
 RegistrationEndpoints.MapRegistrationEndpoints(app);
