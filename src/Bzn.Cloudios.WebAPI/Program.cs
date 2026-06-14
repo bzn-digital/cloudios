@@ -59,8 +59,9 @@ builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
 
 // Docker client (singleton for Podman socket connection)
-// Linux + Podman: Use Unix socket by default
-var socketPath = builder.Configuration["Docker:SocketPath"] ?? "/run/podman/podman.sock";
+// Linux + Podman: Use user-level Unix socket by default
+var userId = Environment.GetEnvironmentVariable("UID") ?? "1000";
+var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{userId}/podman/podman.sock";
 var engineUri = new Uri($"unix://{socketPath}");
 var dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
 
