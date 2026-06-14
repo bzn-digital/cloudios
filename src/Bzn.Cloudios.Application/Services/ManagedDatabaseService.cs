@@ -121,8 +121,15 @@ public sealed class ManagedDatabaseService : IManagedDatabaseService
         {
             _logger.LogError(ex, "Failed to provision managed database {Name}", instance.Name);
             instance.Status = ManagedDatabaseStatus.Failed;
-            // Persist the failed state even if the caller's token was cancelled.
-            await _context.SaveChangesAsync(CancellationToken.None);
+            try
+            {
+                // Persist the failed state even if the caller's token was cancelled.
+                await _context.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogError(saveEx, "Failed to persist Failed status for managed database {Name}", instance.Name);
+            }
             throw;
         }
     }
