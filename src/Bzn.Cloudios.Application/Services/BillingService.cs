@@ -130,18 +130,21 @@ public sealed class BillingService : IBillingService
     {
         var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = startDate.AddMonths(1);
+        var now = DateTime.UtcNow;
 
         var containerTotal = await _db.BillingPeriods
             .Join(_db.Containers, b => b.ContainerId, c => (Guid?)c.Id, (b, c) => new { b, c })
             .Where(x => x.c.RealmId == realmId)
             .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
             .SumAsync(x => x.b.CostBRL, ct);
+        containerTotal += await SumActiveContainerCostAsync(realmId, startDate, endDate, now, ct);
 
         var databaseTotal = await _db.BillingPeriods
             .Join(_db.ManagedDatabaseInstances, b => b.ManagedDatabaseId, d => (Guid?)d.Id, (b, d) => new { b, d })
             .Where(x => x.d.RealmId == realmId)
             .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
             .SumAsync(x => x.b.CostBRL, ct);
+        databaseTotal += await SumActiveDatabaseCostAsync(realmId, startDate, endDate, now, ct);
 
         return containerTotal + databaseTotal;
     }
@@ -150,12 +153,47 @@ public sealed class BillingService : IBillingService
     {
         var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = startDate.AddMonths(1);
+        var now = DateTime.UtcNow;
 
         var total = await _db.BillingPeriods
             .Where(b => b.StartedAtUtc >= startDate && b.StartedAtUtc < endDate)
             .SumAsync(b => b.CostBRL, ct);
 
+        total += await SumActiveContainerCostAsync(null, startDate, endDate, now, ct);
+        total += await SumActiveDatabaseCostAsync(null, startDate, endDate, now, ct);
+
         return total;
+    }
+
+    // Estimates accrued cost of containers still running, since their billing periods
+    // only persist CostBRL on stop. Pass realmId = null to span all realms.
+    private async Task<decimal> SumActiveContainerCostAsync(Guid? realmId, DateTime startDate, DateTime endDate, DateTime now, CancellationToken ct)
+    {
+        var active = await _db.BillingPeriods
+            .Join(_db.Containers, b => b.ContainerId, c => (Guid?)c.Id, (b, c) => new { b, c })
+            .Where(x => realmId == null || x.c.RealmId == realmId)
+            .Where(x => x.b.StoppedAtUtc == null)
+            .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
+            .Select(x => new { x.b.StartedAtUtc, x.c.CostPerHourBRL })
+            .ToListAsync(ct);
+
+        return active.Sum(p => (decimal)(now - p.StartedAtUtc).TotalHours * p.CostPerHourBRL);
+    }
+
+    // Estimates accrued cost of managed databases still running, deriving the hourly
+    // rate from the instance tier + engine. Pass realmId = null to span all realms.
+    private async Task<decimal> SumActiveDatabaseCostAsync(Guid? realmId, DateTime startDate, DateTime endDate, DateTime now, CancellationToken ct)
+    {
+        var active = await _db.BillingPeriods
+            .Join(_db.ManagedDatabaseInstances, b => b.ManagedDatabaseId, d => (Guid?)d.Id, (b, d) => new { b, d })
+            .Where(x => realmId == null || x.d.RealmId == realmId)
+            .Where(x => x.b.StoppedAtUtc == null)
+            .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
+            .Select(x => new { x.b.StartedAtUtc, x.d.CpuLimit, x.d.MemoryLimit, x.d.Type })
+            .ToListAsync(ct);
+
+        return active.Sum(p => (decimal)(now - p.StartedAtUtc).TotalHours
+            * ManagedDatabasePricing.HourlyRateBRL(p.CpuLimit, p.MemoryLimit, p.Type));
     }
 
     public async Task<decimal> GetContainerMonthCostAsync(Guid containerId, int year, int month, CancellationToken ct = default)
