@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { apiClient } from '../lib/api';
@@ -6,24 +6,15 @@ import type { AdminContainerListItem } from '../types/container';
 
 export function Services() {
   const navigate = useNavigate();
-  const [containers, setContainers] = useState<AdminContainerListItem[]>([]);
+  const [allContainers, setAllContainers] = useState<AdminContainerListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
-
-  // Debounce search to prevent re-renders on every keystroke
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(search);
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search]);
 
   useEffect(() => {
     loadContainers();
-  }, [debouncedSearch]);
+  }, []);
 
   const parseSearchQuery = (query: string) => {
     // Check if query contains key=value syntax with &&
@@ -63,58 +54,59 @@ export function Services() {
       setLoading(true);
       const data = await apiClient.getAllContainers(1, 100);
       
-      let filtered = data.items || [];
-      
       // Filter out system realm containers
-      filtered = filtered.filter(c => c.realmName !== 'system');
+      const filtered = (data.items || []).filter(c => c.realmName !== 'system');
       
-      if (debouncedSearch) {
-        const parsed = parseSearchQuery(debouncedSearch);
-        
-        if (parsed.type === 'advanced') {
-          // Apply advanced filters
-          filtered = filtered.filter(c => {
-            return parsed.filters.every(filter => {
-              const value = filter.value.toLowerCase();
-              switch (filter.field) {
-                case 'realm':
-                case 'realmName':
-                  return c.realmName.toLowerCase().includes(value);
-                case 'name':
-                case 'serviceName':
-                  return c.name.toLowerCase().includes(value);
-                case 'id':
-                  return c.id.toLowerCase().includes(value);
-                case 'image':
-                case 'imageName':
-                  return c.imageName.toLowerCase().includes(value);
-                case 'status':
-                  return c.status.toLowerCase().includes(value);
-                default:
-                  return false;
-              }
-            });
-          });
-        } else {
-          // Literal search across all fields
-          const searchLower = parsed.query.toLowerCase();
-          filtered = filtered.filter(c => 
-            c.name.toLowerCase().includes(searchLower) ||
-            c.realmName.toLowerCase().includes(searchLower) ||
-            c.id.toLowerCase().includes(searchLower) ||
-            c.imageName.toLowerCase().includes(searchLower) ||
-            c.status.toLowerCase().includes(searchLower)
-          );
-        }
-      }
-      
-      setContainers(filtered);
+      setAllContainers(filtered);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load containers');
     } finally {
       setLoading(false);
     }
   };
+
+  // Filter containers based on search query using useMemo to prevent re-renders
+  const filteredContainers = useMemo(() => {
+    if (!search) return allContainers;
+    
+    const parsed = parseSearchQuery(search);
+    
+    if (parsed.type === 'advanced') {
+      // Apply advanced filters
+      return allContainers.filter(c => {
+        return parsed.filters.every(filter => {
+          const value = filter.value.toLowerCase();
+          switch (filter.field) {
+            case 'realm':
+            case 'realmName':
+              return c.realmName.toLowerCase().includes(value);
+            case 'name':
+            case 'serviceName':
+              return c.name.toLowerCase().includes(value);
+            case 'id':
+              return c.id.toLowerCase().includes(value);
+            case 'image':
+            case 'imageName':
+              return c.imageName.toLowerCase().includes(value);
+            case 'status':
+              return c.status.toLowerCase().includes(value);
+            default:
+              return false;
+          }
+        });
+      });
+    } else {
+      // Literal search across all fields
+      const searchLower = parsed.query.toLowerCase();
+      return allContainers.filter(c => 
+        c.name.toLowerCase().includes(searchLower) ||
+        c.realmName.toLowerCase().includes(searchLower) ||
+        c.id.toLowerCase().includes(searchLower) ||
+        c.imageName.toLowerCase().includes(searchLower) ||
+        c.status.toLowerCase().includes(searchLower)
+      );
+    }
+  }, [allContainers, search]);
 
   const handleAction = async (id: string, action: () => Promise<unknown>, successMessage: string) => {
     try {
@@ -145,7 +137,7 @@ export function Services() {
     }
   };
 
-  if (loading && containers.length === 0) {
+  if (loading && allContainers.length === 0) {
     return (
       <Layout>
         <div className="services">
@@ -188,14 +180,14 @@ export function Services() {
               </tr>
             </thead>
             <tbody>
-              {containers.length === 0 ? (
+              {filteredContainers.length === 0 ? (
                 <tr>
                   <td colSpan={6}>
                     <p className="empty-state">No services found.</p>
                   </td>
                 </tr>
               ) : (
-                containers.map((container) => (
+                filteredContainers.map((container) => (
                   <tr key={container.id}>
                     <td>
                       <span className="realm-badge">{container.realmName}</span>
