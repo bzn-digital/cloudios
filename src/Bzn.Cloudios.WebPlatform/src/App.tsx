@@ -3,6 +3,7 @@ import { AuthProvider } from './contexts/AuthContext';
 import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Services } from './pages/Services';
+import { ServiceDetail } from './pages/ServiceDetail';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -24,6 +25,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <Services />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/services/:id"
+            element={
+              <ProtectedRoute>
+                <ServiceDetail />
               </ProtectedRoute>
             }
           />

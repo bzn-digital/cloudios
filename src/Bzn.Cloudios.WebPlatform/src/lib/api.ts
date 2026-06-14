@@ -1,4 +1,4 @@
-import type { AdminContainerListResponse, ContainerActionResponse } from '../types/container';
+import type { AdminContainerListResponse, ContainerActionResponse, ContainerDetailResponse, ContainerLogsResponse } from '../types/container';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -83,6 +83,22 @@ class ApiClient {
   // Admin endpoints
   async getAllContainers(page = 1, pageSize = 20): Promise<AdminContainerListResponse> {
     return this.get<AdminContainerListResponse>(`/containers/all?page=${page}&pageSize=${pageSize}`);
+  }
+
+  async getContainer(id: string): Promise<ContainerDetailResponse> {
+    return this.get<ContainerDetailResponse>(`/containers/${id}`);
+  }
+
+  async getContainerLogs(id: string, tail = 100): Promise<ContainerLogsResponse> {
+    return this.get<ContainerLogsResponse>(`/containers/${id}/logs?tail=${tail}`);
+  }
+
+  async getContainerMetrics(id: string): Promise<{ cpuPercent: number; memoryUsedBytes: number }> {
+    return this.get<{ cpuPercent: number; memoryUsedBytes: number }>(`/containers/${id}/metrics`);
+  }
+
+  async startContainer(id: string): Promise<ContainerActionResponse> {
+    return this.post<ContainerActionResponse>(`/containers/${id}/start`);
   }
 
   async restartContainer(id: string): Promise<ContainerActionResponse> {
