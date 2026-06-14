@@ -40,6 +40,11 @@ namespace Bzn.Cloudios.WebAPI.Serialization;
 [JsonSerializable(typeof(BillingServiceItem))]
 [JsonSerializable(typeof(GlobalBillingResponse))]
 [JsonSerializable(typeof(RealmBillingItem))]
+[JsonSerializable(typeof(DatabaseTierListResponse))]
+[JsonSerializable(typeof(DatabaseTierItem))]
+[JsonSerializable(typeof(DatabaseTierPricing))]
+[JsonSerializable(typeof(CreateManagedDatabaseRequest))]
+[JsonSerializable(typeof(ManagedDatabaseResponse))]
 [JsonSerializable(typeof(HealthResponse))]
 [JsonSerializable(typeof(ErrorResponse))]
 public sealed partial class CloudiosJsonSerializerContext : JsonSerializerContext;

@@ -569,9 +569,78 @@ Retorna métricas agregadas do host físico.
 
 ---
 
-## 8. Health
+## 8. Managed Databases
 
-### 8.1 GET `/health`
+### 8.1 GET `/api/managed-databases/tiers`
+
+**Auth:** Qualquer role autenticado.
+
+Lista os tiers disponíveis com a previsão de faturamento em tempo real (BRL) para
+cada motor. O `hourlyRateBRL` é a soma do custo de RAM, do custo de CPU e do custo
+fixo do motor; o `monthlyForecastBRL` assume 730 horas/mês.
+
+**Response 200:**
+```json
+{
+  "tiers": [
+    {
+      "id": "00000000-0000-0000-0000-000000000103",
+      "name": "dbl-mini-1s",
+      "cpuLimitCores": 1.0,
+      "memoryLimitBytes": 1073741824,
+      "pricing": [
+        { "engine": "MySQL",   "hourlyRateBRL": 0.17, "monthlyForecastBRL": 124.10 },
+        { "engine": "MongoDB", "hourlyRateBRL": 0.19, "monthlyForecastBRL": 138.70 }
+      ]
+    }
+  ]
+}
+```
+
+### 8.2 POST `/api/managed-databases`
+
+**Auth:** Role do Realm do JWT. O Realm deve estar ativo e dentro da cota de bancos.
+
+**Request:**
+```json
+{
+  "name": "orders-db",
+  "tierId": "00000000-0000-0000-0000-000000000103",
+  "type": "MySQL"
+}
+```
+
+**Response 201:**
+```json
+{
+  "id": "guid",
+  "realmId": "guid",
+  "tierId": "00000000-0000-0000-0000-000000000103",
+  "tierName": "dbl-mini-1s",
+  "name": "orders-db",
+  "type": "MySQL",
+  "status": "Running",
+  "cpuLimitCores": 1.0,
+  "memoryLimitBytes": 1073741824,
+  "hourlyRateBRL": 0.17,
+  "monthlyForecastBRL": 124.10,
+  "createdAt": "2026-06-14T23:00:00Z"
+}
+```
+
+**Erros:**
+
+| Código | Quando |
+|--------|--------|
+| 400 | `type` inválido (≠ MySQL/MongoDB) ou `tierId` inexistente |
+| 403 | Realm inativo ou cota de bancos atingida |
+| 409 | Já existe um banco com o mesmo nome no Realm |
+
+---
+
+## 9. Health
+
+### 9.1 GET `/health`
 
 **Auth:** Nenhuma (público — para Cloudflare Tunnel health check)
 
