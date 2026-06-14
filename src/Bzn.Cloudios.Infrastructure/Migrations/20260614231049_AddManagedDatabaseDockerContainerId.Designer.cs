@@ -3,6 +3,7 @@ using System;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    partial class CloudiosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260614231049_AddManagedDatabaseDockerContainerId")]
+    partial class AddManagedDatabaseDockerContainerId
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -23,7 +26,7 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("INTEGER");
 
-                    b.Property<Guid?>("ContainerId")
+                    b.Property<Guid>("ContainerId")
                         .HasColumnType("TEXT");
 
                     b.Property<decimal>("CostBRL")
@@ -36,9 +39,6 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                         .HasColumnType("REAL")
                         .HasDefaultValue(0.0);
 
-                    b.Property<Guid?>("ManagedDatabaseId")
-                        .HasColumnType("TEXT");
-
                     b.Property<DateTime>("StartedAtUtc")
                         .HasColumnType("TEXT");
 
@@ -50,8 +50,6 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.HasIndex("StartedAtUtc");
 
                     b.HasIndex("ContainerId", "StartedAtUtc");
-
-                    b.HasIndex("ManagedDatabaseId", "StartedAtUtc");
 
                     b.ToTable("BillingPeriods", (string)null);
                 });

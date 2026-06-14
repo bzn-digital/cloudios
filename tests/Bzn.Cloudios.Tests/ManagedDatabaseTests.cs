@@ -33,11 +33,12 @@ public class ManagedDatabaseTests
         return realmId;
     }
 
-    private static ManagedDatabaseService CreateService(CloudiosDbContext db, Guid realmId)
+    private static ManagedDatabaseCrudService CreateService(CloudiosDbContext db, Guid realmId, bool provisioningSucceeds = true)
     {
         var billing = new BillingService(db, NullLogger<BillingService>.Instance);
         var tenant = new StubTenantProvider(realmId);
-        return new ManagedDatabaseService(db, tenant, billing, NullLogger<ManagedDatabaseService>.Instance);
+        var orchestrator = new StubOrchestrator(db, provisioningSucceeds);
+        return new ManagedDatabaseCrudService(db, tenant, orchestrator, billing, NullLogger<ManagedDatabaseCrudService>.Instance);
     }
 
     [Theory]
@@ -170,7 +171,7 @@ public class ManagedDatabaseTests
         var realmId = SeedActiveRealm(db);
         var service = CreateService(db, realmId);
 
-        for (var i = 0; i < ManagedDatabaseService.MaxDatabasesPerRealm; i++)
+        for (var i = 0; i < ManagedDatabaseCrudService.MaxDatabasesPerRealm; i++)
         {
             var (_, error, _) = await service.CreateAsync(
                 new CreateManagedDatabaseRequest { Name = $"db-{i}", TierId = MiniTierId, Type = "MySQL" },
@@ -184,6 +185,26 @@ public class ManagedDatabaseTests
 
         Assert.NotNull(quotaError);
         Assert.Equal(StatusCodes.Status403Forbidden, status);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ProvisioningFails_Returns500AndStartsNoBilling()
+    {
+        var db = CreateInMemoryDb();
+        var realmId = SeedActiveRealm(db);
+        var service = CreateService(db, realmId, provisioningSucceeds: false);
+
+        var (instance, error, status) = await service.CreateAsync(
+            new CreateManagedDatabaseRequest { Name = "x", TierId = MiniTierId, Type = "MySQL" },
+            CancellationToken.None);
+
+        Assert.Null(instance);
+        Assert.NotNull(error);
+        Assert.Equal(StatusCodes.Status500InternalServerError, status);
+
+        var persisted = await db.ManagedDatabaseInstances.SingleAsync();
+        Assert.Equal(ManagedDatabaseStatus.Failed, persisted.Status);
+        Assert.False(await db.BillingPeriods.AnyAsync());
     }
 
     [Fact]
@@ -239,4 +260,47 @@ internal sealed class StubTenantProvider : ITenantProvider
     public Guid RealmId { get; }
     public string Role { get; } = "RealmOwner";
     public Guid UserId { get; } = Guid.NewGuid();
+}
+
+// Simulates the orchestration service: flips the instance to Running (or throws),
+// mirroring the real provisioning flow without touching Docker.
+internal sealed class StubOrchestrator : IManagedDatabaseService
+{
+    private readonly CloudiosDbContext _db;
+    private readonly bool _succeeds;
+
+    public StubOrchestrator(CloudiosDbContext db, bool succeeds)
+    {
+        _db = db;
+        _succeeds = succeeds;
+    }
+
+    public async Task<ManagedDatabaseConnection> ProvisionAsync(Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _db.ManagedDatabaseInstances.FindAsync([instanceId], ct)
+            ?? throw new InvalidOperationException($"Managed database instance {instanceId} not found");
+
+        if (!_succeeds)
+        {
+            instance.Status = ManagedDatabaseStatus.Failed;
+            await _db.SaveChangesAsync(ct);
+            throw new InvalidOperationException("provisioning failed");
+        }
+
+        instance.DockerContainerId = "stub-container";
+        instance.Status = ManagedDatabaseStatus.Running;
+        await _db.SaveChangesAsync(ct);
+
+        return new ManagedDatabaseConnection
+        {
+            InstanceId = instance.Id,
+            DockerContainerId = instance.DockerContainerId,
+            Status = instance.Status.ToString(),
+            Type = instance.Type.ToString(),
+            Host = instance.Name,
+            Port = 3306,
+            Username = "root",
+            Password = "secret"
+        };
+    }
 }

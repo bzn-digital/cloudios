@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    [Migration("20260614231345_AddManagedDatabaseBilling")]
+    [Migration("20260614231937_AddManagedDatabaseBilling")]
     partial class AddManagedDatabaseBilling
     {
         /// <inheritdoc />
@@ -299,6 +299,10 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                         .HasColumnType("REAL");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("DockerContainerId")
+                        .HasMaxLength(64)
                         .HasColumnType("TEXT");
 
                     b.Property<long>("MemoryLimit")

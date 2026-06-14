@@ -12,6 +12,7 @@ public sealed class ManagedDatabaseInstance
     public string NetworkId { get; set; } = string.Empty;
     public double CpuLimit { get; set; }
     public long MemoryLimit { get; set; }
+    public string? DockerContainerId { get; set; }
     public ManagedDatabaseStatus Status { get; set; } = ManagedDatabaseStatus.Provisioning;
     public DateTime CreatedAt { get; set; }
 

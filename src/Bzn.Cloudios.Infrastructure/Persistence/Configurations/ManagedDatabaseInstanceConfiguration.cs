@@ -49,6 +49,10 @@ public sealed class ManagedDatabaseInstanceConfiguration : IEntityTypeConfigurat
             .IsRequired()
             .HasColumnType("INTEGER");
 
+        builder.Property(d => d.DockerContainerId)
+            .HasMaxLength(64)
+            .HasColumnType("TEXT");
+
         builder.Property(d => d.Status)
             .IsRequired()
             .HasColumnType("TEXT")
