@@ -93,8 +93,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Managed databases data model: `DatabaseTier` (instance templates) and `ManagedDatabaseInstance` (Id, Name, Type MySQL/MongoDB, TierId, RealmId, NetworkId, CpuLimit, MemoryLimit, Status) entities with Realm isolation (RealmId FK, indexes, CASCADE delete)
 - `ManagedDatabaseType` (MySQL, MongoDB) and `ManagedDatabaseStatus` (Provisioning, Running, Stopped, Failed) enums with CHECK constraints
 - EF Core migration `AddManagedDatabaseTiers` seeding 10 tiers (`dbl-micro-1s` through `dbl-large-3s`) via `HasData`
+- Managed database API: `GET /api/managed-databases/tiers` (tiers + real-time billing forecasts in BRL) and `POST /api/managed-databases` (create with realm permission/quota validation)
+- `ManagedDatabasePricing`: deterministic cost calculator — hourly rate = RAM + CPU + fixed engine cost; monthly forecast = hourly × 730h (engine fixed cost: MySQL R$0.10/h, MongoDB R$0.12/h)
+- `IManagedDatabaseService` / `ManagedDatabaseService`: tier listing and instance creation; activates instance (status → `Running`) and starts billing consumption tracking on creation
+- Billing engine extended for managed databases: `IBillingService.RegisterDatabaseStartAsync` / `RegisterDatabaseStopAsync`; `GetRealmBillingAsync` now sums container + managed database consumption
+- DTOs `DatabaseTierListResponse`, `DatabaseTierItem`, `DatabaseTierPricing`, `CreateManagedDatabaseRequest`, `ManagedDatabaseResponse` registered in `CloudiosJsonSerializerContext` (AOT-safe)
+- `.docks/API_CONTRACT.md` and `.docks/DATABASE_SCHEMA.md` documented for managed database endpoints, `DatabaseTiers`, `ManagedDatabaseInstances` and `BillingPeriods` tables
 
 ### Changed
+- `BillingPeriod`: `ContainerId` now nullable and added nullable `ManagedDatabaseId` so a billing period belongs to either a container or a managed database (EF migration `AddManagedDatabaseBilling`)
 - WebAPI: removed static file serving and Blazor-specific middleware
 - WebAPI: removed project reference to WebApp (now separate React application)
 - WebAPI: CORS enabled for React frontend development

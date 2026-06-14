@@ -71,18 +71,79 @@ public sealed class BillingService : IBillingService
         _logger.LogInformation("Registered billing stop for container {ContainerId}: {Hours:F2}h = R${Cost:F2}", containerId, hours, cost);
     }
 
+    public async Task RegisterDatabaseStartAsync(Guid managedDatabaseId, DateTime startedAtUtc, CancellationToken ct = default)
+    {
+        var instance = await _db.ManagedDatabaseInstances.FindAsync([managedDatabaseId], ct);
+        if (instance is null)
+        {
+            _logger.LogWarning("Managed database {DatabaseId} not found for billing start", managedDatabaseId);
+            return;
+        }
+
+        var period = new BillingPeriod
+        {
+            ManagedDatabaseId = managedDatabaseId,
+            StartedAtUtc = startedAtUtc,
+            StoppedAtUtc = null,
+            Hours = 0,
+            CostBRL = 0
+        };
+
+        _db.BillingPeriods.Add(period);
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Registered billing start for managed database {DatabaseId} at {StartedAt}", managedDatabaseId, startedAtUtc);
+    }
+
+    public async Task RegisterDatabaseStopAsync(Guid managedDatabaseId, DateTime stoppedAtUtc, CancellationToken ct = default)
+    {
+        var instance = await _db.ManagedDatabaseInstances.FindAsync([managedDatabaseId], ct);
+        if (instance is null)
+        {
+            _logger.LogWarning("Managed database {DatabaseId} not found for billing stop", managedDatabaseId);
+            return;
+        }
+
+        var activePeriod = await _db.BillingPeriods
+            .Where(b => b.ManagedDatabaseId == managedDatabaseId && b.StoppedAtUtc == null)
+            .OrderByDescending(b => b.StartedAtUtc)
+            .FirstOrDefaultAsync(ct);
+
+        if (activePeriod is null)
+        {
+            _logger.LogWarning("No active billing period found for managed database {DatabaseId}", managedDatabaseId);
+            return;
+        }
+
+        var hours = (stoppedAtUtc - activePeriod.StartedAtUtc).TotalHours;
+        var hourlyRate = ManagedDatabasePricing.HourlyRateBRL(instance.CpuLimit, instance.MemoryLimit, instance.Type);
+        var cost = (decimal)hours * hourlyRate;
+
+        activePeriod.StoppedAtUtc = stoppedAtUtc;
+        activePeriod.Hours = hours;
+        activePeriod.CostBRL = cost;
+
+        await _db.SaveChangesAsync(ct);
+        _logger.LogInformation("Registered billing stop for managed database {DatabaseId}: {Hours:F2}h = R${Cost:F2}", managedDatabaseId, hours, cost);
+    }
+
     public async Task<decimal> GetRealmBillingAsync(Guid realmId, int year, int month, CancellationToken ct = default)
     {
         var startDate = new DateTime(year, month, 1, 0, 0, 0, DateTimeKind.Utc);
         var endDate = startDate.AddMonths(1);
 
-        var total = await _db.BillingPeriods
-            .Join(_db.Containers, b => b.ContainerId, c => c.Id, (b, c) => new { b, c })
+        var containerTotal = await _db.BillingPeriods
+            .Join(_db.Containers, b => b.ContainerId, c => (Guid?)c.Id, (b, c) => new { b, c })
             .Where(x => x.c.RealmId == realmId)
             .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
             .SumAsync(x => x.b.CostBRL, ct);
 
-        return total;
+        var databaseTotal = await _db.BillingPeriods
+            .Join(_db.ManagedDatabaseInstances, b => b.ManagedDatabaseId, d => (Guid?)d.Id, (b, d) => new { b, d })
+            .Where(x => x.d.RealmId == realmId)
+            .Where(x => x.b.StartedAtUtc >= startDate && x.b.StartedAtUtc < endDate)
+            .SumAsync(x => x.b.CostBRL, ct);
+
+        return containerTotal + databaseTotal;
     }
 
     public async Task<decimal> GetGlobalBillingAsync(int year, int month, CancellationToken ct = default)

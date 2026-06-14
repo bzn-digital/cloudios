@@ -276,6 +276,16 @@ public class MockBillingService : IBillingService
         return Task.CompletedTask;
     }
 
+    public Task RegisterDatabaseStartAsync(Guid managedDatabaseId, DateTime startedAtUtc, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
+    public Task RegisterDatabaseStopAsync(Guid managedDatabaseId, DateTime stoppedAtUtc, CancellationToken ct = default)
+    {
+        return Task.CompletedTask;
+    }
+
     public Task<decimal> GetRealmBillingAsync(Guid realmId, int year, int month, CancellationToken ct = default)
     {
         return Task.FromResult(0m);

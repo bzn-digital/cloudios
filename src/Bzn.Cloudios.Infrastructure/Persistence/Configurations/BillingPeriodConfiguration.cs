@@ -17,7 +17,9 @@ public sealed class BillingPeriodConfiguration : IEntityTypeConfiguration<Billin
             .HasColumnType("INTEGER");
 
         builder.Property(b => b.ContainerId)
-            .IsRequired()
+            .HasColumnType("TEXT");
+
+        builder.Property(b => b.ManagedDatabaseId)
             .HasColumnType("TEXT");
 
         builder.Property(b => b.StartedAtUtc)
@@ -38,6 +40,7 @@ public sealed class BillingPeriodConfiguration : IEntityTypeConfiguration<Billin
             .HasDefaultValue(0.0m);
 
         builder.HasIndex(b => new { b.ContainerId, b.StartedAtUtc });
+        builder.HasIndex(b => new { b.ManagedDatabaseId, b.StartedAtUtc });
         builder.HasIndex(b => b.StartedAtUtc);
     }
 }
