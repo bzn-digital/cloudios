@@ -12,6 +12,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authorization;
 using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -70,9 +71,12 @@ builder.Services.AddAuthentication(options =>
 // --- Authorization Policies ---
 builder.Services.AddAuthorization(options =>
 {
+    options.FallbackPolicy = new AuthorizationPolicyBuilder()
+        .RequireAuthenticatedUser()
+        .Build();
     options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
     options.AddPolicy("RealmOwner", policy => policy.RequireRole("RealmOwner"));
-    options.AddPolicy("RealmMember", policy => policy.RequireRole("RealmOwner", "RealmMember"));
+    options.AddPolicy("RealmMember", policy => policy.RequireRole("RealmOwner", "RealmAdmin", "RealmUser", "RealmSre"));
 });
 
 // --- Application Services ---
@@ -84,8 +88,24 @@ builder.Services.AddScoped<UserService>();
 
 // Docker client (singleton for Podman socket connection)
 // Linux + Podman: Use user-level Unix socket by default
-var userId = Environment.GetEnvironmentVariable("UID") ?? "1000";
-var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{userId}/podman/podman.sock";
+var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{GetCurrentUid()}/podman/podman.sock";
+
+static string GetCurrentUid()
+{
+    if (OperatingSystem.IsLinux())
+    {
+        try
+        {
+            foreach (var line in File.ReadLines("/proc/self/status"))
+            {
+                if (line.StartsWith("Uid:"))
+                    return line.Split('\t', StringSplitOptions.RemoveEmptyEntries)[1];
+            }
+        }
+        catch { }
+    }
+    return "1000";
+}
 var engineUri = new Uri($"unix://{socketPath}");
 var dockerClient = new DockerClientConfiguration(engineUri).CreateClient();
 
