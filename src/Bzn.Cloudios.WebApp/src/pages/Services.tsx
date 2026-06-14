@@ -38,6 +38,25 @@ export function Services() {
     loadContainers();
   }, [search, statusFilter]);
 
+  // Poll containers in Deploying status
+  useEffect(() => {
+    const deployingContainers = containers.filter(c => c.status === 'Deploying');
+
+    if (deployingContainers.length === 0) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const status = statusFilter === 'All' ? undefined : statusFilter;
+        const data = await apiClient.getContainers(search, status, 1, 100) as ContainerListResponse;
+        setContainers(data.items || []);
+      } catch (err) {
+        console.error('Failed to poll container status:', err);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(interval);
+  }, [containers, search, statusFilter]);
+
   const loadNetworks = async () => {
     try {
       setNetworksLoading(true);
@@ -84,7 +103,7 @@ export function Services() {
   };
 
   const handleStart = (id: string) => {
-    handleAction(id, () => apiClient.deployContainer(id), 'Service deployed successfully');
+    handleAction(id, () => apiClient.deployContainer(id), 'Service deployment initiated');
   };
 
   const handleStop = (id: string) => {
@@ -140,7 +159,7 @@ export function Services() {
       });
       setEnvVars([{ key: '', value: '' }]);
       await loadContainers();
-      showToast('success', 'Service created successfully');
+      showToast('success', 'Service created successfully. It will be deployed shortly.');
     } catch (err) {
       setNewServiceError(err instanceof Error ? err.message : 'Failed to create service');
       showToast('error', err instanceof Error ? err.message : 'Failed to create service');
@@ -210,6 +229,7 @@ export function Services() {
             className="status-filter"
           >
             <option value="All">All Status</option>
+            <option value="Deploying">Deploying</option>
             <option value="Running">Running</option>
             <option value="Stopped">Stopped</option>
             <option value="Failed">Failed</option>
@@ -246,7 +266,14 @@ export function Services() {
                   <tr key={container.id}>
                     <td>
                       <span className={`status-badge status-${container.status.toLowerCase()}`}>
-                        {container.status}
+                        {container.status === 'Deploying' ? (
+                          <>
+                            <span className="loading-spinner">⟳</span>
+                            Instantiating...
+                          </>
+                        ) : (
+                          container.status
+                        )}
                       </span>
                     </td>
                     <td>

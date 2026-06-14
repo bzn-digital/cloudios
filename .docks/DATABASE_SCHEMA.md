@@ -106,6 +106,72 @@ CREATE INDEX IX_ContainerEnvVars_ContainerId ON ContainerEnvVars (ContainerId);
 CREATE UNIQUE INDEX IX_ContainerEnvVars_ContainerId_Key ON ContainerEnvVars (ContainerId, Key);
 ```
 
+### 2.6 Tabela `DatabaseTiers`
+
+Templates estáticos de instância (seed) para bancos gerenciados. Os preços não
+são persistidos: são calculados a partir de `CpuLimitCores`, `MemoryLimitBytes`
+e do motor (ver `ManagedDatabasePricing`).
+
+```sql
+CREATE TABLE DatabaseTiers (
+    Id               TEXT    NOT NULL PRIMARY KEY,
+    Name             TEXT    NOT NULL CHECK(length(Name) <= 50),
+    CpuLimitCores    REAL    NOT NULL,
+    MemoryLimitBytes INTEGER NOT NULL
+);
+
+CREATE UNIQUE INDEX IX_DatabaseTiers_Name ON DatabaseTiers (Name);
+```
+
+### 2.7 Tabela `ManagedDatabaseInstances`
+
+```sql
+CREATE TABLE ManagedDatabaseInstances (
+    Id           TEXT    NOT NULL PRIMARY KEY,
+    RealmId      TEXT    NOT NULL,
+    TierId       TEXT    NOT NULL,
+    Name         TEXT    NOT NULL CHECK(length(Name) <= 100),
+    Type         TEXT    NOT NULL CHECK(Type IN ('MySQL','MongoDB')),
+    NetworkId    TEXT    NOT NULL,
+    CpuLimit     REAL    NOT NULL,
+    MemoryLimit  INTEGER NOT NULL,
+    Status       TEXT    NOT NULL DEFAULT 'Provisioning'
+                 CHECK(Status IN ('Provisioning','Running','Stopped','Failed')),
+    CreatedAt    TEXT    NOT NULL,
+
+    FOREIGN KEY (RealmId) REFERENCES Realms(Id) ON DELETE CASCADE,
+    FOREIGN KEY (TierId)  REFERENCES DatabaseTiers(Id) ON DELETE RESTRICT
+);
+
+CREATE INDEX IX_ManagedDatabaseInstances_RealmId ON ManagedDatabaseInstances (RealmId);
+CREATE INDEX IX_ManagedDatabaseInstances_RealmId_Status ON ManagedDatabaseInstances (RealmId, Status);
+CREATE UNIQUE INDEX IX_ManagedDatabaseInstances_RealmId_Name ON ManagedDatabaseInstances (RealmId, Name);
+CREATE INDEX IX_ManagedDatabaseInstances_TierId ON ManagedDatabaseInstances (TierId);
+```
+
+### 2.8 Tabela `BillingPeriods`
+
+Ledger único de consumo. Cada período pertence **ou** a um container **ou** a um
+banco gerenciado (exatamente uma das colunas `ContainerId` / `ManagedDatabaseId`
+é preenchida). O rastreamento de um banco inicia quando seu status muda para
+`Running` (ativo).
+
+```sql
+CREATE TABLE BillingPeriods (
+    Id                INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    ContainerId       TEXT    NULL,
+    ManagedDatabaseId TEXT    NULL,
+    StartedAtUtc      TEXT    NOT NULL,
+    StoppedAtUtc      TEXT    NULL,
+    Hours             REAL    NOT NULL DEFAULT 0,
+    CostBRL           REAL    NOT NULL DEFAULT 0
+);
+
+CREATE INDEX IX_BillingPeriods_ContainerId_StartedAtUtc ON BillingPeriods (ContainerId, StartedAtUtc);
+CREATE INDEX IX_BillingPeriods_ManagedDatabaseId_StartedAtUtc ON BillingPeriods (ManagedDatabaseId, StartedAtUtc);
+CREATE INDEX IX_BillingPeriods_StartedAtUtc ON BillingPeriods (StartedAtUtc);
+```
+
 ---
 
 ## 3. cloudios_metrics.db
@@ -209,13 +275,22 @@ Na primeira execução, o sistema deve criar:
 ```
 Realms (1) ──────< (N) Users
   │
-  └──────────────< (N) Containers
+  ├──────────────< (N) Containers
+  │                   │
+  │                   ├──< (N) ContainerVolumes
+  │                   │
+  │                   ├──< (N) ContainerEnvVars
+  │                   │
+  │                   ├──< (N) BillingPeriods (via ContainerId)
+  │                   │
+  │                   └── [cloudios_metrics.db]
+  │                        ContainerMetrics_History.ContainerId → Containers.Id
+  │                        (Sem FK — banco separado)
+  │
+  └──────────────< (N) ManagedDatabaseInstances
+                      │   (ON DELETE RESTRICT) TierId → DatabaseTiers.Id
                       │
-                      ├──< (N) ContainerVolumes
-                      │
-                      ├──< (N) ContainerEnvVars
-                      │
-                      └── [cloudios_metrics.db]
-                           ContainerMetrics_History.ContainerId → Containers.Id
-                           (Sem FK — banco separado)
+                      └──< (N) BillingPeriods (via ManagedDatabaseId)
+
+DatabaseTiers (1) ──< (N) ManagedDatabaseInstances
 ```

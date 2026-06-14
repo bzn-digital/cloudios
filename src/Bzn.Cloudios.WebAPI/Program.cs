@@ -114,9 +114,11 @@ builder.Services.AddSingleton(dockerClient);
 builder.Services.AddSingleton<IDockerNetworkService, DockerNetworkService>();
 builder.Services.AddSingleton<DockerNetworkService>();
 builder.Services.AddScoped<IContainerService, ContainerService>();
+builder.Services.AddScoped<IManagedDatabaseService, ManagedDatabaseService>();
 builder.Services.AddScoped<ContainerCrudService>();
 builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
+builder.Services.AddScoped<ManagedDatabaseCrudService>();
 builder.Services.AddScoped<HealthCheckService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 // Enable MetricsCollectionWorker for container state synchronization
@@ -205,6 +207,7 @@ ContainerEndpoints.MapContainerEndpoints(app);
 ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);
 BillingEndpoints.MapBillingEndpoints(app);
+ManagedDatabaseEndpoints.MapManagedDatabaseEndpoints(app);
 HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---
