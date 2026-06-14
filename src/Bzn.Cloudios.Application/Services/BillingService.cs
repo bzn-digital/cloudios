@@ -177,7 +177,9 @@ public sealed class BillingService : IBillingService
             .Select(x => new { x.b.StartedAtUtc, x.c.CostPerHourBRL })
             .ToListAsync(ct);
 
-        return active.Sum(p => (decimal)(now - p.StartedAtUtc).TotalHours * p.CostPerHourBRL);
+        // Cap elapsed time at the month boundary so costs aren't inflated when querying a past month.
+        var cutoff = now < endDate ? now : endDate;
+        return active.Sum(p => (decimal)(cutoff - p.StartedAtUtc).TotalHours * p.CostPerHourBRL);
     }
 
     // Estimates accrued cost of managed databases still running, deriving the hourly
@@ -192,7 +194,9 @@ public sealed class BillingService : IBillingService
             .Select(x => new { x.b.StartedAtUtc, x.d.CpuLimit, x.d.MemoryLimit, x.d.Type })
             .ToListAsync(ct);
 
-        return active.Sum(p => (decimal)(now - p.StartedAtUtc).TotalHours
+        // Cap elapsed time at the month boundary so costs aren't inflated when querying a past month.
+        var cutoff = now < endDate ? now : endDate;
+        return active.Sum(p => (decimal)(cutoff - p.StartedAtUtc).TotalHours
             * ManagedDatabasePricing.HourlyRateBRL(p.CpuLimit, p.MemoryLimit, p.Type));
     }
 

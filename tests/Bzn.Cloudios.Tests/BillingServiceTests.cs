@@ -301,4 +301,28 @@ public class BillingServiceTests
         var total = await service.GetGlobalBillingAsync(now.Year, now.Month, CancellationToken.None);
         Assert.Equal(1.80m, total, 2);
     }
+
+    [Fact]
+    public async Task GetRealmBillingAsync_PastMonth_CapsActivePeriodAtMonthEnd()
+    {
+        var db = CreateInMemoryDb();
+        var realmId = Guid.NewGuid();
+        var containerId = Guid.NewGuid();
+
+        // Two months ago, so DateTime.UtcNow is past the queried month's end.
+        var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-2);
+        var monthEnd = monthStart.AddMonths(1);
+        var startedAt = monthEnd.AddHours(-3); // active period began 3h before the month boundary
+
+        db.Realms.Add(new Realm { Id = realmId, Name = "Test", Slug = "test", IsActive = true, CreatedAt = monthStart });
+        db.Containers.Add(new Container { Id = containerId, RealmId = realmId, Name = "c1", ImageName = "nginx", InternalPort = 80, CostPerHourBRL = 0.02m, Status = ContainerStatus.Running, CreatedAt = monthStart });
+        db.BillingPeriods.Add(new BillingPeriod { ContainerId = containerId, StartedAtUtc = startedAt, StoppedAtUtc = null, Hours = 0, CostBRL = 0 });
+        await db.SaveChangesAsync();
+
+        var service = new BillingService(db, NullLogger<BillingService>.Instance);
+
+        // Capped at month end: 3h * 0.02 = 0.06 (not now - startedAt, which would span ~2 months).
+        var total = await service.GetRealmBillingAsync(realmId, monthStart.Year, monthStart.Month, CancellationToken.None);
+        Assert.Equal(0.06m, total, 2);
+    }
 }
