@@ -11,6 +11,8 @@ public sealed class CloudiosDbContext : DbContext
     public DbSet<ContainerVolume> ContainerVolumes => Set<ContainerVolume>();
     public DbSet<ContainerEnvVar> ContainerEnvVars => Set<ContainerEnvVar>();
     public DbSet<BillingPeriod> BillingPeriods => Set<BillingPeriod>();
+    public DbSet<DatabaseTier> DatabaseTiers => Set<DatabaseTier>();
+    public DbSet<ManagedDatabaseInstance> ManagedDatabaseInstances => Set<ManagedDatabaseInstance>();
 
     public CloudiosDbContext(DbContextOptions<CloudiosDbContext> options) : base(options) { }
 
