@@ -16,6 +16,39 @@ export function Services() {
     loadContainers();
   }, [search]);
 
+  const parseSearchQuery = (query: string) => {
+    // Check if query contains key=value syntax with &&
+    if (query.includes('=') && query.includes('&&')) {
+      const conditions = query.split('&&').map(c => c.trim());
+      const filters: { field: string; value: string }[] = [];
+      
+      for (const condition of conditions) {
+        const match = condition.match(/^(\w+)=(.+)$/);
+        if (match) {
+          const [, field, value] = match;
+          // Remove quotes if present
+          const cleanValue = value.replace(/^["']|["']$/g, '');
+          filters.push({ field, value: cleanValue });
+        }
+      }
+      
+      return { type: 'advanced', filters };
+    }
+    
+    // Check if query contains single key=value
+    if (query.includes('=')) {
+      const match = query.match(/^(\w+)=(.+)$/);
+      if (match) {
+        const [, field, value] = match;
+        const cleanValue = value.replace(/^["']|["']$/g, '');
+        return { type: 'advanced', filters: [{ field, value: cleanValue }] };
+      }
+    }
+    
+    // Default to literal search
+    return { type: 'literal', query };
+  };
+
   const loadContainers = async () => {
     try {
       setLoading(true);
@@ -26,14 +59,44 @@ export function Services() {
       // Filter out system realm containers
       filtered = filtered.filter(c => c.realmName !== 'system');
       
-      // Unified search across ID, realm name, and container name
       if (search) {
-        const searchLower = search.toLowerCase();
-        filtered = filtered.filter(c => 
-          c.name.toLowerCase().includes(searchLower) ||
-          c.realmName.toLowerCase().includes(searchLower) ||
-          c.id.toLowerCase().includes(searchLower)
-        );
+        const parsed = parseSearchQuery(search);
+        
+        if (parsed.type === 'advanced') {
+          // Apply advanced filters
+          filtered = filtered.filter(c => {
+            return parsed.filters.every(filter => {
+              const value = filter.value.toLowerCase();
+              switch (filter.field) {
+                case 'realm':
+                case 'realmName':
+                  return c.realmName.toLowerCase().includes(value);
+                case 'name':
+                case 'serviceName':
+                  return c.name.toLowerCase().includes(value);
+                case 'id':
+                  return c.id.toLowerCase().includes(value);
+                case 'image':
+                case 'imageName':
+                  return c.imageName.toLowerCase().includes(value);
+                case 'status':
+                  return c.status.toLowerCase().includes(value);
+                default:
+                  return false;
+              }
+            });
+          });
+        } else {
+          // Literal search across all fields
+          const searchLower = parsed.query.toLowerCase();
+          filtered = filtered.filter(c => 
+            c.name.toLowerCase().includes(searchLower) ||
+            c.realmName.toLowerCase().includes(searchLower) ||
+            c.id.toLowerCase().includes(searchLower) ||
+            c.imageName.toLowerCase().includes(searchLower) ||
+            c.status.toLowerCase().includes(searchLower)
+          );
+        }
       }
       
       setContainers(filtered);
@@ -94,7 +157,7 @@ export function Services() {
         <div className="services-filters">
           <input
             type="text"
-            placeholder="Search by ID, realm, or service name..."
+            placeholder="Search (e.g., 'nginx', realm='bznteste' && name='nginx')"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="search-input"
