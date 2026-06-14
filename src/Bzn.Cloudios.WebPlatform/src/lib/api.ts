@@ -1,3 +1,5 @@
+import type { AdminContainerListResponse, ContainerActionResponse } from '../types/container';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
 class ApiClient {
@@ -76,6 +78,23 @@ class ApiClient {
 
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, { method: 'DELETE' });
+  }
+
+  // Admin endpoints
+  async getAllContainers(page = 1, pageSize = 20): Promise<AdminContainerListResponse> {
+    return this.get<AdminContainerListResponse>(`/containers/all?page=${page}&pageSize=${pageSize}`);
+  }
+
+  async restartContainer(id: string): Promise<ContainerActionResponse> {
+    return this.post<ContainerActionResponse>(`/containers/${id}/restart`);
+  }
+
+  async stopContainer(id: string): Promise<ContainerActionResponse> {
+    return this.post<ContainerActionResponse>(`/containers/${id}/stop`);
+  }
+
+  async deleteContainer(id: string): Promise<void> {
+    return this.delete<void>(`/containers/${id}`);
   }
 }
 

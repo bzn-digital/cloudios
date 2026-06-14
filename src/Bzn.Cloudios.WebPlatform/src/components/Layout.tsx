@@ -187,13 +187,12 @@ export function Layout({ children }: LayoutProps) {
       label: 'Computing',
       icon: icons.computing,
       children: [
-        { id: 'services', label: 'Services', icon: icons.services, path: '/computing/services' },
+        { id: 'services', label: 'Services', icon: icons.services, path: '/services' },
         { id: 'databases', label: 'Managed Databases', icon: icons.databases, path: '/computing/databases' },
         { id: 'apps', label: 'Managed Apps', icon: icons.apps, path: '/computing/apps' },
       ],
     },
     { id: 'realms', label: 'Realms', icon: icons.domains, path: '/realms' },
-    { id: 'services', label: 'All Services', icon: icons.services, path: '/services' },
     { id: 'settings', label: 'Settings', icon: icons.team, path: '/settings' },
   ];
 

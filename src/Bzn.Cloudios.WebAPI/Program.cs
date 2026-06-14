@@ -27,6 +27,9 @@ var mainDbPath = builder.Configuration["ConnectionStrings:MainDb"] ?? "Data Sour
 var metricsDbPath = builder.Configuration["ConnectionStrings:MetricsDb"] ?? "Data Source=cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared";
 var pragmaInterceptor = new SqlitePragmaInterceptor();
 
+// Configure default realm for testing when auth is disabled
+builder.Configuration["DefaultRealmId"] = builder.Configuration["DefaultRealmId"] ?? "17d84059-5461-483c-ad1c-17a347567ab2"; // bznteste realm
+
 builder.Services.AddDbContext<CloudiosDbContext>(options =>
     options.UseSqlite(mainDbPath).AddInterceptors(pragmaInterceptor));
 builder.Services.AddDbContext<MetricsDbContext>(options =>
@@ -46,10 +49,34 @@ builder.Services.AddCors(options =>
 });
 
 // --- Authentication (JWT Bearer with symmetric key) ---
-// Temporarily disabled for local testing
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyForDevelopmentOnly12345678901234567890";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 // --- Authorization Policies ---
-// Temporarily disabled for local testing
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
+    options.AddPolicy("RealmOwner", policy => policy.RequireRole("RealmOwner"));
+    options.AddPolicy("RealmMember", policy => policy.RequireRole("RealmOwner", "RealmMember"));
+});
 
 // --- Application Services ---
 builder.Services.AddHttpContextAccessor();
@@ -155,6 +182,8 @@ app.UseCors("AllowReactApps");
 // --- API Endpoints ---
 RegistrationEndpoints.MapRegistrationEndpoints(app);
 AuthEndpoints.MapAuthEndpoints(app);
+RealmEndpoints.MapRealmEndpoints(app);
+UserEndpoints.MapUserEndpoints(app);
 ContainerEndpoints.MapContainerEndpoints(app);
 ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);

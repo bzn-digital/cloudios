@@ -942,3 +942,242 @@ body {
   font-weight: 500;
   letter-spacing: 0.5px;
 }
+
+/* Services page */
+.services {
+  padding: 24px;
+}
+
+.services-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.services-header h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--bzn-gray-900);
+  margin: 0;
+}
+
+.services-filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.search-input {
+  flex: 1;
+  padding: 10px 16px;
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: var(--bzn-radius);
+  color: var(--bzn-gray-900);
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--bzn-primary);
+  box-shadow: 0 0 0 3px var(--bzn-primary-light);
+}
+
+.search-input::placeholder {
+  color: var(--bzn-gray-500);
+}
+
+.services-table {
+  background: var(--bzn-surface-1);
+  border: 1px solid var(--bzn-border);
+  border-radius: var(--bzn-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--bzn-shadow);
+}
+
+.services-table table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.services-table thead {
+  background: var(--bzn-surface-2);
+}
+
+.services-table th {
+  padding: 16px;
+  text-align: left;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--bzn-gray-500);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--bzn-border);
+}
+
+.services-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--bzn-border);
+  color: var(--bzn-gray-700);
+  font-size: 14px;
+}
+
+.services-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.services-table tbody tr:hover {
+  background: var(--bzn-surface-2);
+}
+
+.realm-badge {
+  background: var(--bzn-surface-3);
+  color: var(--bzn-secondary);
+  padding: 4px 10px;
+  border-radius: var(--bzn-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--bzn-border);
+}
+
+.network-badge {
+  background: var(--bzn-surface-3);
+  color: var(--bzn-primary);
+  padding: 4px 10px;
+  border-radius: var(--bzn-radius-sm);
+  font-size: 12px;
+  font-weight: 500;
+  border: 1px solid var(--bzn-border);
+}
+
+.status-badge {
+  padding: 4px 10px;
+  border-radius: var(--bzn-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.status-badge.status-running {
+  background: var(--bzn-success-light);
+  color: var(--bzn-success);
+}
+
+.status-badge.status-stopped {
+  background: var(--bzn-error-light);
+  color: var(--bzn-error);
+}
+
+.status-badge.status-failed {
+  background: var(--bzn-error-light);
+  color: var(--bzn-error);
+}
+
+.link-button {
+  background: none;
+  border: none;
+  color: var(--bzn-primary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.link-button:hover {
+  color: var(--bzn-primary-hover);
+  text-decoration: underline;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.btn {
+  padding: 6px 12px;
+  border: none;
+  border-radius: var(--bzn-radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-sm {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+
+.btn-primary {
+  background: var(--bzn-primary);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--bzn-primary-hover);
+}
+
+.btn-secondary {
+  background: var(--bzn-secondary);
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--bzn-secondary-hover);
+}
+
+.btn-success {
+  background: var(--bzn-success);
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #2eb87a;
+}
+
+.btn-warning {
+  background: var(--bzn-warning);
+  color: var(--bzn-surface-0);
+}
+
+.btn-warning:hover:not(:disabled) {
+  background: #f5a823;
+}
+
+.btn-danger {
+  background: var(--bzn-error);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #ef5f5f;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 48px 24px;
+  color: var(--bzn-gray-500);
+  font-size: 14px;
+  margin: 0;
+}
+
+.error {
+  background: var(--bzn-error-light);
+  color: var(--bzn-error);
+  padding: 12px 16px;
+  border-radius: var(--bzn-radius);
+  margin-bottom: 24px;
+  font-size: 14px;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+}
