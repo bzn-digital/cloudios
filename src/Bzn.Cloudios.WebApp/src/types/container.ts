@@ -19,6 +19,7 @@ export interface ContainerListItem {
   publicUrl?: string;
   startedAtUtc?: string;
   createdAt: string;
+  networkName?: string;
 }
 
 export interface ContainerDetailResponse {

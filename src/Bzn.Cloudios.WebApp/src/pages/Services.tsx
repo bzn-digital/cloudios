@@ -225,6 +225,8 @@ export function Services() {
                 <th>Status</th>
                 <th>Name</th>
                 <th>Image</th>
+                <th>Network</th>
+                <th>Internal Connection</th>
                 <th>Public URL</th>
                 <th>CPU Limit</th>
                 <th>RAM Limit</th>
@@ -235,7 +237,7 @@ export function Services() {
             <tbody>
               {containers.length === 0 ? (
                 <tr>
-                  <td colSpan={8}>
+                  <td colSpan={10}>
                     <p className="empty-state">No services deployed yet.</p>
                   </td>
                 </tr>
@@ -256,6 +258,19 @@ export function Services() {
                       </button>
                     </td>
                     <td>{container.imageName}</td>
+                    <td>
+                      <span className="network-badge">
+                        {container.networkName || 'default'}
+                      </span>
+                    </td>
+                    <td>
+                      <code 
+                        className="internal-connection" 
+                        title="Services on the same network can connect using this internal address"
+                      >
+                        {container.name}:{container.internalPort}
+                      </code>
+                    </td>
                     <td>
                       {container.publicUrl ? (
                         <a
