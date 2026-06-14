@@ -1,5 +1,6 @@
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
+using Microsoft.AspNetCore.Authorization;
 
 namespace Bzn.Cloudios.WebAPI.Endpoints;
 
@@ -16,6 +17,6 @@ public static class AuthEndpoints
             return response is null
                 ? Results.Unauthorized()
                 : Results.Ok(response);
-        });
+        }).AllowAnonymous();
     }
 }

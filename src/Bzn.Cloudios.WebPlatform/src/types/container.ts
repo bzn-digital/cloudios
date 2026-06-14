@@ -110,4 +110,5 @@ export interface AdminContainerListItem {
   memoryLimitBytes: number;
   costPerHourBRL: number;
   currentMonthCostBRL: number;
+  networkName?: string;
 }

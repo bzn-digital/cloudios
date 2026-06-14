@@ -17,7 +17,7 @@ public sealed class JwtTenantProvider : ITenantProvider
 
         if (user?.Identity?.IsAuthenticated != true)
         {
-            // Fallback to system realm for testing when auth is disabled
+            // Fallback to system realm for WebPlatform when auth is disabled
             RealmId = Guid.Parse("00000000-0000-0000-0000-000000000001"); // System realm
             Role = "PlatformAdmin";
             UserId = Guid.Empty;

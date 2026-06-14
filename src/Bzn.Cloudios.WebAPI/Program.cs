@@ -46,10 +46,34 @@ builder.Services.AddCors(options =>
 });
 
 // --- Authentication (JWT Bearer with symmetric key) ---
-// Temporarily disabled for local testing
+var jwtKey = builder.Configuration["Jwt:Key"] ?? "YourSuperSecretKeyForDevelopmentOnly12345678901234567890";
+var keyBytes = Encoding.UTF8.GetBytes(jwtKey);
+
+builder.Services.AddAuthentication(options =>
+{
+    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+.AddJwtBearer(options =>
+{
+    options.TokenValidationParameters = new TokenValidationParameters
+    {
+        ValidateIssuer = false,
+        ValidateAudience = false,
+        ValidateLifetime = true,
+        ValidateIssuerSigningKey = true,
+        IssuerSigningKey = new SymmetricSecurityKey(keyBytes),
+        ClockSkew = TimeSpan.Zero
+    };
+});
 
 // --- Authorization Policies ---
-// Temporarily disabled for local testing
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("PlatformAdmin", policy => policy.RequireRole("PlatformAdmin"));
+    options.AddPolicy("RealmOwner", policy => policy.RequireRole("RealmOwner"));
+    options.AddPolicy("RealmMember", policy => policy.RequireRole("RealmOwner", "RealmMember"));
+});
 
 // --- Application Services ---
 builder.Services.AddHttpContextAccessor();
@@ -149,12 +173,14 @@ app.UseForwardedHeaders(new ForwardedHeadersOptions
 // --- Middleware pipeline ---
 app.UseRouting();
 app.UseCors("AllowReactApps");
-// app.UseAuthentication(); // Temporarily disabled for local testing
-// app.UseAuthorization(); // Temporarily disabled for local testing
+app.UseAuthentication();
+app.UseAuthorization();
 
 // --- API Endpoints ---
 RegistrationEndpoints.MapRegistrationEndpoints(app);
 AuthEndpoints.MapAuthEndpoints(app);
+RealmEndpoints.MapRealmEndpoints(app);
+UserEndpoints.MapUserEndpoints(app);
 ContainerEndpoints.MapContainerEndpoints(app);
 ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);
