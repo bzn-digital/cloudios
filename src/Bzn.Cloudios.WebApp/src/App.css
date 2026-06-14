@@ -1251,6 +1251,21 @@ body {
   animation: bzn-pulse 1.5s ease-in-out infinite;
 }
 
+.loading-spinner {
+  display: inline-block;
+  animation: spin 1s linear infinite;
+  margin-right: 6px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* ── Services page ────────────────────────────────────── */
 .services {
   padding: 32px;
