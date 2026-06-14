@@ -10,11 +10,20 @@ export function Services() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+
+  // Debounce search to prevent re-renders on every keystroke
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
 
   useEffect(() => {
     loadContainers();
-  }, [search]);
+  }, [debouncedSearch]);
 
   const parseSearchQuery = (query: string) => {
     // Check if query contains key=value syntax with &&
@@ -59,8 +68,8 @@ export function Services() {
       // Filter out system realm containers
       filtered = filtered.filter(c => c.realmName !== 'system');
       
-      if (search) {
-        const parsed = parseSearchQuery(search);
+      if (debouncedSearch) {
+        const parsed = parseSearchQuery(debouncedSearch);
         
         if (parsed.type === 'advanced') {
           // Apply advanced filters
