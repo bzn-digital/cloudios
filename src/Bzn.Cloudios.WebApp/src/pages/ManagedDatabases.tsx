@@ -24,6 +24,7 @@ const ManagedDatabases = () => {
     instanceName: '',
     databaseType: 'mysql',
     tierId: '',
+    diskSizeGB: 10,
     networkName: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
@@ -71,6 +72,7 @@ const ManagedDatabases = () => {
       instanceName: '',
       databaseType: 'mysql',
       tierId: '',
+      diskSizeGB: 10,
       networkName: '',
     });
     setErrors({});
@@ -99,7 +101,8 @@ const ManagedDatabases = () => {
       await apiClient.post('/managed-databases', {
         name: formData.instanceName,
         tierId: formData.tierId,
-        type: formData.databaseType
+        type: formData.databaseType,
+        diskSizeGB: formData.diskSizeGB
       });
       handleCloseModal();
       // TODO: Reload databases list
@@ -206,6 +209,26 @@ const ManagedDatabases = () => {
               ))}
             </select>
             {errors.tierId && <small className="error-text">{errors.tierId}</small>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="diskSizeGB">Disk Size (SSD) *</label>
+            <div className="disk-slider-container">
+              <input
+                id="diskSizeGB"
+                type="range"
+                min="10"
+                max="500"
+                step="10"
+                value={formData.diskSizeGB}
+                onChange={(e) => setFormData({ ...formData, diskSizeGB: parseInt(e.target.value) })}
+                className="disk-slider"
+              />
+              <div className="disk-size-display">
+                <span className="disk-size-value">{formData.diskSizeGB} GB</span>
+              </div>
+            </div>
+            <small>SSD storage for your database (10GB - 500GB)</small>
           </div>
 
           <div className="form-group">
