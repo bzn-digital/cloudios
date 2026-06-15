@@ -101,17 +101,19 @@ const ManagedDatabases = () => {
     }
 
     try {
-      await apiClient.post('/managed-databases', {
+      const requestData = {
         name: formData.instanceName,
         tierId: formData.tierId,
         type: formData.databaseType,
         diskSizeGB: formData.diskSizeGB
-      });
+      };
+      await apiClient.post('/managed-databases', requestData);
       handleCloseModal();
       // TODO: Reload databases list
-    } catch (err) {
+    } catch (err: any) {
       console.error('Failed to create database:', err);
-      alert('Failed to create database. Please try again.');
+      const errorMessage = err.message || 'Failed to create database. Please try again.';
+      alert(errorMessage);
     }
   };
 
