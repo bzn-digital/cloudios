@@ -167,6 +167,9 @@ public sealed class BillingService : IBillingService
 
     // Estimates accrued cost of containers still running, since their billing periods
     // only persist CostBRL on stop. Pass realmId = null to span all realms.
+    // Note: like the stopped-period queries, this attributes a period to the month it
+    // started in (StartedAtUtc within [startDate, endDate)). A period spanning multiple
+    // months is therefore counted only against its start month.
     private async Task<decimal> SumActiveContainerCostAsync(Guid? realmId, DateTime startDate, DateTime endDate, DateTime now, CancellationToken ct)
     {
         var active = await _db.BillingPeriods
@@ -184,6 +187,7 @@ public sealed class BillingService : IBillingService
 
     // Estimates accrued cost of managed databases still running, deriving the hourly
     // rate from the instance tier + engine. Pass realmId = null to span all realms.
+    // Note: same month-attribution behavior as SumActiveContainerCostAsync above.
     private async Task<decimal> SumActiveDatabaseCostAsync(Guid? realmId, DateTime startDate, DateTime endDate, DateTime now, CancellationToken ct)
     {
         var active = await _db.BillingPeriods
