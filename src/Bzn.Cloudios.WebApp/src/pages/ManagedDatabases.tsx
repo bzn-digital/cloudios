@@ -58,7 +58,10 @@ const ManagedDatabases = () => {
   }, []);
 
   const selectedTier = tiers.find(t => t.id === formData.tierId);
-  const costPerHour = selectedTier?.pricing.find(p => p.engine === formData.databaseType)?.hourlyRateBRL || 0;
+  const tierCostPerHour = selectedTier?.pricing.find(p => p.engine === formData.databaseType)?.hourlyRateBRL || 0;
+  const diskCostPerGBPerHour = 0.0005; // R$ 0.0005 por GB por hora (~R$ 0.36 por GB por mês)
+  const diskCostPerHour = formData.diskSizeGB * diskCostPerGBPerHour;
+  const costPerHour = tierCostPerHour + diskCostPerHour;
   const costPerMonth = costPerHour * 24 * 30;
 
   const handleOpenModal = () => {
@@ -253,11 +256,19 @@ const ManagedDatabases = () => {
             <h3>Billing Preview</h3>
             <div className="billing-costs">
               <div className="cost-item">
-                <span className="cost-label">Cost per hour</span>
-                <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+                <span className="cost-label">Instance tier (per hour)</span>
+                <span className="cost-value">R$ {tierCostPerHour.toFixed(3)}</span>
               </div>
               <div className="cost-item">
-                <span className="cost-label">Cost per month (720h)</span>
+                <span className="cost-label">Disk {formData.diskSizeGB}GB (per hour)</span>
+                <span className="cost-value">R$ {diskCostPerHour.toFixed(3)}</span>
+              </div>
+              <div className="cost-item total">
+                <span className="cost-label">Total per hour</span>
+                <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+              </div>
+              <div className="cost-item total">
+                <span className="cost-label">Total per month (720h)</span>
                 <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
               </div>
             </div>

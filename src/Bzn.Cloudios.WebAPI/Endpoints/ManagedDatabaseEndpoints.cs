@@ -14,7 +14,7 @@ public static class ManagedDatabaseEndpoints
         {
             var result = await service.GetTiersAsync(ct);
             return Results.Ok(result);
-        });
+        }).AllowAnonymous();
 
         // Create a managed database for the caller's realm.
         group.MapPost("/", async (CreateManagedDatabaseRequest request, ManagedDatabaseCrudService service, CancellationToken ct) =>

@@ -2740,6 +2740,22 @@ body {
   color: var(--bzn-primary);
 }
 
+.billing-costs .cost-item.total {
+  border-top: 1px solid var(--bzn-surface-4);
+  padding-top: 12px;
+  margin-top: 8px;
+}
+
+.billing-costs .cost-item.total .cost-label {
+  font-weight: 600;
+  color: var(--bzn-gray-800);
+}
+
+.billing-costs .cost-item.total .cost-value {
+  font-weight: 700;
+  color: var(--bzn-primary);
+}
+
 .memory-tiers {
   display: flex;
   justify-content: space-between;
