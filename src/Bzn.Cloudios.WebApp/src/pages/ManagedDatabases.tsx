@@ -15,9 +15,24 @@ interface DatabaseTier {
   }[];
 }
 
+interface ManagedDatabase {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  tierName: string;
+  cpuLimitCores: number;
+  memoryLimitBytes: number;
+  hourlyRateBRL: number;
+  monthlyForecastBRL: number;
+  createdAt: string;
+}
+
 const ManagedDatabases = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [tiers, setTiers] = useState<DatabaseTier[]>([]);
+  const [databases, setDatabases] = useState<ManagedDatabase[]>([]);
+  const [databasesLoading, setDatabasesLoading] = useState(false);
   const [networks, setNetworks] = useState<string[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -39,6 +54,21 @@ const ManagedDatabases = () => {
       }
     };
     loadTiers();
+  }, []);
+
+  useEffect(() => {
+    const loadDatabases = async () => {
+      try {
+        setDatabasesLoading(true);
+        const response = await apiClient.get('/managed-databases') as ManagedDatabase[];
+        setDatabases(response || []);
+      } catch (err) {
+        console.error('Failed to load databases:', err);
+      } finally {
+        setDatabasesLoading(false);
+      }
+    };
+    loadDatabases();
   }, []);
 
   useEffect(() => {
@@ -109,7 +139,9 @@ const ManagedDatabases = () => {
       };
       await apiClient.post('/managed-databases', requestData);
       handleCloseModal();
-      // TODO: Reload databases list
+      // Reload databases list
+      const response = await apiClient.get('/managed-databases') as ManagedDatabase[];
+      setDatabases(response || []);
     } catch (err: any) {
       console.error('Failed to create database:', err);
       const errorMessage = err.message || 'Failed to create database. Please try again.';
@@ -148,17 +180,43 @@ const ManagedDatabases = () => {
                 <th>Status</th>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Region</th>
+                <th>Tier</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={6}>
-                  <p className="empty-state">No managed databases deployed yet.</p>
-                </td>
-              </tr>
+              {databasesLoading ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="empty-state">Loading...</p>
+                  </td>
+                </tr>
+              ) : databases.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="empty-state">No managed databases deployed yet.</p>
+                  </td>
+                </tr>
+              ) : (
+                databases.map((db) => (
+                  <tr key={db.id}>
+                    <td>
+                      <span className={`status-badge status-${db.status.toLowerCase()}`}>
+                        {db.status}
+                      </span>
+                    </td>
+                    <td>{db.name}</td>
+                    <td>{db.type}</td>
+                    <td>{db.tierName}</td>
+                    <td>{new Date(db.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <button className="btn btn-sm btn-secondary">View</button>
+                      <button className="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>

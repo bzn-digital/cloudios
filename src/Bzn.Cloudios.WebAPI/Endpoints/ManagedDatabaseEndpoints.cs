@@ -16,6 +16,13 @@ public static class ManagedDatabaseEndpoints
             return Results.Ok(result);
         }).AllowAnonymous();
 
+        // List managed databases for the caller's realm.
+        group.MapGet("/", async (ManagedDatabaseCrudService service, CancellationToken ct) =>
+        {
+            var result = await service.ListAsync(ct);
+            return Results.Ok(result);
+        });
+
         // Create a managed database for the caller's realm.
         group.MapPost("/", async (CreateManagedDatabaseRequest request, ManagedDatabaseCrudService service, CancellationToken ct) =>
         {
