@@ -2756,6 +2756,13 @@ body {
   color: var(--bzn-primary);
 }
 
+.billing-placeholder {
+  color: var(--bzn-gray-400);
+  font-size: 14px;
+  text-align: center;
+  padding: 20px 0;
+}
+
 .memory-tiers {
   display: flex;
   justify-content: space-between;

@@ -254,24 +254,28 @@ const ManagedDatabases = () => {
 
           <div className="billing-preview">
             <h3>Billing Preview</h3>
-            <div className="billing-costs">
-              <div className="cost-item">
-                <span className="cost-label">Instance tier (per hour)</span>
-                <span className="cost-value">R$ {tierCostPerHour.toFixed(3)}</span>
+            {selectedTier ? (
+              <div className="billing-costs">
+                <div className="cost-item">
+                  <span className="cost-label">Instance tier (per hour)</span>
+                  <span className="cost-value">R$ {tierCostPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item">
+                  <span className="cost-label">Disk {formData.diskSizeGB}GB (per hour)</span>
+                  <span className="cost-value">R$ {diskCostPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item total">
+                  <span className="cost-label">Total per hour</span>
+                  <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item total">
+                  <span className="cost-label">Total per month (720h)</span>
+                  <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="cost-item">
-                <span className="cost-label">Disk {formData.diskSizeGB}GB (per hour)</span>
-                <span className="cost-value">R$ {diskCostPerHour.toFixed(3)}</span>
-              </div>
-              <div className="cost-item total">
-                <span className="cost-label">Total per hour</span>
-                <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
-              </div>
-              <div className="cost-item total">
-                <span className="cost-label">Total per month (720h)</span>
-                <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="billing-placeholder">Select an instance tier to see pricing</p>
+            )}
           </div>
 
           <div className="modal-footer">
