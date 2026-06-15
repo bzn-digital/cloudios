@@ -21,6 +21,7 @@ public sealed class ManagedDatabaseService : IManagedDatabaseService
     private readonly ILogger<ManagedDatabaseService> _logger;
     private readonly string _volumesBasePath;
     private readonly bool _skipDirectoryCreation;
+    private readonly bool _skipDockerIntegration;
 
     public ManagedDatabaseService(
         CloudiosDbContext context,
@@ -35,6 +36,7 @@ public sealed class ManagedDatabaseService : IManagedDatabaseService
         _logger = logger;
         _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
         _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
+        _skipDockerIntegration = configuration.GetValue<bool>("Docker:SkipIntegration");
     }
 
     public async Task<ManagedDatabaseConnection> ProvisionAsync(Guid instanceId, CancellationToken ct = default)
@@ -51,6 +53,25 @@ public sealed class ManagedDatabaseService : IManagedDatabaseService
 
         try
         {
+            if (_skipDockerIntegration)
+            {
+                _logger.LogInformation("Docker integration skipped for managed database {Name} (Docker:SkipIntegration=true)", instance.Name);
+                instance.Status = ManagedDatabaseStatus.Running;
+                await _context.SaveChangesAsync(ct);
+
+                return new ManagedDatabaseConnection
+                {
+                    InstanceId = instance.Id,
+                    DockerContainerId = null,
+                    Status = instance.Status.ToString(),
+                    Type = instance.Type.ToString(),
+                    Host = "skipped-docker-integration",
+                    Port = GetPort(instance.Type),
+                    Username = GetRootUsername(instance.Type),
+                    Password = "skipped-docker-integration"
+                };
+            }
+
             var image = GetImage(instance.Type);
 
             // Resolve the network the container should join.
