@@ -13,7 +13,7 @@ public static class HealthCheckEndpoints
         app.MapGet("/health", () =>
         {
             return Results.Ok(new { status = "Healthy", version = "0.1.0" });
-        });
+        }).AllowAnonymous();
 
         // Host metrics (GlobalAdmin only)
         app.MapGet("/api/metrics/host", async (HealthCheckService healthCheckService, CancellationToken ct) =>
