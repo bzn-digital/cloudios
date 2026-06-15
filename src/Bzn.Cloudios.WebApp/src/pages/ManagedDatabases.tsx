@@ -1,42 +1,54 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Modal } from '../components/Modal';
+import { apiClient } from '../lib/api';
 
-interface MemoryTier {
-  mb: number;
-  label: string;
-  costPerHour: number;
+interface DatabaseTier {
+  id: string;
+  name: string;
+  cpuLimitCores: number;
+  memoryLimitBytes: number;
+  pricing: {
+    engine: string;
+    hourlyRateBRL: number;
+    monthlyForecastBRL: number;
+  }[];
 }
-
-const MEMORY_TIERS: MemoryTier[] = [
-  { mb: 512, label: '512 MB', costPerHour: 0.015 },
-  { mb: 1024, label: '1 GB', costPerHour: 0.025 },
-  { mb: 2048, label: '2 GB', costPerHour: 0.045 },
-  { mb: 4096, label: '4 GB', costPerHour: 0.085 },
-  { mb: 8192, label: '8 GB', costPerHour: 0.16 },
-];
 
 const ManagedDatabases = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tiers, setTiers] = useState<DatabaseTier[]>([]);
   const [networks, setNetworks] = useState<string[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
   const [formData, setFormData] = useState({
     instanceName: '',
     databaseType: 'mysql',
-    memoryTier: 1,
+    tierId: '',
     networkName: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const loadTiers = async () => {
+      try {
+        const response = await apiClient.get('/managed-databases/tiers') as { tiers: DatabaseTier[] };
+        setTiers(response.tiers || []);
+      } catch (err) {
+        console.error('Failed to load tiers:', err);
+      }
+    };
+    loadTiers();
+  }, []);
+
+  useEffect(() => {
     const loadNetworks = async () => {
       try {
         setNetworksLoading(true);
-        // Simulate API call - replace with actual API call
-        // const data = await apiClient.getNetworks() as { networks: string[] };
-        setNetworks(['default', 'production', 'staging']);
+        const data = await apiClient.getNetworks() as { networks: string[] };
+        setNetworks(data.networks || ['default']);
       } catch (err) {
         console.error('Failed to load networks:', err);
+        setNetworks(['default']);
       } finally {
         setNetworksLoading(false);
       }
@@ -44,8 +56,8 @@ const ManagedDatabases = () => {
     loadNetworks();
   }, []);
 
-  const selectedTier = MEMORY_TIERS[formData.memoryTier];
-  const costPerHour = selectedTier.costPerHour;
+  const selectedTier = tiers.find(t => t.id === formData.tierId);
+  const costPerHour = selectedTier?.pricing.find(p => p.engine === formData.databaseType)?.hourlyRateBRL || 0;
   const costPerMonth = costPerHour * 24 * 30;
 
   const handleOpenModal = () => {
@@ -58,13 +70,13 @@ const ManagedDatabases = () => {
     setFormData({
       instanceName: '',
       databaseType: 'mysql',
-      memoryTier: 1,
+      tierId: '',
       networkName: '',
     });
     setErrors({});
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -74,14 +86,27 @@ const ManagedDatabases = () => {
       newErrors.instanceName = 'Only lowercase letters, numbers, and hyphens allowed';
     }
 
+    if (!formData.tierId) {
+      newErrors.tierId = 'Tier is required';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // TODO: Call API to create database
-    console.log('Creating database:', formData);
-    handleCloseModal();
+    try {
+      await apiClient.post('/managed-databases', {
+        name: formData.instanceName,
+        tierId: formData.tierId,
+        type: formData.databaseType
+      });
+      handleCloseModal();
+      // TODO: Reload databases list
+    } catch (err) {
+      console.error('Failed to create database:', err);
+      alert('Failed to create database. Please try again.');
+    }
   };
 
   return (
@@ -165,28 +190,22 @@ const ManagedDatabases = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="memoryTier">Memory Allocation *</label>
-            <div className="memory-slider-container">
-              <input
-                id="memoryTier"
-                type="range"
-                min="0"
-                max={MEMORY_TIERS.length - 1}
-                value={formData.memoryTier}
-                onChange={(e) => setFormData({ ...formData, memoryTier: parseInt(e.target.value) })}
-                className="memory-slider"
-              />
-              <div className="memory-tiers">
-                {MEMORY_TIERS.map((tier, index) => (
-                  <span
-                    key={tier.mb}
-                    className={`memory-tier ${index === formData.memoryTier ? 'active' : ''}`}
-                  >
-                    {tier.label}
-                  </span>
-                ))}
-              </div>
-            </div>
+            <label htmlFor="tierId">Instance Tier *</label>
+            <select
+              id="tierId"
+              value={formData.tierId}
+              onChange={(e) => setFormData({ ...formData, tierId: e.target.value })}
+              className={errors.tierId ? 'modal-input error' : 'modal-input'}
+              required
+            >
+              <option value="">Select a tier</option>
+              {tiers.map((tier) => (
+                <option key={tier.id} value={tier.id}>
+                  {tier.name} - {tier.cpuLimitCores} CPU, {(tier.memoryLimitBytes / (1024 * 1024 * 1024)).toFixed(1)} GB RAM
+                </option>
+              ))}
+            </select>
+            {errors.tierId && <small className="error-text">{errors.tierId}</small>}
           </div>
 
           <div className="form-group">
