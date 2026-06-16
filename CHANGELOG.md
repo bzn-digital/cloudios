@@ -102,6 +102,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - `BillingPeriod`: `ContainerId` now nullable and added nullable `ManagedDatabaseId` so a billing period belongs to either a container or a managed database (EF migration `AddManagedDatabaseBilling`)
+- `GetRealmBillingAsync` / `GetGlobalBillingAsync` now estimate the accrued cost of currently-running periods (containers + managed databases) instead of counting only stopped periods, so active resources no longer report zero cost
 - WebAPI: removed static file serving and Blazor-specific middleware
 - WebAPI: removed project reference to WebApp (now separate React application)
 - WebAPI: CORS enabled for React frontend development

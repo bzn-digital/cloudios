@@ -221,4 +221,108 @@ public class BillingServiceTests
         var count = await db.BillingPeriods.CountAsync();
         Assert.Equal(0, count);
     }
+
+    [Fact]
+    public async Task GetRealmBillingAsync_EstimatesActiveContainerAndDatabasePeriods()
+    {
+        var db = CreateInMemoryDb();
+        var realmId = Guid.NewGuid();
+        var containerId = Guid.NewGuid();
+        var databaseId = Guid.NewGuid();
+        var tierId = Guid.Parse("00000000-0000-0000-0000-000000000103"); // dbl-mini-1s
+        var now = DateTime.UtcNow;
+
+        db.Realms.Add(new Realm { Id = realmId, Name = "Test", Slug = "test", IsActive = true, CreatedAt = now });
+        db.Containers.Add(new Container { Id = containerId, RealmId = realmId, Name = "c1", ImageName = "nginx", InternalPort = 80, CostPerHourBRL = 0.02m, Status = ContainerStatus.Running, CreatedAt = now });
+        db.ManagedDatabaseInstances.Add(new ManagedDatabaseInstance
+        {
+            Id = databaseId,
+            RealmId = realmId,
+            TierId = tierId,
+            Name = "db1",
+            Type = ManagedDatabaseType.MySQL,
+            NetworkId = string.Empty,
+            CpuLimit = 1.0,
+            MemoryLimit = 1024L * 1024 * 1024,
+            Status = ManagedDatabaseStatus.Running,
+            CreatedAt = now
+        });
+        db.BillingPeriods.AddRange(
+            new BillingPeriod { ContainerId = containerId, StartedAtUtc = now.AddHours(-5), StoppedAtUtc = null, Hours = 0, CostBRL = 0 },
+            new BillingPeriod { ManagedDatabaseId = databaseId, StartedAtUtc = now.AddHours(-10), StoppedAtUtc = null, Hours = 0, CostBRL = 0 }
+        );
+        await db.SaveChangesAsync();
+
+        var service = new BillingService(db, NullLogger<BillingService>.Instance);
+
+        // container: 5h * 0.02 = 0.10 ; database: 10h * 0.17 = 1.70
+        var total = await service.GetRealmBillingAsync(realmId, now.Year, now.Month, CancellationToken.None);
+        Assert.Equal(1.80m, total, 2);
+    }
+
+    [Fact]
+    public async Task GetGlobalBillingAsync_EstimatesActivePeriodsAcrossRealms()
+    {
+        var db = CreateInMemoryDb();
+        var realm1 = Guid.NewGuid();
+        var realm2 = Guid.NewGuid();
+        var containerId = Guid.NewGuid();
+        var databaseId = Guid.NewGuid();
+        var tierId = Guid.Parse("00000000-0000-0000-0000-000000000103"); // dbl-mini-1s
+        var now = DateTime.UtcNow;
+
+        db.Realms.AddRange(
+            new Realm { Id = realm1, Name = "R1", Slug = "r1", IsActive = true, CreatedAt = now },
+            new Realm { Id = realm2, Name = "R2", Slug = "r2", IsActive = true, CreatedAt = now }
+        );
+        db.Containers.Add(new Container { Id = containerId, RealmId = realm1, Name = "c1", ImageName = "nginx", InternalPort = 80, CostPerHourBRL = 0.02m, Status = ContainerStatus.Running, CreatedAt = now });
+        db.ManagedDatabaseInstances.Add(new ManagedDatabaseInstance
+        {
+            Id = databaseId,
+            RealmId = realm2,
+            TierId = tierId,
+            Name = "db1",
+            Type = ManagedDatabaseType.MySQL,
+            NetworkId = string.Empty,
+            CpuLimit = 1.0,
+            MemoryLimit = 1024L * 1024 * 1024,
+            Status = ManagedDatabaseStatus.Running,
+            CreatedAt = now
+        });
+        db.BillingPeriods.AddRange(
+            new BillingPeriod { ContainerId = containerId, StartedAtUtc = now.AddHours(-5), StoppedAtUtc = null, Hours = 0, CostBRL = 0 },
+            new BillingPeriod { ManagedDatabaseId = databaseId, StartedAtUtc = now.AddHours(-10), StoppedAtUtc = null, Hours = 0, CostBRL = 0 }
+        );
+        await db.SaveChangesAsync();
+
+        var service = new BillingService(db, NullLogger<BillingService>.Instance);
+
+        // container (realm1): 5h * 0.02 = 0.10 ; database (realm2): 10h * 0.17 = 1.70
+        var total = await service.GetGlobalBillingAsync(now.Year, now.Month, CancellationToken.None);
+        Assert.Equal(1.80m, total, 2);
+    }
+
+    [Fact]
+    public async Task GetRealmBillingAsync_PastMonth_CapsActivePeriodAtMonthEnd()
+    {
+        var db = CreateInMemoryDb();
+        var realmId = Guid.NewGuid();
+        var containerId = Guid.NewGuid();
+
+        // Two months ago, so DateTime.UtcNow is past the queried month's end.
+        var monthStart = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1, 0, 0, 0, DateTimeKind.Utc).AddMonths(-2);
+        var monthEnd = monthStart.AddMonths(1);
+        var startedAt = monthEnd.AddHours(-3); // active period began 3h before the month boundary
+
+        db.Realms.Add(new Realm { Id = realmId, Name = "Test", Slug = "test", IsActive = true, CreatedAt = monthStart });
+        db.Containers.Add(new Container { Id = containerId, RealmId = realmId, Name = "c1", ImageName = "nginx", InternalPort = 80, CostPerHourBRL = 0.02m, Status = ContainerStatus.Running, CreatedAt = monthStart });
+        db.BillingPeriods.Add(new BillingPeriod { ContainerId = containerId, StartedAtUtc = startedAt, StoppedAtUtc = null, Hours = 0, CostBRL = 0 });
+        await db.SaveChangesAsync();
+
+        var service = new BillingService(db, NullLogger<BillingService>.Instance);
+
+        // Capped at month end: 3h * 0.02 = 0.06 (not now - startedAt, which would span ~2 months).
+        var total = await service.GetRealmBillingAsync(realmId, monthStart.Year, monthStart.Month, CancellationToken.None);
+        Assert.Equal(0.06m, total, 2);
+    }
 }
