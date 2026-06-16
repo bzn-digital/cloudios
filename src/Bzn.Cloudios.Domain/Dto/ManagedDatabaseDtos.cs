@@ -44,3 +44,15 @@ public sealed class ManagedDatabaseResponse
     public decimal MonthlyForecastBRL { get; set; }
     public DateTime CreatedAt { get; set; }
 }
+
+public sealed class ManagedDatabaseListItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public Guid TierId { get; set; }
+    public double CpuLimitCores { get; set; }
+    public long MemoryLimitBytes { get; set; }
+    public DateTime CreatedAt { get; set; }
+}
