@@ -71,6 +71,36 @@ public sealed class ManagedDatabaseCrudService
         };
     }
 
+    public async Task<List<ManagedDatabaseResponse>> ListAsync(CancellationToken ct = default)
+    {
+        var realmId = _tenant.RealmId;
+        var instances = await _db.ManagedDatabaseInstances
+            .Include(d => d.Tier)
+            .Where(d => d.RealmId == realmId)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync(ct);
+
+        return instances.Select(instance =>
+        {
+            var hourlyRate = ManagedDatabasePricing.HourlyRateBRL(instance.CpuLimit, instance.MemoryLimit, instance.Type);
+            return new ManagedDatabaseResponse
+            {
+                Id = instance.Id,
+                RealmId = instance.RealmId,
+                TierId = instance.TierId,
+                TierName = instance.Tier?.Name ?? "Unknown",
+                Name = instance.Name,
+                Type = instance.Type.ToString(),
+                Status = instance.Status.ToString(),
+                CpuLimitCores = instance.CpuLimit,
+                MemoryLimitBytes = instance.MemoryLimit,
+                HourlyRateBRL = hourlyRate,
+                MonthlyForecastBRL = ManagedDatabasePricing.MonthlyForecastBRL(hourlyRate),
+                CreatedAt = instance.CreatedAt
+            };
+        }).ToList();
+    }
+
     public async Task<(ManagedDatabaseResponse? Instance, string? Error, int StatusCode)> CreateAsync(CreateManagedDatabaseRequest request, CancellationToken ct = default)
     {
         if (string.IsNullOrWhiteSpace(request.Name))

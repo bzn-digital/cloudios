@@ -26,6 +26,7 @@ public sealed class CreateManagedDatabaseRequest
     public string Name { get; set; } = string.Empty;
     public Guid TierId { get; set; }
     public string Type { get; set; } = string.Empty;
+    public int DiskSizeGB { get; set; } = 10;
 }
 
 public sealed class ManagedDatabaseResponse
