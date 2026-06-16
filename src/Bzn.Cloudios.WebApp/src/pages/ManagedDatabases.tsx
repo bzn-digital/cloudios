@@ -1,42 +1,85 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
 import { Modal } from '../components/Modal';
+import { apiClient } from '../lib/api';
 
-interface MemoryTier {
-  mb: number;
-  label: string;
-  costPerHour: number;
+interface DatabaseTier {
+  id: string;
+  name: string;
+  cpuLimitCores: number;
+  memoryLimitBytes: number;
+  pricing: {
+    engine: string;
+    hourlyRateBRL: number;
+    monthlyForecastBRL: number;
+  }[];
 }
 
-const MEMORY_TIERS: MemoryTier[] = [
-  { mb: 512, label: '512 MB', costPerHour: 0.015 },
-  { mb: 1024, label: '1 GB', costPerHour: 0.025 },
-  { mb: 2048, label: '2 GB', costPerHour: 0.045 },
-  { mb: 4096, label: '4 GB', costPerHour: 0.085 },
-  { mb: 8192, label: '8 GB', costPerHour: 0.16 },
-];
+interface ManagedDatabase {
+  id: string;
+  name: string;
+  type: string;
+  status: string;
+  tierName: string;
+  cpuLimitCores: number;
+  memoryLimitBytes: number;
+  hourlyRateBRL: number;
+  monthlyForecastBRL: number;
+  createdAt: string;
+}
 
 const ManagedDatabases = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [tiers, setTiers] = useState<DatabaseTier[]>([]);
+  const [databases, setDatabases] = useState<ManagedDatabase[]>([]);
+  const [databasesLoading, setDatabasesLoading] = useState(false);
   const [networks, setNetworks] = useState<string[]>([]);
   const [networksLoading, setNetworksLoading] = useState(false);
   const [formData, setFormData] = useState({
     instanceName: '',
     databaseType: 'mysql',
-    memoryTier: 1,
+    tierId: '',
+    diskSizeGB: 10,
     networkName: '',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
+    const loadTiers = async () => {
+      try {
+        const response = await apiClient.get('/managed-databases/tiers') as { tiers: DatabaseTier[] };
+        setTiers(response.tiers || []);
+      } catch (err) {
+        console.error('Failed to load tiers:', err);
+      }
+    };
+    loadTiers();
+  }, []);
+
+  useEffect(() => {
+    const loadDatabases = async () => {
+      try {
+        setDatabasesLoading(true);
+        const response = await apiClient.get('/managed-databases') as ManagedDatabase[];
+        setDatabases(response || []);
+      } catch (err) {
+        console.error('Failed to load databases:', err);
+      } finally {
+        setDatabasesLoading(false);
+      }
+    };
+    loadDatabases();
+  }, []);
+
+  useEffect(() => {
     const loadNetworks = async () => {
       try {
         setNetworksLoading(true);
-        // Simulate API call - replace with actual API call
-        // const data = await apiClient.getNetworks() as { networks: string[] };
-        setNetworks(['default', 'production', 'staging']);
+        const data = await apiClient.getNetworks() as { networks: string[] };
+        setNetworks(data.networks || ['default']);
       } catch (err) {
         console.error('Failed to load networks:', err);
+        setNetworks(['default']);
       } finally {
         setNetworksLoading(false);
       }
@@ -44,8 +87,11 @@ const ManagedDatabases = () => {
     loadNetworks();
   }, []);
 
-  const selectedTier = MEMORY_TIERS[formData.memoryTier];
-  const costPerHour = selectedTier.costPerHour;
+  const selectedTier = tiers.find(t => t.id === formData.tierId);
+  const tierCostPerHour = selectedTier?.pricing.find(p => p.engine === formData.databaseType)?.hourlyRateBRL || 0;
+  const diskCostPerGBPerHour = 0.0005; // R$ 0.0005 por GB por hora (~R$ 0.36 por GB por mês)
+  const diskCostPerHour = formData.diskSizeGB * diskCostPerGBPerHour;
+  const costPerHour = tierCostPerHour + diskCostPerHour;
   const costPerMonth = costPerHour * 24 * 30;
 
   const handleOpenModal = () => {
@@ -58,13 +104,14 @@ const ManagedDatabases = () => {
     setFormData({
       instanceName: '',
       databaseType: 'mysql',
-      memoryTier: 1,
+      tierId: '',
+      diskSizeGB: 10,
       networkName: '',
     });
     setErrors({});
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newErrors: Record<string, string> = {};
 
@@ -74,14 +121,32 @@ const ManagedDatabases = () => {
       newErrors.instanceName = 'Only lowercase letters, numbers, and hyphens allowed';
     }
 
+    if (!formData.tierId) {
+      newErrors.tierId = 'Tier is required';
+    }
+
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
 
-    // TODO: Call API to create database
-    console.log('Creating database:', formData);
-    handleCloseModal();
+    try {
+      const requestData = {
+        name: formData.instanceName,
+        tierId: formData.tierId,
+        type: formData.databaseType,
+        diskSizeGB: formData.diskSizeGB
+      };
+      await apiClient.post('/managed-databases', requestData);
+      handleCloseModal();
+      // Reload databases list
+      const response = await apiClient.get('/managed-databases') as ManagedDatabase[];
+      setDatabases(response || []);
+    } catch (err: any) {
+      console.error('Failed to create database:', err);
+      const errorMessage = err.message || 'Failed to create database. Please try again.';
+      alert(errorMessage);
+    }
   };
 
   return (
@@ -115,17 +180,43 @@ const ManagedDatabases = () => {
                 <th>Status</th>
                 <th>Name</th>
                 <th>Type</th>
-                <th>Region</th>
+                <th>Tier</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td colSpan={6}>
-                  <p className="empty-state">No managed databases deployed yet.</p>
-                </td>
-              </tr>
+              {databasesLoading ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="empty-state">Loading...</p>
+                  </td>
+                </tr>
+              ) : databases.length === 0 ? (
+                <tr>
+                  <td colSpan={6}>
+                    <p className="empty-state">No managed databases deployed yet.</p>
+                  </td>
+                </tr>
+              ) : (
+                databases.map((db) => (
+                  <tr key={db.id}>
+                    <td>
+                      <span className={`status-badge status-${db.status.toLowerCase()}`}>
+                        {db.status}
+                      </span>
+                    </td>
+                    <td>{db.name}</td>
+                    <td>{db.type}</td>
+                    <td>{db.tierName}</td>
+                    <td>{new Date(db.createdAt).toLocaleDateString()}</td>
+                    <td>
+                      <button className="btn btn-sm btn-secondary">View</button>
+                      <button className="btn btn-sm btn-danger">Delete</button>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
@@ -165,28 +256,42 @@ const ManagedDatabases = () => {
           </div>
 
           <div className="form-group">
-            <label htmlFor="memoryTier">Memory Allocation *</label>
-            <div className="memory-slider-container">
+            <label htmlFor="tierId">Instance Tier *</label>
+            <select
+              id="tierId"
+              value={formData.tierId}
+              onChange={(e) => setFormData({ ...formData, tierId: e.target.value })}
+              className={errors.tierId ? 'modal-input error' : 'modal-input'}
+              required
+            >
+              <option value="">Select a tier</option>
+              {tiers.map((tier) => (
+                <option key={tier.id} value={tier.id}>
+                  {tier.name} - {tier.cpuLimitCores} CPU, {(tier.memoryLimitBytes / (1024 * 1024 * 1024)).toFixed(1)} GB RAM
+                </option>
+              ))}
+            </select>
+            {errors.tierId && <small className="error-text">{errors.tierId}</small>}
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="diskSizeGB">Disk Size (SSD) *</label>
+            <div className="disk-slider-container">
               <input
-                id="memoryTier"
+                id="diskSizeGB"
                 type="range"
-                min="0"
-                max={MEMORY_TIERS.length - 1}
-                value={formData.memoryTier}
-                onChange={(e) => setFormData({ ...formData, memoryTier: parseInt(e.target.value) })}
-                className="memory-slider"
+                min="10"
+                max="500"
+                step="10"
+                value={formData.diskSizeGB}
+                onChange={(e) => setFormData({ ...formData, diskSizeGB: parseInt(e.target.value) })}
+                className="disk-slider"
               />
-              <div className="memory-tiers">
-                {MEMORY_TIERS.map((tier, index) => (
-                  <span
-                    key={tier.mb}
-                    className={`memory-tier ${index === formData.memoryTier ? 'active' : ''}`}
-                  >
-                    {tier.label}
-                  </span>
-                ))}
+              <div className="disk-size-display">
+                <span className="disk-size-value">{formData.diskSizeGB} GB</span>
               </div>
             </div>
+            <small>SSD storage for your database (10GB - 500GB)</small>
           </div>
 
           <div className="form-group">
@@ -209,16 +314,28 @@ const ManagedDatabases = () => {
 
           <div className="billing-preview">
             <h3>Billing Preview</h3>
-            <div className="billing-costs">
-              <div className="cost-item">
-                <span className="cost-label">Cost per hour</span>
-                <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+            {selectedTier ? (
+              <div className="billing-costs">
+                <div className="cost-item">
+                  <span className="cost-label">Instance tier (per hour)</span>
+                  <span className="cost-value">R$ {tierCostPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item">
+                  <span className="cost-label">Disk {formData.diskSizeGB}GB (per hour)</span>
+                  <span className="cost-value">R$ {diskCostPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item total">
+                  <span className="cost-label">Total per hour</span>
+                  <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
+                </div>
+                <div className="cost-item total">
+                  <span className="cost-label">Total per month (720h)</span>
+                  <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
+                </div>
               </div>
-              <div className="cost-item">
-                <span className="cost-label">Cost per month (720h)</span>
-                <span className="cost-value">R$ {costPerMonth.toFixed(2)}</span>
-              </div>
-            </div>
+            ) : (
+              <p className="billing-placeholder">Select an instance tier to see pricing</p>
+            )}
           </div>
 
           <div className="modal-footer">
