@@ -17,10 +17,10 @@ using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- JSON Serialization (AOT-safe, no reflection) ---
+// --- JSON Serialization (AOT context first, reflection fallback for anonymous types) ---
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.TypeInfoResolver = CloudiosJsonSerializerContext.Default;
+    options.SerializerOptions.TypeInfoResolverChain.Insert(0, CloudiosJsonSerializerContext.Default);
 });
 
 // --- Database (SQLite with PRAGMA interceptor) ---
