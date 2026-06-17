@@ -53,9 +53,7 @@ public sealed class ManagedAppTemplateResponse
     public string Name { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public string Category { get; set; } = string.Empty;
-    public string DockerImage { get; set; } = string.Empty;
     public int InternalPort { get; set; }
-    public Dictionary<string, string> DefaultEnvVars { get; set; } = new();
     public string DefaultInstanceSize { get; set; } = string.Empty;
 }
 

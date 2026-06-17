@@ -22,7 +22,7 @@ public static class ManagedAppEndpoints
             return Results.Ok(result);
         }).RequireAuthorization("PlatformAdmin");
 
-        // List templates (public endpoint)
+        // List templates (authenticated endpoint - may contain sensitive info)
         app.MapGet("/api/managed-apps/templates", async (
             IManagedAppService service,
             [FromQuery] string? category = null,
@@ -31,7 +31,7 @@ public static class ManagedAppEndpoints
         {
             var result = await service.ListTemplatesAsync(category, search, ct);
             return Results.Ok(result);
-        });
+        }).RequireAuthorization();
 
         var group = app.MapGroup("/api/managed-apps");
 

@@ -385,9 +385,7 @@ public sealed class ManagedAppService : IManagedAppService
                 Name = t.Name,
                 Description = t.Description,
                 Category = t.Category,
-                DockerImage = t.DockerImage,
                 InternalPort = t.InternalPort,
-                DefaultEnvVars = t.DefaultEnvVars,
                 DefaultInstanceSize = t.DefaultInstanceSize.ToString()
             }).ToList()
         };
