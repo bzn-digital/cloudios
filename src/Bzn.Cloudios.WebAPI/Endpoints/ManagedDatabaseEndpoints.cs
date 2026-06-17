@@ -20,7 +20,7 @@ public static class ManagedDatabaseEndpoints
         group.MapGet("/", async (ManagedDatabaseCrudService service, CancellationToken ct) =>
         {
             Console.WriteLine("Listing managed databases for current realm");
-            var result = await service.ListSimpleAsync(ct);
+            var result = await service.ListAsync(ct);
             Console.WriteLine($"Found {result.Count} databases");
             return Results.Ok(result);
         });
