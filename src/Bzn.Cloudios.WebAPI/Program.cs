@@ -114,6 +114,8 @@ builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<ManagedDatabaseCrudService>();
 builder.Services.AddScoped<HealthCheckService>();
+builder.Services.AddScoped<IManagedAppPortAllocator, ManagedAppPortAllocator>();
+builder.Services.AddScoped<IManagedAppService, ManagedAppService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 // Enable MetricsCollectionWorker for container state synchronization
 builder.Services.AddHostedService<MetricsCollectionWorker>();
