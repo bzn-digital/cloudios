@@ -2,7 +2,8 @@ namespace Bzn.Cloudios.Domain.Enums;
 
 public enum ManagedAppStatus
 {
-    Provisioning,
+    Imaging,
+    Initializing,
     Running,
     Stopped,
     Failed,

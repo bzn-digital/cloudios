@@ -37,10 +37,10 @@ public sealed class ManagedAppInstanceConfiguration : IEntityTypeConfiguration<M
             .IsRequired()
             .HasColumnType("TEXT")
             .HasConversion<string>()
-            .HasDefaultValue(ManagedAppStatus.Provisioning);
+            .HasDefaultValue(ManagedAppStatus.Imaging);
 
         builder.ToTable(t => t.HasCheckConstraint("CK_ManagedAppInstances_Status",
-            "Status IN ('Provisioning','Running','Stopped','Failed','Terminated')"));
+            "Status IN ('Imaging','Running','Stopped','Failed','Terminated')"));
 
         builder.Property(i => i.Size)
             .IsRequired()
