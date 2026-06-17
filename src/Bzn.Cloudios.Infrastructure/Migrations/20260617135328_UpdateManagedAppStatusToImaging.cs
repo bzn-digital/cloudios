@@ -24,6 +24,8 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                 oldType: "TEXT",
                 oldDefaultValue: "Provisioning");
 
+            migrationBuilder.Sql("UPDATE ManagedAppInstances SET Status = 'Imaging' WHERE Status = 'Provisioning'");
+
             migrationBuilder.AddCheckConstraint(
                 name: "CK_ManagedAppInstances_Status",
                 table: "ManagedAppInstances",

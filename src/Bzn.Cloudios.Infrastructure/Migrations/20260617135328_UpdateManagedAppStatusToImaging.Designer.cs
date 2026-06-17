@@ -405,6 +405,11 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                         .IsRequired()
                         .HasColumnType("TEXT");
 
+                    b.Property<int>("InternalPort")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER")
+                        .HasDefaultValue(80);
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("TEXT");
