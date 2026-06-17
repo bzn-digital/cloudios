@@ -108,7 +108,7 @@ public sealed class ManagedAppService : IManagedAppService
                     TemplateId = request.TemplateId,
                     Name = sanitizedName,
                     HostPort = hostPort,
-                    Status = ManagedAppStatus.Provisioning,
+                    Status = ManagedAppStatus.Imaging,
                     Size = request.Size,
                     CpuLimitCores = cpuLimit,
                     MemoryLimitBytes = memoryLimit,

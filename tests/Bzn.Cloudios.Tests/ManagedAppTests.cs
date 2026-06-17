@@ -11,7 +11,7 @@ public class ManagedAppTests
     {
         var values = Enum.GetValues<ManagedAppStatus>();
         Assert.Equal(5, values.Length);
-        Assert.Contains(ManagedAppStatus.Provisioning, values);
+        Assert.Contains(ManagedAppStatus.Imaging, values);
         Assert.Contains(ManagedAppStatus.Running, values);
         Assert.Contains(ManagedAppStatus.Stopped, values);
         Assert.Contains(ManagedAppStatus.Failed, values);
@@ -148,7 +148,7 @@ public class ManagedAppTests
     }
 
     [Fact]
-    public void ManagedAppInstance_DefaultStatus_IsProvisioning()
+    public void ManagedAppInstance_DefaultStatus_IsImaging()
     {
         var instance = new ManagedAppInstance
         {
@@ -159,7 +159,7 @@ public class ManagedAppTests
             CreatedAt = DateTime.UtcNow
         };
 
-        Assert.Equal(ManagedAppStatus.Provisioning, instance.Status);
+        Assert.Equal(ManagedAppStatus.Imaging, instance.Status);
     }
 
     [Fact]
