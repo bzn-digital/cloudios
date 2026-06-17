@@ -17,12 +17,15 @@ public sealed class ManagedAppResponse
     public string TemplateName { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int HostPort { get; set; }
+    public int InternalPort { get; set; }
+    public string InternalAccess { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Size { get; set; } = string.Empty;
     public string? DockerContainerId { get; set; }
     public double CpuLimitCores { get; set; }
     public long MemoryLimitBytes { get; set; }
     public decimal CostPerHourBRL { get; set; }
+    public decimal CurrentMonthCostBRL { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? StoppedAtUtc { get; set; }
@@ -71,12 +74,15 @@ public sealed class AdminManagedAppResponse
     public string TemplateName { get; set; } = string.Empty;
     public string Name { get; set; } = string.Empty;
     public int HostPort { get; set; }
+    public int InternalPort { get; set; }
+    public string InternalAccess { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Size { get; set; } = string.Empty;
     public string? DockerContainerId { get; set; }
     public double CpuLimitCores { get; set; }
     public long MemoryLimitBytes { get; set; }
     public decimal CostPerHourBRL { get; set; }
+    public decimal CurrentMonthCostBRL { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime? StartedAtUtc { get; set; }
     public DateTime? StoppedAtUtc { get; set; }
