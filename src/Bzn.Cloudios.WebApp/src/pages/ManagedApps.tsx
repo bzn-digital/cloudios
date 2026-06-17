@@ -64,6 +64,10 @@ const ManagedApps = () => {
     }
   };
 
+  const handleStart = (id: string) => {
+    handleAction(id, () => apiClient.startManagedApp(id), 'Managed app started successfully');
+  };
+
   const handleRestart = (id: string) => {
     handleAction(id, () => apiClient.restartManagedApp(id), 'Managed app restarted successfully');
   };
@@ -205,6 +209,16 @@ const ManagedApps = () => {
                       <td>{new Date(item.createdAt).toLocaleDateString()}</td>
                       <td>
                         <div className="action-buttons">
+                          {item.status === 'Stopped' || item.status === 'Failed' ? (
+                            <button
+                              className="btn btn-sm btn-success"
+                              onClick={() => handleStart(item.id)}
+                              disabled={actionLoading === item.id}
+                              title="Start"
+                            >
+                              ▶
+                            </button>
+                          ) : null}
                           {item.status === 'Running' ? (
                             <>
                               <button
