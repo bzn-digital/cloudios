@@ -9,6 +9,7 @@ namespace Bzn.Cloudios.Application.Services;
 
 public sealed class ManagedAppService : IManagedAppService
 {
+    private const int MaxPortRetries = 5;
     private readonly CloudiosDbContext _context;
     private readonly ITenantProvider _tenantProvider;
     private readonly IManagedAppPortAllocator _portAllocator;
@@ -31,26 +32,39 @@ public sealed class ManagedAppService : IManagedAppService
             ?? throw new InvalidOperationException($"Template {templateId} not found.");
 
         var specs = InstanceSizeCatalog.GetSpecs(template.DefaultInstanceSize);
-        var port = await _portAllocator.AllocateNextPortAsync(ct);
 
-        var instance = new ManagedAppInstance
+        for (int attempt = 0; attempt < MaxPortRetries; attempt++)
         {
-            Id = Guid.NewGuid(),
-            RealmId = realmId,
-            TemplateId = templateId,
-            Name = name,
-            HostPort = port,
-            Status = ManagedAppStatus.Provisioning,
-            Size = template.DefaultInstanceSize,
-            CpuLimitCores = specs.CpuLimitCores,
-            MemoryLimitBytes = specs.MemoryLimitBytes,
-            CostPerHourBRL = specs.CostPerHourBRL,
-            CreatedAt = DateTime.UtcNow
-        };
+            var port = await _portAllocator.AllocateNextPortAsync(ct);
 
-        _context.ManagedAppInstances.Add(instance);
-        await _context.SaveChangesAsync(ct);
+            var instance = new ManagedAppInstance
+            {
+                Id = Guid.NewGuid(),
+                RealmId = realmId,
+                TemplateId = templateId,
+                Name = name,
+                HostPort = port,
+                Status = ManagedAppStatus.Provisioning,
+                Size = template.DefaultInstanceSize,
+                CpuLimitCores = specs.CpuLimitCores,
+                MemoryLimitBytes = specs.MemoryLimitBytes,
+                CostPerHourBRL = specs.CostPerHourBRL,
+                CreatedAt = DateTime.UtcNow
+            };
 
-        return instance;
+            _context.ManagedAppInstances.Add(instance);
+
+            try
+            {
+                await _context.SaveChangesAsync(ct);
+                return instance;
+            }
+            catch (DbUpdateException) when (attempt < MaxPortRetries - 1)
+            {
+                _context.Entry(instance).State = EntityState.Detached;
+            }
+        }
+
+        throw new InvalidOperationException("Failed to allocate a unique port after multiple retries.");
     }
 }
