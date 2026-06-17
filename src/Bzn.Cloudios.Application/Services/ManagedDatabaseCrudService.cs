@@ -49,25 +49,34 @@ public sealed class ManagedDatabaseCrudService
             .ThenBy(t => t.CpuLimitCores)
             .ToListAsync(ct);
 
-        return new DatabaseTierListResponse
+        var tierItems = new List<DatabaseTierItem>();
+        foreach (var t in tiers)
         {
-            Tiers = tiers.Select(t => new DatabaseTierItem
+            var pricingList = new List<DatabaseTierPricing>();
+            foreach (var engine in Engines)
+            {
+                var hourly = ManagedDatabasePricing.HourlyRateBRL(t.CpuLimitCores, t.MemoryLimitBytes, engine);
+                pricingList.Add(new DatabaseTierPricing
+                {
+                    Engine = engine.ToString(),
+                    HourlyRateBRL = hourly,
+                    MonthlyForecastBRL = ManagedDatabasePricing.MonthlyForecastBRL(hourly)
+                });
+            }
+
+            tierItems.Add(new DatabaseTierItem
             {
                 Id = t.Id,
                 Name = t.Name,
                 CpuLimitCores = t.CpuLimitCores,
                 MemoryLimitBytes = t.MemoryLimitBytes,
-                Pricing = Engines.Select(engine =>
-                {
-                    var hourly = ManagedDatabasePricing.HourlyRateBRL(t.CpuLimitCores, t.MemoryLimitBytes, engine);
-                    return new DatabaseTierPricing
-                    {
-                        Engine = engine.ToString(),
-                        HourlyRateBRL = hourly,
-                        MonthlyForecastBRL = ManagedDatabasePricing.MonthlyForecastBRL(hourly)
-                    };
-                }).ToList()
-            }).ToList()
+                Pricing = pricingList
+            });
+        }
+
+        return new DatabaseTierListResponse
+        {
+            Tiers = tierItems
         };
     }
 
@@ -80,10 +89,11 @@ public sealed class ManagedDatabaseCrudService
             .OrderByDescending(d => d.CreatedAt)
             .ToListAsync(ct);
 
-        return instances.Select(instance =>
+        var result = new List<ManagedDatabaseResponse>();
+        foreach (var instance in instances)
         {
             var hourlyRate = ManagedDatabasePricing.HourlyRateBRL(instance.CpuLimit, instance.MemoryLimit, instance.Type);
-            return new ManagedDatabaseResponse
+            result.Add(new ManagedDatabaseResponse
             {
                 Id = instance.Id,
                 RealmId = instance.RealmId,
@@ -97,7 +107,30 @@ public sealed class ManagedDatabaseCrudService
                 HourlyRateBRL = hourlyRate,
                 MonthlyForecastBRL = ManagedDatabasePricing.MonthlyForecastBRL(hourlyRate),
                 CreatedAt = instance.CreatedAt
-            };
+            });
+        }
+
+        return result;
+    }
+
+    public async Task<List<ManagedDatabaseListItem>> ListSimpleAsync(CancellationToken ct = default)
+    {
+        var realmId = _tenant.RealmId;
+        var instances = await _db.ManagedDatabaseInstances
+            .Where(d => d.RealmId == realmId)
+            .OrderByDescending(d => d.CreatedAt)
+            .ToListAsync(ct);
+
+        return instances.Select(instance => new ManagedDatabaseListItem
+        {
+            Id = instance.Id,
+            Name = instance.Name,
+            Type = instance.Type.ToString(),
+            Status = instance.Status.ToString(),
+            TierId = instance.TierId,
+            CpuLimitCores = instance.CpuLimit,
+            MemoryLimitBytes = instance.MemoryLimit,
+            CreatedAt = instance.CreatedAt
         }).ToList();
     }
 

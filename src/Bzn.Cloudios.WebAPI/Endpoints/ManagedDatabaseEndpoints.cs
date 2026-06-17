@@ -19,7 +19,9 @@ public static class ManagedDatabaseEndpoints
         // List managed databases for the caller's realm.
         group.MapGet("/", async (ManagedDatabaseCrudService service, CancellationToken ct) =>
         {
+            Console.WriteLine("Listing managed databases for current realm");
             var result = await service.ListAsync(ct);
+            Console.WriteLine($"Found {result.Count} databases");
             return Results.Ok(result);
         });
 

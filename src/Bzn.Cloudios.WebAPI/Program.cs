@@ -17,12 +17,6 @@ using Yarp.ReverseProxy.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- JSON Serialization (AOT-safe, no reflection) ---
-builder.Services.ConfigureHttpJsonOptions(options =>
-{
-    options.SerializerOptions.TypeInfoResolver = CloudiosJsonSerializerContext.Default;
-});
-
 // --- Database (SQLite with PRAGMA interceptor) ---
 var mainDbPath = builder.Configuration["ConnectionStrings:MainDb"] ?? "Data Source=cloudios_main.db;Mode=ReadWriteCreate;Cache=Shared";
 var metricsDbPath = builder.Configuration["ConnectionStrings:MetricsDb"] ?? "Data Source=cloudios_metrics.db;Mode=ReadWriteCreate;Cache=Shared";
@@ -120,6 +114,8 @@ builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<ManagedDatabaseCrudService>();
 builder.Services.AddScoped<HealthCheckService>();
+builder.Services.AddScoped<IManagedAppPortAllocator, ManagedAppPortAllocator>();
+builder.Services.AddScoped<IManagedAppService, ManagedAppService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 // Enable MetricsCollectionWorker for container state synchronization
 builder.Services.AddHostedService<MetricsCollectionWorker>();
