@@ -19,7 +19,7 @@ public static class ContainerEndpoints
         app.MapGet("/api/networks", async (IDockerNetworkService networkService, CancellationToken ct) =>
         {
             var networks = await networkService.ListNetworksAsync(ct);
-            return Results.Ok(networks);
+            return Results.Ok(new { networks });
         });
 
         var group = app.MapGroup("/api/containers");
