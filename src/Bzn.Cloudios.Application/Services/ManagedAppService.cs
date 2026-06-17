@@ -124,10 +124,10 @@ public sealed class ManagedAppService : IManagedAppService
 
                 _deployQueue.Enqueue(instance.Id);
 
-                _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}", 
+                _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}",
                     instance.Id, instance.Name, realmId);
 
-                return MapToResponse(instance, template.DisplayName);
+                return MapToResponse(instance, template.DisplayName, template.InternalPort);
             }
             catch (DbUpdateException) when (attempt < MaxPortRetries - 1)
             {
@@ -164,7 +164,7 @@ public sealed class ManagedAppService : IManagedAppService
 
         return new ManagedAppListResponse
         {
-            Items = items.Select(i => MapToResponse(i, i.Template.DisplayName)).ToList(),
+            Items = items.Select(i => MapToResponse(i, i.Template.DisplayName, i.Template.InternalPort)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -181,7 +181,7 @@ public sealed class ManagedAppService : IManagedAppService
         if (instance is null)
             return null;
 
-        return MapToResponse(instance, instance.Template.DisplayName);
+        return MapToResponse(instance, instance.Template.DisplayName, instance.Template.InternalPort);
     }
 
     public async Task<ManagedAppActionResponse> StartInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
@@ -426,12 +426,15 @@ public sealed class ManagedAppService : IManagedAppService
                 TemplateName = i.Template.DisplayName,
                 Name = i.Name,
                 HostPort = i.HostPort,
+                InternalPort = i.Template.InternalPort,
+                InternalAccess = $"{i.Name}:{i.Template.InternalPort}",
                 Status = i.Status.ToString(),
                 Size = i.Size.ToString(),
                 DockerContainerId = i.DockerContainerId,
                 CpuLimitCores = i.CpuLimitCores,
                 MemoryLimitBytes = i.MemoryLimitBytes,
                 CostPerHourBRL = i.CostPerHourBRL,
+                CurrentMonthCostBRL = i.CostPerHourBRL * 720,
                 CreatedAt = i.CreatedAt,
                 StartedAtUtc = i.StartedAtUtc,
                 StoppedAtUtc = i.StoppedAtUtc
@@ -528,8 +531,11 @@ public sealed class ManagedAppService : IManagedAppService
         _logger.LogInformation("Created and started Docker container {DockerId} for managed app {Name}", createResponse.ID, instance.Name);
     }
 
-    private static ManagedAppResponse MapToResponse(ManagedAppInstance instance, string templateName)
+    private static ManagedAppResponse MapToResponse(ManagedAppInstance instance, string templateName, int internalPort)
     {
+        // Calculate current month cost (720 hours = 30 days * 24 hours)
+        var currentMonthCostBRL = instance.CostPerHourBRL * 720;
+
         return new ManagedAppResponse
         {
             Id = instance.Id,
@@ -538,12 +544,15 @@ public sealed class ManagedAppService : IManagedAppService
             TemplateName = templateName,
             Name = instance.Name,
             HostPort = instance.HostPort,
+            InternalPort = internalPort,
+            InternalAccess = $"{instance.Name}:{internalPort}",
             Status = instance.Status.ToString(),
             Size = instance.Size.ToString(),
             DockerContainerId = instance.DockerContainerId,
             CpuLimitCores = instance.CpuLimitCores,
             MemoryLimitBytes = instance.MemoryLimitBytes,
             CostPerHourBRL = instance.CostPerHourBRL,
+            CurrentMonthCostBRL = currentMonthCostBRL,
             CreatedAt = instance.CreatedAt,
             StartedAtUtc = instance.StartedAtUtc,
             StoppedAtUtc = instance.StoppedAtUtc
