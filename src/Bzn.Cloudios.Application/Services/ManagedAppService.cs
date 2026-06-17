@@ -23,6 +23,7 @@ public sealed class ManagedAppService : IManagedAppService
     private readonly CloudiosDbContext _context;
     private readonly DockerClient _dockerClient;
     private readonly IDockerNetworkService _dockerNetworkService;
+    private readonly IManagedAppDeployQueue _deployQueue;
     private readonly ILogger<ManagedAppService> _logger;
     private readonly string _volumesBasePath;
     private readonly bool _skipDirectoryCreation;
@@ -31,12 +32,14 @@ public sealed class ManagedAppService : IManagedAppService
         CloudiosDbContext context,
         DockerClient dockerClient,
         IDockerNetworkService dockerNetworkService,
+        IManagedAppDeployQueue deployQueue,
         IConfiguration configuration,
         ILogger<ManagedAppService> logger)
     {
         _context = context;
         _dockerClient = dockerClient;
         _dockerNetworkService = dockerNetworkService;
+        _deployQueue = deployQueue;
         _logger = logger;
         _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
         _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
@@ -119,6 +122,8 @@ public sealed class ManagedAppService : IManagedAppService
                 _context.ManagedAppInstances.Add(instance);
                 await _context.SaveChangesAsync(ct);
 
+                _deployQueue.Enqueue(instance.Id);
+
                 _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}", 
                     instance.Id, instance.Name, realmId);
 
@@ -182,6 +187,9 @@ public sealed class ManagedAppService : IManagedAppService
 
         if (instance is null)
             throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
+
+        if (instance.Status is ManagedAppStatus.Imaging or ManagedAppStatus.Initializing)
+            throw new InvalidOperationException($"Instance {instanceId} is currently being deployed (status: {instance.Status})");
 
         try
         {
