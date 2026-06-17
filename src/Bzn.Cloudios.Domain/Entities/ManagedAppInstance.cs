@@ -10,6 +10,7 @@ public sealed class ManagedAppInstance
     public string Name { get; set; } = string.Empty;
     public ManagedAppStatus Status { get; set; } = ManagedAppStatus.Provisioning;
     public InstanceSize Size { get; set; } = InstanceSize.Micro1s;
+    public int HostPort { get; set; }
     public string? DockerContainerId { get; set; }
     public double CpuLimitCores { get; set; }
     public long MemoryLimitBytes { get; set; }
