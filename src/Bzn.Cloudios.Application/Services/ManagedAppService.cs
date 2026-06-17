@@ -1,0 +1,356 @@
+using Bzn.Cloudios.Application.Abstractions;
+using Bzn.Cloudios.Application.Extensions;
+using Bzn.Cloudios.Domain;
+using Bzn.Cloudios.Domain.Dto;
+using Bzn.Cloudios.Domain.Entities;
+using Bzn.Cloudios.Domain.Enums;
+using Bzn.Cloudios.Infrastructure.Persistence;
+using Docker.DotNet;
+using Docker.DotNet.Models;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
+
+namespace Bzn.Cloudios.Application.Services;
+
+public sealed class ManagedAppService : IManagedAppService
+{
+    private readonly CloudiosDbContext _context;
+    private readonly DockerClient _dockerClient;
+    private readonly IDockerNetworkService _dockerNetworkService;
+    private readonly IManagedAppPortAllocator _portAllocator;
+    private readonly ILogger<ManagedAppService> _logger;
+    private readonly string _volumesBasePath;
+    private readonly bool _skipDirectoryCreation;
+
+    public ManagedAppService(
+        CloudiosDbContext context,
+        DockerClient dockerClient,
+        IDockerNetworkService dockerNetworkService,
+        IManagedAppPortAllocator portAllocator,
+        IConfiguration configuration,
+        ILogger<ManagedAppService> logger)
+    {
+        _context = context;
+        _dockerClient = dockerClient;
+        _dockerNetworkService = dockerNetworkService;
+        _portAllocator = portAllocator;
+        _logger = logger;
+        _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
+        _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
+    }
+
+    public async Task<ManagedAppResponse> CreateAsync(Guid realmId, CreateManagedAppRequest request, CancellationToken ct = default)
+    {
+        // Validate name format (lowercase, no spaces, alphanumeric and hyphens only)
+        var sanitizedName = request.Name.ToLowerInvariant().Replace(" ", "-");
+        if (!System.Text.RegularExpressions.Regex.IsMatch(sanitizedName, "^[a-z0-9-]+$"))
+        {
+            throw new ArgumentException("Name must contain only lowercase letters, numbers, and hyphens", nameof(request.Name));
+        }
+
+        // Check for duplicate name in the same realm
+        var existing = await _context.ManagedAppInstances
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Name == sanitizedName, ct);
+        
+        if (existing is not null)
+        {
+            throw new InvalidOperationException($"An instance with name '{sanitizedName}' already exists in this realm");
+        }
+
+        // Verify template exists
+        var template = await _context.ManagedAppTemplates
+            .FirstOrDefaultAsync(t => t.Id == request.TemplateId, ct);
+        
+        if (template is null)
+        {
+            throw new InvalidOperationException($"Template {request.TemplateId} not found");
+        }
+
+        // Get instance size specs
+        var (cpuLimit, memoryLimit, costPerHour) = InstanceSizeCatalog.GetSpecs(request.Size);
+
+        // Allocate host port
+        var hostPort = await _portAllocator.AllocateNextPortAsync(ct);
+
+        var instance = new ManagedAppInstance
+        {
+            Id = Guid.NewGuid(),
+            RealmId = realmId,
+            TemplateId = request.TemplateId,
+            Name = sanitizedName,
+            HostPort = hostPort,
+            Status = ManagedAppStatus.Provisioning,
+            Size = request.Size,
+            CpuLimitCores = cpuLimit,
+            MemoryLimitBytes = memoryLimit,
+            CostPerHourBRL = costPerHour,
+            CreatedAt = DateTime.UtcNow
+        };
+
+        _context.ManagedAppInstances.Add(instance);
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}", 
+            instance.Id, instance.Name, realmId);
+
+        return MapToResponse(instance, template.Name);
+    }
+
+    public async Task<ManagedAppListResponse> ListAsync(Guid realmId, string? search, int page, int pageSize, CancellationToken ct = default)
+    {
+        var query = _context.ManagedAppInstances
+            .Include(i => i.Template)
+            .ForRealm(realmId);
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(i => i.Name.Contains(search));
+        }
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(i => i.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new ManagedAppListResponse
+        {
+            Items = items.Select(i => MapToResponse(i, i.Template.Name)).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
+    }
+
+    public async Task<ManagedAppResponse?> GetByIdAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _context.ManagedAppInstances
+            .Include(i => i.Template)
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+
+        if (instance is null)
+            return null;
+
+        return MapToResponse(instance, instance.Template.Name);
+    }
+
+    public async Task<ManagedAppActionResponse> StartInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _context.ManagedAppInstances
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+
+        if (instance is null)
+            throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
+
+        if (instance.DockerContainerId is null)
+        {
+            // First deployment - create and start the container
+            await DeployContainerAsync(instance, ct);
+        }
+        else
+        {
+            // Container exists, just start it
+            await _dockerClient.Containers.StartContainerAsync(instance.DockerContainerId, new ContainerStartParameters(), ct);
+        }
+
+        instance.Status = ManagedAppStatus.Running;
+        instance.StartedAtUtc = DateTime.UtcNow;
+        instance.StoppedAtUtc = null;
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Started managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+
+        return new ManagedAppActionResponse
+        {
+            Id = instance.Id,
+            Status = instance.Status.ToString(),
+            DockerContainerId = instance.DockerContainerId,
+            StartedAtUtc = instance.StartedAtUtc
+        };
+    }
+
+    public async Task<ManagedAppActionResponse> StopInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _context.ManagedAppInstances
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+
+        if (instance is null)
+            throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
+
+        if (instance.DockerContainerId is not null)
+        {
+            await _dockerClient.Containers.StopContainerAsync(instance.DockerContainerId, new ContainerStopParameters(), ct);
+        }
+
+        instance.Status = ManagedAppStatus.Stopped;
+        instance.StoppedAtUtc = DateTime.UtcNow;
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Stopped managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+
+        return new ManagedAppActionResponse
+        {
+            Id = instance.Id,
+            Status = instance.Status.ToString(),
+            DockerContainerId = instance.DockerContainerId,
+            StartedAtUtc = instance.StartedAtUtc
+        };
+    }
+
+    public async Task DeleteInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _context.ManagedAppInstances
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+
+        if (instance is null)
+            throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
+
+        // Remove Docker container if it exists
+        if (instance.DockerContainerId is not null)
+        {
+            try
+            {
+                await _dockerClient.Containers.RemoveContainerAsync(instance.DockerContainerId,
+                    new ContainerRemoveParameters { Force = true, RemoveVolumes = true }, ct);
+                _logger.LogInformation("Removed Docker container {DockerId}", instance.DockerContainerId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to remove Docker container {DockerId}", instance.DockerContainerId);
+            }
+        }
+
+        // Remove volume directory if it exists
+        var volumePath = Path.Combine(_volumesBasePath, "managed-apps", instance.Id.ToString("N"));
+        if (Directory.Exists(volumePath))
+        {
+            try
+            {
+                Directory.Delete(volumePath, recursive: true);
+                _logger.LogInformation("Removed volume directory {Path}", volumePath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to remove volume directory {Path}", volumePath);
+            }
+        }
+
+        instance.Status = ManagedAppStatus.Terminated;
+        _context.ManagedAppInstances.Remove(instance);
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Deleted managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+    }
+
+    private async Task DeployContainerAsync(ManagedAppInstance instance, CancellationToken ct)
+    {
+        var template = await _context.ManagedAppTemplates
+            .FirstOrDefaultAsync(t => t.Id == instance.TemplateId, ct);
+
+        if (template is null)
+            throw new InvalidOperationException($"Template {instance.TemplateId} not found");
+
+        var networkName = $"cloudios_{instance.RealmId:N}";
+        await _dockerNetworkService.EnsureRealmNetworkAsync(instance.RealmId, ct);
+
+        // Pull the image
+        _logger.LogInformation("Pulling image {Image} for managed app {Name}...", template.DockerImage, instance.Name);
+        await _dockerClient.Images.CreateImageAsync(
+            new ImagesCreateParameters { FromImage = template.DockerImage },
+            null,
+            new Progress<JSONMessage>(msg => _logger.LogDebug("Pull progress: {Status}", msg.Status)),
+            ct);
+        _logger.LogInformation("Image {Image} pulled successfully", template.DockerImage);
+
+        // Create volume directory
+        var volumePath = Path.Combine(_volumesBasePath, "managed-apps", instance.Id.ToString("N"));
+        if (!_skipDirectoryCreation)
+        {
+            Directory.CreateDirectory(volumePath);
+        }
+
+        // Build container name
+        var containerName = $"cloudios-app-{instance.Name}-{instance.Id:N}";
+
+        // Check for existing container with same name
+        var existingContainers = await _dockerClient.Containers.ListContainersAsync(
+            new ContainersListParameters { All = true }, ct);
+        var existingContainer = existingContainers.FirstOrDefault(c => c.Names.Contains($"/{containerName}"));
+        if (existingContainer is not null)
+        {
+            _logger.LogWarning("Container with name {Name} already exists (ID: {Id}), removing it", containerName, existingContainer.ID);
+            await _dockerClient.Containers.RemoveContainerAsync(existingContainer.ID,
+                new ContainerRemoveParameters { Force = true, RemoveVolumes = true }, ct);
+        }
+
+        // Create container
+        var createParams = new CreateContainerParameters
+        {
+            Name = containerName,
+            Image = template.DockerImage,
+            Hostname = containerName,
+            Labels = new Dictionary<string, string>
+            {
+                ["cloudios.realm"] = instance.RealmId.ToString(),
+                ["cloudios.managed-app"] = instance.Id.ToString(),
+                ["cloudios.managed"] = "true"
+            },
+            HostConfig = new HostConfig
+            {
+                Memory = instance.MemoryLimitBytes,
+                PortBindings = new Dictionary<string, IList<PortBinding>>
+                {
+                    ["80/tcp"] = new List<PortBinding> { new PortBinding { HostPort = instance.HostPort.ToString() } }
+                },
+                Binds = new List<string> { $"{volumePath}:/app/data" },
+                RestartPolicy = new RestartPolicy { Name = RestartPolicyKind.UnlessStopped }
+            },
+            Env = template.DefaultEnvVars.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
+            ExposedPorts = new Dictionary<string, EmptyStruct>
+            {
+                ["80/tcp"] = new EmptyStruct()
+            },
+            NetworkingConfig = new NetworkingConfig
+            {
+                EndpointsConfig = new Dictionary<string, EndpointSettings>
+                {
+                    [networkName] = new EndpointSettings()
+                }
+            }
+        };
+
+        var createResponse = await _dockerClient.Containers.CreateContainerAsync(createParams, ct);
+        instance.DockerContainerId = createResponse.ID;
+
+        _logger.LogInformation("Created Docker container {DockerId} for managed app {Name}", createResponse.ID, instance.Name);
+    }
+
+    private static ManagedAppResponse MapToResponse(ManagedAppInstance instance, string templateName)
+    {
+        return new ManagedAppResponse
+        {
+            Id = instance.Id,
+            RealmId = instance.RealmId,
+            TemplateId = instance.TemplateId,
+            TemplateName = templateName,
+            Name = instance.Name,
+            HostPort = instance.HostPort,
+            Status = instance.Status.ToString(),
+            Size = instance.Size.ToString(),
+            DockerContainerId = instance.DockerContainerId,
+            CpuLimitCores = instance.CpuLimitCores,
+            MemoryLimitBytes = instance.MemoryLimitBytes,
+            CostPerHourBRL = instance.CostPerHourBRL,
+            CreatedAt = instance.CreatedAt,
+            StartedAtUtc = instance.StartedAtUtc,
+            StoppedAtUtc = instance.StoppedAtUtc
+        };
+    }
+}

@@ -74,5 +74,132 @@ public sealed class DatabaseSeeder
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Seeding complete: admin user ensured");
+
+        await SeedManagedAppTemplatesAsync(ct);
+    }
+
+    public async Task SeedManagedAppTemplatesAsync(CancellationToken ct = default)
+    {
+        var templates = new[]
+        {
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "redisinsight",
+                DisplayName = "RedisInsight",
+                Description = "Redis visualization and management tool",
+                Category = "DevOps",
+                DockerImage = "redis/redisinsight:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Micro1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "n8n",
+                DisplayName = "N8N",
+                Description = "Workflow automation tool",
+                Category = "Automation",
+                DockerImage = "n8nio/n8n:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Small1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "gitlab",
+                DisplayName = "GitLab CE",
+                Description = "Git repository management and CI/CD",
+                Category = "DevOps",
+                DockerImage = "gitlab/gitlab-ce:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Medium1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "grafana",
+                DisplayName = "Grafana",
+                Description = "Metrics visualization and analytics",
+                Category = "Monitoring",
+                DockerImage = "grafana/grafana:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Micro1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "uptime-kuma",
+                DisplayName = "Uptime Kuma",
+                Description = "Self-hosted monitoring tool",
+                Category = "Monitoring",
+                DockerImage = "louislam/uptime-kuma:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Micro1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "portainer",
+                DisplayName = "Portainer CE",
+                Description = "Container management platform",
+                Category = "DevOps",
+                DockerImage = "portainer/portainer-ce:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Micro1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "metabase",
+                DisplayName = "Metabase",
+                Description = "Business intelligence and analytics",
+                Category = "Analytics",
+                DockerImage = "metabase/metabase:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Small1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            },
+            new ManagedAppTemplate
+            {
+                Id = Guid.NewGuid(),
+                Slug = "minio",
+                DisplayName = "MinIO",
+                Description = "High-performance object storage",
+                Category = "Storage",
+                DockerImage = "minio/minio:latest",
+                DefaultEnvVars = new Dictionary<string, string>(),
+                DefaultInstanceSize = InstanceSize.Small1s,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        };
+
+        foreach (var template in templates)
+        {
+            var existing = await _context.ManagedAppTemplates
+                .FirstOrDefaultAsync(t => t.Slug == template.Slug, ct);
+
+            if (existing is null)
+            {
+                _logger.LogInformation("Seeding managed app template: {Slug}", template.Slug);
+                _context.ManagedAppTemplates.Add(template);
+            }
+        }
+
+        await _context.SaveChangesAsync(ct);
     }
 }
