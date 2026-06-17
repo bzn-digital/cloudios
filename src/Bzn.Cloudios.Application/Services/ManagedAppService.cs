@@ -15,10 +15,14 @@ namespace Bzn.Cloudios.Application.Services;
 
 public sealed class ManagedAppService : IManagedAppService
 {
+    private const int MinPort = 2000;
+    private const int MaxPort = 4500;
+    private const int MaxPortRetries = 10;
+    private const long NanoCpusPerCore = 1_000_000_000L;
+
     private readonly CloudiosDbContext _context;
     private readonly DockerClient _dockerClient;
     private readonly IDockerNetworkService _dockerNetworkService;
-    private readonly IManagedAppPortAllocator _portAllocator;
     private readonly ILogger<ManagedAppService> _logger;
     private readonly string _volumesBasePath;
     private readonly bool _skipDirectoryCreation;
@@ -27,14 +31,12 @@ public sealed class ManagedAppService : IManagedAppService
         CloudiosDbContext context,
         DockerClient dockerClient,
         IDockerNetworkService dockerNetworkService,
-        IManagedAppPortAllocator portAllocator,
         IConfiguration configuration,
         ILogger<ManagedAppService> logger)
     {
         _context = context;
         _dockerClient = dockerClient;
         _dockerNetworkService = dockerNetworkService;
-        _portAllocator = portAllocator;
         _logger = logger;
         _volumesBasePath = configuration["Volumes:BasePath"] ?? "/var/lib/cloudios";
         _skipDirectoryCreation = configuration.GetValue<bool>("Volumes:SkipDirectoryCreation");
@@ -48,6 +50,12 @@ public sealed class ManagedAppService : IManagedAppService
         {
             throw new ArgumentException("Name must contain only lowercase letters, numbers, and hyphens", nameof(request.Name));
         }
+
+        var realm = await _context.Realms.FirstOrDefaultAsync(r => r.Id == realmId, ct);
+        if (realm is null)
+            throw new InvalidOperationException($"Realm {realmId} not found");
+        if (!realm.IsActive)
+            throw new InvalidOperationException("Realm is not allowed to provision resources");
 
         // Check for duplicate name in the same realm
         var existing = await _context.ManagedAppInstances
@@ -71,31 +79,59 @@ public sealed class ManagedAppService : IManagedAppService
         // Get instance size specs
         var (cpuLimit, memoryLimit, costPerHour) = InstanceSizeCatalog.GetSpecs(request.Size);
 
-        // Allocate host port
-        var hostPort = await _portAllocator.AllocateNextPortAsync(ct);
-
-        var instance = new ManagedAppInstance
+        // Allocate port and create instance atomically to prevent race conditions
+        for (int attempt = 0; attempt < MaxPortRetries; attempt++)
         {
-            Id = Guid.NewGuid(),
-            RealmId = realmId,
-            TemplateId = request.TemplateId,
-            Name = sanitizedName,
-            HostPort = hostPort,
-            Status = ManagedAppStatus.Provisioning,
-            Size = request.Size,
-            CpuLimitCores = cpuLimit,
-            MemoryLimitBytes = memoryLimit,
-            CostPerHourBRL = costPerHour,
-            CreatedAt = DateTime.UtcNow
-        };
+            try
+            {
+                var usedPorts = await _context.ManagedAppInstances
+                    .Select(i => i.HostPort)
+                    .ToHashSetAsync(ct);
 
-        _context.ManagedAppInstances.Add(instance);
-        await _context.SaveChangesAsync(ct);
+                var hostPort = -1;
+                for (int port = MinPort; port <= MaxPort; port++)
+                {
+                    if (!usedPorts.Contains(port))
+                    {
+                        hostPort = port;
+                        break;
+                    }
+                }
 
-        _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}", 
-            instance.Id, instance.Name, realmId);
+                if (hostPort == -1)
+                    throw new InvalidOperationException($"No available ports in the managed app range ({MinPort}-{MaxPort}).");
 
-        return MapToResponse(instance, template.Name);
+                var instance = new ManagedAppInstance
+                {
+                    Id = Guid.NewGuid(),
+                    RealmId = realmId,
+                    TemplateId = request.TemplateId,
+                    Name = sanitizedName,
+                    HostPort = hostPort,
+                    Status = ManagedAppStatus.Provisioning,
+                    Size = request.Size,
+                    CpuLimitCores = cpuLimit,
+                    MemoryLimitBytes = memoryLimit,
+                    CostPerHourBRL = costPerHour,
+                    CreatedAt = DateTime.UtcNow
+                };
+
+                _context.ManagedAppInstances.Add(instance);
+                await _context.SaveChangesAsync(ct);
+
+                _logger.LogInformation("Created managed app instance {InstanceId} with name {Name} for realm {RealmId}", 
+                    instance.Id, instance.Name, realmId);
+
+                return MapToResponse(instance, template.DisplayName);
+            }
+            catch (DbUpdateException) when (attempt < MaxPortRetries - 1)
+            {
+                _context.ChangeTracker.Clear();
+                await Task.Delay(50, ct);
+            }
+        }
+
+        throw new InvalidOperationException("Failed to allocate port after maximum retries due to concurrent conflicts.");
     }
 
     public async Task<ManagedAppListResponse> ListAsync(Guid realmId, string? search, int page, int pageSize, CancellationToken ct = default)
@@ -118,7 +154,7 @@ public sealed class ManagedAppService : IManagedAppService
 
         return new ManagedAppListResponse
         {
-            Items = items.Select(i => MapToResponse(i, i.Template.Name)).ToList(),
+            Items = items.Select(i => MapToResponse(i, i.Template.DisplayName)).ToList(),
             TotalCount = totalCount,
             Page = page,
             PageSize = pageSize
@@ -135,7 +171,7 @@ public sealed class ManagedAppService : IManagedAppService
         if (instance is null)
             return null;
 
-        return MapToResponse(instance, instance.Template.Name);
+        return MapToResponse(instance, instance.Template.DisplayName);
     }
 
     public async Task<ManagedAppActionResponse> StartInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
@@ -147,23 +183,38 @@ public sealed class ManagedAppService : IManagedAppService
         if (instance is null)
             throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
 
-        if (instance.DockerContainerId is null)
+        try
         {
-            // First deployment - create and start the container
-            await DeployContainerAsync(instance, ct);
+            if (instance.DockerContainerId is null)
+            {
+                await DeployContainerAsync(instance, ct);
+            }
+            else
+            {
+                await _dockerClient.Containers.StartContainerAsync(instance.DockerContainerId, new ContainerStartParameters(), ct);
+            }
+
+            instance.Status = ManagedAppStatus.Running;
+            instance.StartedAtUtc = DateTime.UtcNow;
+            instance.StoppedAtUtc = null;
+            await _context.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Started managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
         }
-        else
+        catch (Exception ex)
         {
-            // Container exists, just start it
-            await _dockerClient.Containers.StartContainerAsync(instance.DockerContainerId, new ContainerStartParameters(), ct);
+            _logger.LogError(ex, "Failed to start managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+            instance.Status = ManagedAppStatus.Failed;
+            try
+            {
+                await _context.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogError(saveEx, "Failed to persist Failed status for managed app {InstanceId}", instance.Id);
+            }
+            throw;
         }
-
-        instance.Status = ManagedAppStatus.Running;
-        instance.StartedAtUtc = DateTime.UtcNow;
-        instance.StoppedAtUtc = null;
-        await _context.SaveChangesAsync(ct);
-
-        _logger.LogInformation("Started managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
 
         return new ManagedAppActionResponse
         {
@@ -305,9 +356,10 @@ public sealed class ManagedAppService : IManagedAppService
             HostConfig = new HostConfig
             {
                 Memory = instance.MemoryLimitBytes,
+                NanoCPUs = (long)(instance.CpuLimitCores * NanoCpusPerCore),
                 PortBindings = new Dictionary<string, IList<PortBinding>>
                 {
-                    ["80/tcp"] = new List<PortBinding> { new PortBinding { HostPort = instance.HostPort.ToString() } }
+                    [$"{template.InternalPort}/tcp"] = new List<PortBinding> { new PortBinding { HostPort = instance.HostPort.ToString() } }
                 },
                 Binds = new List<string> { $"{volumePath}:/app/data" },
                 RestartPolicy = new RestartPolicy { Name = RestartPolicyKind.UnlessStopped }
@@ -315,7 +367,7 @@ public sealed class ManagedAppService : IManagedAppService
             Env = template.DefaultEnvVars.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
             ExposedPorts = new Dictionary<string, EmptyStruct>
             {
-                ["80/tcp"] = new EmptyStruct()
+                [$"{template.InternalPort}/tcp"] = new EmptyStruct()
             },
             NetworkingConfig = new NetworkingConfig
             {
@@ -329,7 +381,9 @@ public sealed class ManagedAppService : IManagedAppService
         var createResponse = await _dockerClient.Containers.CreateContainerAsync(createParams, ct);
         instance.DockerContainerId = createResponse.ID;
 
-        _logger.LogInformation("Created Docker container {DockerId} for managed app {Name}", createResponse.ID, instance.Name);
+        await _dockerClient.Containers.StartContainerAsync(createResponse.ID, new ContainerStartParameters(), ct);
+
+        _logger.LogInformation("Created and started Docker container {DockerId} for managed app {Name}", createResponse.ID, instance.Name);
     }
 
     private static ManagedAppResponse MapToResponse(ManagedAppInstance instance, string templateName)

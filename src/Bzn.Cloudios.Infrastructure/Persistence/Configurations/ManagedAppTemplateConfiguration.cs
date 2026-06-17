@@ -40,6 +40,10 @@ public sealed class ManagedAppTemplateConfiguration : IEntityTypeConfiguration<M
             .IsRequired()
             .HasColumnType("TEXT");
 
+        builder.Property(t => t.InternalPort)
+            .IsRequired()
+            .HasDefaultValue(80);
+
         builder.Property(t => t.DefaultEnvVars)
             .HasColumnType("TEXT")
             .HasConversion(
