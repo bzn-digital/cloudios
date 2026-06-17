@@ -88,7 +88,7 @@ const ManagedDatabases = () => {
   }, []);
 
   const selectedTier = tiers.find(t => t.id === formData.tierId);
-  const tierCostPerHour = selectedTier?.pricing.find(p => p.engine === formData.databaseType)?.hourlyRateBRL || 0;
+  const tierCostPerHour = selectedTier?.pricing.find(p => p.engine.toLowerCase() === formData.databaseType.toLowerCase())?.hourlyRateBRL || 0;
   const diskCostPerGBPerHour = 0.0005; // R$ 0.0005 por GB por hora (~R$ 0.36 por GB por mês)
   const diskCostPerHour = formData.diskSizeGB * diskCostPerGBPerHour;
   const costPerHour = tierCostPerHour + diskCostPerHour;

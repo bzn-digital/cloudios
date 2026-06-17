@@ -191,6 +191,9 @@ public sealed class ManagedDatabaseCrudService
             return (null, "Failed to provision managed database", StatusCodes.Status500InternalServerError);
         }
 
+        // Reload the entity so we see the status set by the orchestrator.
+        await _db.Entry(instance).ReloadAsync(ct);
+
         // Start billing consumption tracking once the instance is active.
         if (instance.Status == ManagedDatabaseStatus.Running)
             await _billing.RegisterDatabaseStartAsync(instance.Id, DateTime.UtcNow, ct);

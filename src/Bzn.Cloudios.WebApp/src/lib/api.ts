@@ -53,7 +53,8 @@ class ApiClient {
       try {
         const errorJson = JSON.parse(errorText);
         throw new Error(errorJson.detail || errorText);
-      } catch {
+      } catch (e) {
+        if (e instanceof Error && !(e instanceof SyntaxError) && e.message !== errorText) throw e;
         throw new Error(`API Error: ${response.status} - ${errorText}`);
       }
     }
