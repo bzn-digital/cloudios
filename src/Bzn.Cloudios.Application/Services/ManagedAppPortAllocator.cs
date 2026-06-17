@@ -4,6 +4,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Bzn.Cloudios.Application.Services;
 
+/// <summary>
+/// Finds the next available host port in the managed app range.
+/// Concurrency safety is provided by the unique index on
+/// <c>ManagedAppInstance.HostPort</c>; callers should handle
+/// <see cref="DbUpdateException"/> and retry when a concurrent
+/// insert claims the same port.
+/// </summary>
 public sealed class ManagedAppPortAllocator : IManagedAppPortAllocator
 {
     private const int MinPort = 2000;
@@ -17,43 +24,16 @@ public sealed class ManagedAppPortAllocator : IManagedAppPortAllocator
 
     public async Task<int> AllocateNextPortAsync(CancellationToken ct = default)
     {
-        const int maxRetries = 10;
-        const int retryDelayMs = 50;
+        var usedPorts = await _context.ManagedAppInstances
+            .Select(i => i.HostPort)
+            .ToHashSetAsync(ct);
 
-        for (int attempt = 0; attempt < maxRetries; attempt++)
+        for (int port = MinPort; port <= MaxPort; port++)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync(ct);
-
-            try
-            {
-                var usedPorts = await _context.ManagedAppInstances
-                    .Select(i => i.HostPort)
-                    .ToHashSetAsync(ct);
-
-                for (int port = MinPort; port <= MaxPort; port++)
-                {
-                    if (!usedPorts.Contains(port))
-                    {
-                        await transaction.CommitAsync(ct);
-                        return port;
-                    }
-                }
-
-                await transaction.RollbackAsync(ct);
-                throw new InvalidOperationException("No available ports in the managed app range (2000-4500).");
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                await transaction.RollbackAsync(ct);
-                if (attempt < maxRetries - 1)
-                {
-                    await Task.Delay(retryDelayMs, ct);
-                    continue;
-                }
-                throw;
-            }
+            if (!usedPorts.Contains(port))
+                return port;
         }
 
-        throw new InvalidOperationException("Failed to allocate port after maximum retries due to concurrent conflicts.");
+        throw new InvalidOperationException("No available ports in the managed app range (2000-4500).");
     }
 }
