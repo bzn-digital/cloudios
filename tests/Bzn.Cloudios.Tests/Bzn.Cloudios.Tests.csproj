@@ -20,7 +20,6 @@
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Domain\Bzn.Cloudios.Domain.csproj" />
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Application\Bzn.Cloudios.Application.csproj" />
     <ProjectReference Include="..\..\src\Bzn.Cloudios.Infrastructure\Bzn.Cloudios.Infrastructure.csproj" />
-    <ProjectReference Include="..\..\src\Bzn.Cloudios.WebAPI\Bzn.Cloudios.WebAPI.csproj" />
   </ItemGroup>
 
   <ItemGroup>

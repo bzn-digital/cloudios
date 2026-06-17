@@ -204,6 +204,7 @@ ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);
 BillingEndpoints.MapBillingEndpoints(app);
 ManagedDatabaseEndpoints.MapManagedDatabaseEndpoints(app);
+ManagedAppEndpoints.MapManagedAppEndpoints(app);
 HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---
