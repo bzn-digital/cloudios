@@ -139,7 +139,7 @@ public sealed class ManagedAppService : IManagedAppService
         throw new InvalidOperationException("Failed to allocate port after maximum retries due to concurrent conflicts.");
     }
 
-    public async Task<ManagedAppListResponse> ListAsync(Guid realmId, string? search, int page, int pageSize, CancellationToken ct = default)
+    public async Task<ManagedAppListResponse> ListAsync(Guid realmId, string? search, string? status, int page, int pageSize, CancellationToken ct = default)
     {
         var query = _context.ManagedAppInstances
             .Include(i => i.Template)
@@ -148,6 +148,11 @@ public sealed class ManagedAppService : IManagedAppService
         if (!string.IsNullOrWhiteSpace(search))
         {
             query = query.Where(i => i.Name.Contains(search));
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ManagedAppStatus>(status, true, out var statusEnum))
+        {
+            query = query.Where(i => i.Status == statusEnum);
         }
 
         var totalCount = await query.CountAsync(ct);
@@ -262,6 +267,52 @@ public sealed class ManagedAppService : IManagedAppService
         };
     }
 
+    public async Task<ManagedAppActionResponse> RestartInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
+    {
+        var instance = await _context.ManagedAppInstances
+            .ForRealm(realmId)
+            .FirstOrDefaultAsync(i => i.Id == instanceId, ct);
+
+        if (instance is null)
+            throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
+
+        if (instance.DockerContainerId is null)
+            throw new InvalidOperationException($"Cannot restart instance {instanceId}: no Docker container associated");
+
+        try
+        {
+            await _dockerClient.Containers.RestartContainerAsync(instance.DockerContainerId, new ContainerRestartParameters(), ct);
+            instance.Status = ManagedAppStatus.Running;
+            instance.StartedAtUtc = DateTime.UtcNow;
+            instance.StoppedAtUtc = null;
+            await _context.SaveChangesAsync(ct);
+
+            _logger.LogInformation("Restarted managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to restart managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+            instance.Status = ManagedAppStatus.Failed;
+            try
+            {
+                await _context.SaveChangesAsync(CancellationToken.None);
+            }
+            catch (Exception saveEx)
+            {
+                _logger.LogError(saveEx, "Failed to persist Failed status for managed app {InstanceId}", instance.Id);
+            }
+            throw;
+        }
+
+        return new ManagedAppActionResponse
+        {
+            Id = instance.Id,
+            Status = instance.Status.ToString(),
+            DockerContainerId = instance.DockerContainerId,
+            StartedAtUtc = instance.StartedAtUtc
+        };
+    }
+
     public async Task DeleteInstanceAsync(Guid realmId, Guid instanceId, CancellationToken ct = default)
     {
         var instance = await _context.ManagedAppInstances
@@ -306,6 +357,89 @@ public sealed class ManagedAppService : IManagedAppService
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Deleted managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
+    }
+
+    public async Task<ManagedAppTemplateListResponse> ListTemplatesAsync(string? category, string? search, CancellationToken ct = default)
+    {
+        var query = _context.ManagedAppTemplates.AsQueryable();
+
+        if (!string.IsNullOrWhiteSpace(category))
+        {
+            query = query.Where(t => t.Category == category);
+        }
+
+        if (!string.IsNullOrWhiteSpace(search))
+        {
+            query = query.Where(t => t.Name.Contains(search) || t.DisplayName.Contains(search) || t.Description.Contains(search));
+        }
+
+        var templates = await query.OrderBy(t => t.Category).ThenBy(t => t.DisplayName).ToListAsync(ct);
+
+        return new ManagedAppTemplateListResponse
+        {
+            Items = templates.Select(t => new ManagedAppTemplateResponse
+            {
+                Id = t.Id,
+                Slug = t.Slug,
+                DisplayName = t.DisplayName,
+                Name = t.Name,
+                Description = t.Description,
+                Category = t.Category,
+                InternalPort = t.InternalPort,
+                DefaultInstanceSize = t.DefaultInstanceSize.ToString()
+            }).ToList()
+        };
+    }
+
+    public async Task<AdminManagedAppListResponse> ListAllAsync(int page, int pageSize, Guid? realmId, string? status, CancellationToken ct = default)
+    {
+        var query = _context.ManagedAppInstances
+            .Include(i => i.Template)
+            .Include(i => i.Realm)
+            .AsQueryable();
+
+        if (realmId.HasValue)
+        {
+            query = query.Where(i => i.RealmId == realmId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(status) && Enum.TryParse<ManagedAppStatus>(status, true, out var statusEnum))
+        {
+            query = query.Where(i => i.Status == statusEnum);
+        }
+
+        var totalCount = await query.CountAsync(ct);
+        var items = await query
+            .OrderByDescending(i => i.CreatedAt)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync(ct);
+
+        return new AdminManagedAppListResponse
+        {
+            Items = items.Select(i => new AdminManagedAppResponse
+            {
+                Id = i.Id,
+                RealmId = i.RealmId,
+                RealmName = i.Realm.Name,
+                TemplateId = i.TemplateId,
+                TemplateName = i.Template.DisplayName,
+                Name = i.Name,
+                HostPort = i.HostPort,
+                Status = i.Status.ToString(),
+                Size = i.Size.ToString(),
+                DockerContainerId = i.DockerContainerId,
+                CpuLimitCores = i.CpuLimitCores,
+                MemoryLimitBytes = i.MemoryLimitBytes,
+                CostPerHourBRL = i.CostPerHourBRL,
+                CreatedAt = i.CreatedAt,
+                StartedAtUtc = i.StartedAtUtc,
+                StoppedAtUtc = i.StoppedAtUtc
+            }).ToList(),
+            TotalCount = totalCount,
+            Page = page,
+            PageSize = pageSize
+        };
     }
 
     private async Task DeployContainerAsync(ManagedAppInstance instance, CancellationToken ct)

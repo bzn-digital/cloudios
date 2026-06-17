@@ -7,4 +7,8 @@ namespace Bzn.Cloudios.WebAPI.Serialization;
 [JsonSerializable(typeof(ManagedAppResponse))]
 [JsonSerializable(typeof(ManagedAppListResponse))]
 [JsonSerializable(typeof(ManagedAppActionResponse))]
+[JsonSerializable(typeof(ManagedAppTemplateResponse))]
+[JsonSerializable(typeof(ManagedAppTemplateListResponse))]
+[JsonSerializable(typeof(AdminManagedAppResponse))]
+[JsonSerializable(typeof(AdminManagedAppListResponse))]
 public sealed partial class ManagedAppJsonContext : JsonSerializerContext;
