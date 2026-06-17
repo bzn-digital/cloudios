@@ -46,6 +46,8 @@ public sealed class ManagedAppDeployWorker : BackgroundService
     {
         _logger.LogInformation("ManagedAppDeployWorker started");
 
+        await ReconcileOrphanedInstancesAsync(stoppingToken);
+
         await foreach (var instanceId in _queue.DequeueAllAsync(stoppingToken))
         {
             try
@@ -99,7 +101,6 @@ public sealed class ManagedAppDeployWorker : BackgroundService
             var volumePath = Path.Combine(
                 _volumesBasePath,
                 "managed-apps",
-                instance.RealmId.ToString("N"),
                 instance.Id.ToString("N"));
 
             if (!_skipDirectoryCreation)
@@ -107,7 +108,7 @@ public sealed class ManagedAppDeployWorker : BackgroundService
                 Directory.CreateDirectory(volumePath);
             }
 
-            var containerName = $"{instance.Name}-{instance.RealmId.ToString("N")[..8]}";
+            var containerName = $"cloudios-app-{instance.Name}-{instance.Id:N}";
 
             // Remove pre-existing container with the same name
             var existingContainers = await _dockerClient.Containers.ListContainersAsync(
@@ -213,6 +214,26 @@ public sealed class ManagedAppDeployWorker : BackgroundService
             {
                 _logger.LogError(saveEx, "Failed to persist Failed status for {InstanceId}", instanceId);
             }
+        }
+    }
+
+    private async Task ReconcileOrphanedInstancesAsync(CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<CloudiosDbContext>();
+
+        var orphaned = await db.ManagedAppInstances
+            .Where(i => i.Status == ManagedAppStatus.Imaging || i.Status == ManagedAppStatus.Initializing)
+            .Select(i => i.Id)
+            .ToListAsync(ct);
+
+        if (orphaned.Count == 0) return;
+
+        _logger.LogInformation("Reconciling {Count} orphaned instance(s) stuck in Imaging/Initializing", orphaned.Count);
+
+        foreach (var id in orphaned)
+        {
+            _queue.Enqueue(id);
         }
     }
 }

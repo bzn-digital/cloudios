@@ -188,6 +188,9 @@ public sealed class ManagedAppService : IManagedAppService
         if (instance is null)
             throw new InvalidOperationException($"Managed app instance {instanceId} not found in realm {realmId}");
 
+        if (instance.Status is ManagedAppStatus.Imaging or ManagedAppStatus.Initializing)
+            throw new InvalidOperationException($"Instance {instanceId} is currently being deployed (status: {instance.Status})");
+
         try
         {
             if (instance.DockerContainerId is null)
