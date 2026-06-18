@@ -1,3 +1,8 @@
+import type { 
+  CreateManagedAppRequest,
+  ManagedAppInstanceDetailResponse 
+} from '../types/managedApp';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 
 class ApiClient {
@@ -163,7 +168,7 @@ class ApiClient {
     return this.get(`/managed-apps/templates?${params.toString()}`);
   }
 
-  async createManagedApp(data: { name: string; templateId: string; size: string }) {
+  async createManagedApp(data: CreateManagedAppRequest): Promise<ManagedAppInstanceDetailResponse> {
     return this.post('/managed-apps', data);
   }
 
