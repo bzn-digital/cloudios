@@ -214,6 +214,13 @@ public sealed class ManagedAppService : IManagedAppService
 
             _logger.LogInformation("Started managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
         }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            _logger.LogError(ex, "Docker/Podman socket not available. Please ensure Podman socket is running: 'systemctl --user start podman.socket' or 'sudo systemctl start podman.socket'");
+            instance.Status = ManagedAppStatus.Failed;
+            await _context.SaveChangesAsync(CancellationToken.None);
+            throw new InvalidOperationException("Docker/Podman socket not available. Please ensure the container runtime socket is running.", ex);
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to start managed app instance {InstanceId} ({Name})", instance.Id, instance.Name);
@@ -458,11 +465,19 @@ public sealed class ManagedAppService : IManagedAppService
 
         // Pull the image
         _logger.LogInformation("Pulling image {Image} for managed app {Name}...", template.DockerImage, instance.Name);
-        await _dockerClient.Images.CreateImageAsync(
-            new ImagesCreateParameters { FromImage = template.DockerImage },
-            null,
-            new Progress<JSONMessage>(msg => _logger.LogDebug("Pull progress: {Status}", msg.Status)),
-            ct);
+        try
+        {
+            await _dockerClient.Images.CreateImageAsync(
+                new ImagesCreateParameters { FromImage = template.DockerImage },
+                null,
+                new Progress<JSONMessage>(msg => _logger.LogDebug("Pull progress: {Status}", msg.Status)),
+                ct);
+        }
+        catch (System.Net.Http.HttpRequestException ex) when (ex.InnerException is System.Net.Sockets.SocketException)
+        {
+            _logger.LogError(ex, "Docker/Podman socket not available. Please ensure Podman socket is running: 'systemctl --user start podman.socket' or 'sudo systemctl start podman.socket'");
+            throw new InvalidOperationException("Docker/Podman socket not available. Please ensure the container runtime socket is running.", ex);
+        }
         _logger.LogInformation("Image {Image} pulled successfully", template.DockerImage);
 
         // Create volume directory
