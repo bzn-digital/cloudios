@@ -491,6 +491,9 @@ public sealed class ManagedAppService : IManagedAppService
         {
             Directory.CreateDirectory(volumePath);
         }
+        
+        // Ensure volume path is absolute for Docker bind mount
+        var absoluteVolumePath = Path.GetFullPath(volumePath);
 
         // Build container name
         var containerName = $"cloudios-app-{instance.Name}-{instance.Id:N}";
@@ -526,7 +529,7 @@ public sealed class ManagedAppService : IManagedAppService
                 {
                     [$"{template.InternalPort}/tcp"] = new List<PortBinding> { new PortBinding { HostPort = instance.HostPort.ToString() } }
                 },
-                Binds = new List<string> { $"{volumePath}:/app/data" },
+                Binds = new List<string> { $"{absoluteVolumePath}:/app/data" },
                 RestartPolicy = new RestartPolicy { Name = RestartPolicyKind.UnlessStopped }
             },
             Env = template.DefaultEnvVars.Select(kvp => $"{kvp.Key}={kvp.Value}").ToList(),
