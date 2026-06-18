@@ -43,10 +43,12 @@ export interface ManagedAppTemplate {
   name: string;
   description: string;
   category: string;
+  iconUrl: string;
   internalPort: number;
   defaultInstanceSize: string;
 }
 
 export interface ManagedAppTemplateListResponse {
   items: ManagedAppTemplate[];
+  categories: string[];
 }

@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Layout } from '../components/Layout';
+import { CreateManagedAppModal } from '../components/CreateManagedAppModal';
 import { apiClient } from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
-import type { ManagedAppInstanceListItem, ManagedAppInstanceListResponse } from '../types/managedApp';
+import type { ManagedAppInstanceListItem, ManagedAppInstanceListResponse, ManagedAppTemplate } from '../types/managedApp';
 
 const ManagedApps = () => {
   const { showToast } = useToast();
@@ -12,6 +13,7 @@ const ManagedApps = () => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
   const loadInstances = async () => {
     try {
@@ -83,6 +85,11 @@ const ManagedApps = () => {
     }
   };
 
+  const handleTemplateSelected = (template: ManagedAppTemplate) => {
+    // Step 2 will be implemented in a future issue
+    console.log('Selected template:', template);
+  };
+
   const formatBytes = (bytes: number) => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(2)} KB`;
@@ -123,7 +130,7 @@ const ManagedApps = () => {
       <div className="services">
         <div className="services-header">
           <h1>Managed Apps</h1>
-          <button className="btn btn-primary" onClick={() => showToast('info', 'Create App modal will be implemented in Issue #8')}>
+          <button className="btn btn-primary" onClick={() => setIsCreateModalOpen(true)}>
             + Create App
           </button>
         </div>
@@ -257,6 +264,12 @@ const ManagedApps = () => {
           </table>
         </div>
       </div>
+
+      <CreateManagedAppModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onTemplateSelected={handleTemplateSelected}
+      />
     </Layout>
   );
 };
