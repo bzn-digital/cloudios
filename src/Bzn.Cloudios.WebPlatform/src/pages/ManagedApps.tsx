@@ -84,16 +84,6 @@ export function ManagedApps() {
     return `${cores.toFixed(2)} vCPU`;
   };
 
-  const getInstanceSizeSpecs = (size: string) => {
-    const sizeMap: Record<string, { cpu: number; memory: number }> = {
-      'Nano1s': { cpu: 0.25, memory: 256 * 1024 * 1024 },
-      'Micro1s': { cpu: 0.5, memory: 512 * 1024 * 1024 },
-      'Small1s': { cpu: 1.0, memory: 1024 * 1024 * 1024 },
-      'Medium1s': { cpu: 2.0, memory: 2 * 1024 * 1024 * 1024 },
-      'Large1s': { cpu: 4.0, memory: 4 * 1024 * 1024 * 1024 },
-    };
-    return sizeMap[size] || { cpu: 0, memory: 0 };
-  };
 
   const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -176,7 +166,6 @@ export function ManagedApps() {
                 </tr>
               ) : (
                 allApps.map((app) => {
-                  const sizeSpecs = getInstanceSizeSpecs(app.size);
                   return (
                     <tr key={app.id}>
                       <td>
@@ -199,10 +188,10 @@ export function ManagedApps() {
                       <td>
                         <span className="realm-badge">{app.realmName}</span>
                       </td>
-                      <td>{app.templateDisplayName}</td>
+                      <td>{app.templateName}</td>
                       <td>{app.name}</td>
                       <td>
-                        {formatCpu(sizeSpecs.cpu)} / {formatBytes(sizeSpecs.memory)}
+                        {formatCpu(app.cpuLimitCores)} / {formatBytes(app.memoryLimitBytes)}
                       </td>
                       <td>
                         <code className="internal-connection" title="Services on the same network can connect using this internal address">

@@ -5,7 +5,7 @@ export interface AdminManagedAppListItem {
   realmId: string;
   realmName: string;
   templateId: string;
-  templateDisplayName: string;
+  templateName: string;
   name: string;
   status: ManagedAppStatus;
   size: string;
