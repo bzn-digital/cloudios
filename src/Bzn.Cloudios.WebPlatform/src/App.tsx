@@ -4,6 +4,7 @@ import { Login } from './pages/Login';
 import { Dashboard } from './pages/Dashboard';
 import { Services } from './pages/Services';
 import { ServiceDetail } from './pages/ServiceDetail';
+import { ManagedApps } from './pages/ManagedApps';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -33,6 +34,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ServiceDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/managed-apps"
+            element={
+              <ProtectedRoute>
+                <ManagedApps />
               </ProtectedRoute>
             }
           />
