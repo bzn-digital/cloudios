@@ -1,4 +1,5 @@
 import type { AdminContainerListResponse, ContainerActionResponse, ContainerDetailResponse, ContainerLogsResponse } from '../types/container';
+import type { AdminManagedAppListResponse, ManagedAppActionResponse, RealmListResponse } from '../types/managedApp';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -111,6 +112,32 @@ class ApiClient {
 
   async deleteContainer(id: string): Promise<void> {
     return this.delete<void>(`/containers/${id}`);
+  }
+
+  // Admin Managed Apps endpoints
+  async getAdminManagedApps(realmId?: string, status?: string, page = 1, pageSize = 20): Promise<AdminManagedAppListResponse> {
+    const params = new URLSearchParams();
+    if (realmId) params.append('realmId', realmId);
+    if (status) params.append('status', status);
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
+    return this.get<AdminManagedAppListResponse>(`/managed-apps/all?${params.toString()}`);
+  }
+
+  async getRealms(): Promise<RealmListResponse> {
+    return this.get<RealmListResponse>('/realms');
+  }
+
+  async restartManagedApp(id: string): Promise<ManagedAppActionResponse> {
+    return this.post<ManagedAppActionResponse>(`/managed-apps/${id}/restart`);
+  }
+
+  async stopManagedApp(id: string): Promise<ManagedAppActionResponse> {
+    return this.post<ManagedAppActionResponse>(`/managed-apps/${id}/stop`);
+  }
+
+  async deleteManagedApp(id: string): Promise<void> {
+    return this.delete<void>(`/managed-apps/${id}`);
   }
 }
 

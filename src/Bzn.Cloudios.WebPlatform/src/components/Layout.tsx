@@ -189,7 +189,7 @@ export function Layout({ children }: LayoutProps) {
       children: [
         { id: 'services', label: 'Services', icon: icons.services, path: '/services' },
         { id: 'databases', label: 'Managed Databases', icon: icons.databases, path: '/computing/databases' },
-        { id: 'apps', label: 'Managed Apps', icon: icons.apps, path: '/computing/apps' },
+        { id: 'apps', label: 'Managed Apps', icon: icons.apps, path: '/managed-apps' },
       ],
     },
     { id: 'realms', label: 'Realms', icon: icons.domains, path: '/realms' },
