@@ -57,8 +57,6 @@ export interface CreateManagedAppRequest {
   templateId: string;
   name: string;
   instanceSize: string;
-  ssdGb: number;
-  networkName: string;
 }
 
 export interface ManagedAppInstanceDetailResponse {

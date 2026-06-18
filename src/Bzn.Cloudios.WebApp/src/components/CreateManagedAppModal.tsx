@@ -4,11 +4,11 @@ import { apiClient } from '../lib/api';
 import type { ManagedAppTemplate, ManagedAppTemplateListResponse } from '../types/managedApp';
 
 const INSTANCE_SIZES = [
-  { key: 'nano-1s', label: 'Nano 1s', cpu: '0.25 vCPU', ram: '256 MB', costPerHour: 0.008 },
-  { key: 'micro-1s', label: 'Micro 1s', cpu: '0.5 vCPU', ram: '512 MB', costPerHour: 0.015 },
-  { key: 'small-1s', label: 'Small 1s', cpu: '1 vCPU', ram: '1 GB', costPerHour: 0.028 },
-  { key: 'medium-1s', label: 'Medium 1s', cpu: '2 vCPU', ram: '2 GB', costPerHour: 0.055 },
-  { key: 'large-1s', label: 'Large 1s', cpu: '4 vCPU', ram: '4 GB', costPerHour: 0.105 },
+  { key: 'Nano1s', label: 'Nano 1s', cpu: '0.25 vCPU', ram: '256 MB', costPerHour: 0.01 },
+  { key: 'Micro1s', label: 'Micro 1s', cpu: '0.5 vCPU', ram: '512 MB', costPerHour: 0.02 },
+  { key: 'Small1s', label: 'Small 1s', cpu: '1 vCPU', ram: '1 GB', costPerHour: 0.04 },
+  { key: 'Medium1s', label: 'Medium 1s', cpu: '2 vCPU', ram: '2 GB', costPerHour: 0.08 },
+  { key: 'Large1s', label: 'Large 1s', cpu: '4 vCPU', ram: '4 GB', costPerHour: 0.16 },
 ];
 
 interface CreateManagedAppModalProps {
@@ -32,23 +32,13 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
   const [formData, setFormData] = useState({
     name: '',
     instanceSize: '',
-    ssdGb: 10,
-    networkName: '',
   });
   const [formErrors, setFormErrors] = useState<Record<string, string>>({});
-  const [networks, setNetworks] = useState<string[]>([]);
-  const [networksLoading, setNetworksLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (isOpen && step === 1) {
       loadTemplates();
-    }
-  }, [isOpen, step]);
-
-  useEffect(() => {
-    if (isOpen && step === 2) {
-      loadNetworks();
     }
   }, [isOpen, step]);
 
@@ -66,18 +56,6 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
     }
   };
 
-  const loadNetworks = async () => {
-    try {
-      setNetworksLoading(true);
-      const data = await apiClient.getNetworks() as { networks: string[] };
-      setNetworks(data.networks || ['default']);
-    } catch (err) {
-      console.error('Failed to load networks:', err);
-      setNetworks(['default']);
-    } finally {
-      setNetworksLoading(false);
-    }
-  };
 
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.displayName.toLowerCase().includes(searchQuery.toLowerCase());
@@ -96,9 +74,7 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
       // Reset form state for step 2
       setFormData({
         name: '',
-        instanceSize: selectedTemplate.defaultInstanceSize || 'nano-1s',
-        ssdGb: 10,
-        networkName: '',
+        instanceSize: selectedTemplate.defaultInstanceSize || 'Nano1s',
       });
       setFormErrors({});
     }
@@ -116,8 +92,6 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
     setFormData({
       name: '',
       instanceSize: '',
-      ssdGb: 10,
-      networkName: '',
     });
     setFormErrors({});
     onClose();
@@ -164,8 +138,6 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
         templateId: selectedTemplate.id,
         name: formData.name,
         instanceSize: formData.instanceSize,
-        ssdGb: formData.ssdGb,
-        networkName: formData.networkName || 'default',
       });
 
       // Success
@@ -173,8 +145,6 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
       if (onAppCreated) {
         onAppCreated();
       }
-      // Show toast (you may need to implement a toast system)
-      alert('App created! Status: Imaging');
     } catch (err: any) {
       console.error('Failed to create app:', err);
       const errorMessage = err.message || 'Failed to create app';
@@ -190,9 +160,7 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
 
   const selectedInstanceSize = INSTANCE_SIZES.find(size => size.key === formData.instanceSize);
   const costPerHour = selectedInstanceSize ? selectedInstanceSize.costPerHour : 0;
-  const ssdCostPerHour = formData.ssdGb * 0.0005; // R$ 0.0005 per GB per hour
-  const totalCostPerHour = costPerHour + ssdCostPerHour;
-  const totalCostPerMonth = totalCostPerHour * 24 * 30;
+  const totalCostPerMonth = costPerHour * 24 * 30;
 
   return (
     <Modal isOpen={isOpen} onClose={handleCancel} title="Create Managed App">
@@ -329,43 +297,6 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
             {formErrors.instanceSize && <small className="error-text">{formErrors.instanceSize}</small>}
           </div>
 
-          <div className="form-group">
-            <label htmlFor="ssdGb">SSD Storage (GB) *</label>
-            <div className="disk-slider-container">
-              <input
-                id="ssdGb"
-                type="range"
-                min="1"
-                max="50"
-                step="1"
-                value={formData.ssdGb}
-                onChange={(e) => handleFormChange('ssdGb', parseInt(e.target.value))}
-                className="disk-slider"
-              />
-              <div className="disk-size-display">
-                <span className="disk-size-value">{formData.ssdGb} GB</span>
-              </div>
-            </div>
-            <small>SSD storage for your app (1GB - 50GB)</small>
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="networkName">Network</label>
-            <select
-              id="networkName"
-              value={formData.networkName}
-              onChange={(e) => handleFormChange('networkName', e.target.value)}
-              disabled={networksLoading}
-              className="modal-input"
-            >
-              <option value="">Default realm network</option>
-              {networks.map((network) => (
-                <option key={network} value={network}>
-                  {network}
-                </option>
-              ))}
-            </select>
-          </div>
 
           <div className="billing-preview">
             <h3>Billing Preview</h3>
@@ -373,15 +304,7 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected, onA
               <div className="billing-costs">
                 <div className="cost-item">
                   <span className="cost-label">Instance size (per hour)</span>
-                  <span className="cost-value">R$ {costPerHour.toFixed(3)}</span>
-                </div>
-                <div className="cost-item">
-                  <span className="cost-label">SSD {formData.ssdGb}GB (per hour)</span>
-                  <span className="cost-value">R$ {ssdCostPerHour.toFixed(3)}</span>
-                </div>
-                <div className="cost-item total">
-                  <span className="cost-label">Total per hour</span>
-                  <span className="cost-value">R$ {totalCostPerHour.toFixed(3)}</span>
+                  <span className="cost-value">R$ {costPerHour.toFixed(2)}</span>
                 </div>
                 <div className="cost-item total">
                   <span className="cost-label">Total per month (720h)</span>
