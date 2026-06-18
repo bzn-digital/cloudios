@@ -117,7 +117,8 @@ export function CreateManagedAppModal({ isOpen, onClose, onTemplateSelected }: C
                           alt={template.displayName}
                           onError={(e) => {
                             const img = e.target as HTMLImageElement;
-                            img.onerror = null;
+                            if (img.dataset.fallback) return;
+                            img.dataset.fallback = '1';
                             img.src = '/assets/default-app-icon.svg';
                           }}
                         />
