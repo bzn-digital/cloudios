@@ -3,7 +3,7 @@ import { Layout } from '../components/Layout';
 import { CreateManagedAppModal } from '../components/CreateManagedAppModal';
 import { apiClient } from '../lib/api';
 import { useToast } from '../contexts/ToastContext';
-import type { ManagedAppInstanceListItem, ManagedAppInstanceListResponse, ManagedAppTemplate } from '../types/managedApp';
+import type { ManagedAppInstanceListItem, ManagedAppInstanceListResponse } from '../types/managedApp';
 
 const ManagedApps = () => {
   const { showToast } = useToast();
@@ -85,9 +85,13 @@ const ManagedApps = () => {
     }
   };
 
-  const handleTemplateSelected = (template: ManagedAppTemplate) => {
-    // Step 2 will be implemented in a future issue
-    console.log('Selected template:', template);
+  const handleTemplateSelected = () => {
+    // Template selection is now handled internally in the modal
+  };
+
+  const handleAppCreated = () => {
+    loadInstances();
+    showToast('success', 'App created! Status: Imaging');
   };
 
   const formatBytes = (bytes: number) => {
@@ -269,6 +273,7 @@ const ManagedApps = () => {
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onTemplateSelected={handleTemplateSelected}
+        onAppCreated={handleAppCreated}
       />
     </Layout>
   );

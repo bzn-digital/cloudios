@@ -52,3 +52,32 @@ export interface ManagedAppTemplateListResponse {
   items: ManagedAppTemplate[];
   categories: string[];
 }
+
+export interface CreateManagedAppRequest {
+  templateId: string;
+  name: string;
+  instanceSize: string;
+  ssdGb: number;
+  networkName: string;
+}
+
+export interface ManagedAppInstanceDetailResponse {
+  id: string;
+  realmId: string;
+  templateId: string;
+  templateDisplayName: string;
+  name: string;
+  status: ManagedAppStatus;
+  size: string;
+  hostPort: number;
+  internalPort: number;
+  internalAccess: string;
+  dockerContainerId: string | null;
+  cpuLimitCores: number;
+  memoryLimitBytes: number;
+  costPerHourBRL: number;
+  currentMonthCostBRL: number;
+  createdAt: string;
+  startedAtUtc: string | null;
+  stoppedAtUtc: string | null;
+}
