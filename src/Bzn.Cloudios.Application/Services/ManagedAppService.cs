@@ -478,6 +478,11 @@ public sealed class ManagedAppService : IManagedAppService
             _logger.LogError(ex, "Docker/Podman socket not available. Please ensure Podman socket is running: 'systemctl --user start podman.socket' or 'sudo systemctl start podman.socket'");
             throw new InvalidOperationException("Docker/Podman socket not available. Please ensure the container runtime socket is running.", ex);
         }
+        catch (Docker.DotNet.DockerApiException ex) when (ex.ResponseBody?.Contains("permission denied") == true)
+        {
+            _logger.LogError(ex, "Docker/Podman permission denied. Check volumes path and ensure the application has write permissions to the volumes directory.");
+            throw new InvalidOperationException("Docker/Podman permission denied. Ensure the volumes directory is writable by the application user.", ex);
+        }
         _logger.LogInformation("Image {Image} pulled successfully", template.DockerImage);
 
         // Create volume directory

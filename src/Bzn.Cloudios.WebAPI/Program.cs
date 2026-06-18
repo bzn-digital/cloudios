@@ -81,6 +81,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
 
+// Set default volumes base path to user home directory for rootless Podman
+var defaultVolumesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "cloudios");
+builder.Configuration["Volumes:BasePath"] = builder.Configuration["Volumes:BasePath"] ?? defaultVolumesPath;
+
 // Docker client (singleton for Podman socket connection)
 // Linux + Podman: Use user-level Unix socket by default
 var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{GetCurrentUid()}/podman/podman.sock";
