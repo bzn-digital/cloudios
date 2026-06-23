@@ -1,10 +1,6 @@
 title: BZN Cloudios Documentation
 description: Documentação oficial do BZN Cloudios - Plataforma como Serviço privada
-theme: jekyll-theme-primer
-remote_theme: pages-themes/primer@v0.2.0
-plugins:
-  - jekyll-seo-tag
-  - jekyll-github-metadata
+theme: minima
 markdown: kramdown
 highlighter: rouge
 kramdown:
