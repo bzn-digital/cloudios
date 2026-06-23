@@ -495,8 +495,9 @@ public sealed class ManagedAppService : IManagedAppService
         // Ensure volume path is absolute for Docker bind mount
         var absoluteVolumePath = Path.GetFullPath(volumePath);
 
-        // Build container name
-        var containerName = $"cloudios-app-{instance.Name}-{instance.Id:N}";
+        // Build container name: cma-{realm_short_id}-{instance_name}
+        var realmShortId = instance.RealmId.ToString("N").Substring(0, 4);
+        var containerName = $"cma-{realmShortId}-{instance.Name}";
 
         // Check for existing container with same name
         var existingContainers = await _dockerClient.Containers.ListContainersAsync(
