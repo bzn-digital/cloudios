@@ -2,6 +2,7 @@ using System.Text;
 using Bzn.Cloudios.Application.Abstractions;
 using Bzn.Cloudios.Application.Events;
 using Bzn.Cloudios.Application.Services;
+using Bzn.Cloudios.Application.Workers;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Bzn.Cloudios.Infrastructure.Services;
 using Bzn.Cloudios.WebAPI.Endpoints;
@@ -80,6 +81,10 @@ builder.Services.AddScoped<AuthService>();
 builder.Services.AddScoped<RealmService>();
 builder.Services.AddScoped<UserService>();
 
+// Set default volumes base path to user home directory for rootless Podman
+var defaultVolumesPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "cloudios");
+builder.Configuration["Volumes:BasePath"] = builder.Configuration["Volumes:BasePath"] ?? defaultVolumesPath;
+
 // Docker client (singleton for Podman socket connection)
 // Linux + Podman: Use user-level Unix socket by default
 var socketPath = builder.Configuration["Docker:SocketPath"] ?? $"/run/user/{GetCurrentUid()}/podman/podman.sock";
@@ -114,9 +119,12 @@ builder.Services.AddScoped<MetricsService>();
 builder.Services.AddScoped<IBillingService, BillingService>();
 builder.Services.AddScoped<ManagedDatabaseCrudService>();
 builder.Services.AddScoped<HealthCheckService>();
+builder.Services.AddSingleton<IManagedAppDeployQueue, ManagedAppDeployQueue>();
+builder.Services.AddScoped<IManagedAppService, ManagedAppService>();
 builder.Services.AddSingleton<IEventBus, InProcessEventBus>();
 // Enable MetricsCollectionWorker for container state synchronization
 builder.Services.AddHostedService<MetricsCollectionWorker>();
+builder.Services.AddHostedService<ManagedAppDeployWorker>();
 // Temporarily disable other hosted services
 // builder.Services.AddHostedService<EventProcessorWorker>();
 // builder.Services.AddHostedService<MetricsCleanupWorker>();
@@ -202,6 +210,7 @@ ContainerLogsEndpoints.MapContainerLogsEndpoints(app);
 MetricsEndpoints.MapMetricsEndpoints(app);
 BillingEndpoints.MapBillingEndpoints(app);
 ManagedDatabaseEndpoints.MapManagedDatabaseEndpoints(app);
+ManagedAppEndpoints.MapManagedAppEndpoints(app);
 HealthCheckEndpoints.MapHealthCheckEndpoints(app);
 
 // --- YARP ---

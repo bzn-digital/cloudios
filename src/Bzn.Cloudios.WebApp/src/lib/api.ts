@@ -1,3 +1,8 @@
+import type { 
+  CreateManagedAppRequest,
+  ManagedAppInstanceDetailResponse 
+} from '../types/managedApp';
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost';
 
 class ApiClient {
@@ -144,6 +149,44 @@ class ApiClient {
   // Registration endpoint
   async register(data: { realmName: string; email: string; password: string }) {
     return this.post('/register', data);
+  }
+
+  // Managed App endpoints
+  async getManagedAppInstances(search?: string, status?: string, page = 1, pageSize = 20) {
+    const params = new URLSearchParams({
+      page: page.toString(),
+      pageSize: pageSize.toString(),
+    });
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    return this.get(`/managed-apps?${params.toString()}`);
+  }
+
+  async getManagedAppTemplates(category?: string, search?: string) {
+    const params = new URLSearchParams();
+    if (category) params.append('category', category);
+    if (search) params.append('search', search);
+    return this.get(`/managed-apps/templates?${params.toString()}`);
+  }
+
+  async createManagedApp(data: CreateManagedAppRequest): Promise<ManagedAppInstanceDetailResponse> {
+    return this.post('/managed-apps', data);
+  }
+
+  async startManagedApp(id: string) {
+    return this.post(`/managed-apps/${id}/start`);
+  }
+
+  async restartManagedApp(id: string) {
+    return this.post(`/managed-apps/${id}/restart`);
+  }
+
+  async stopManagedApp(id: string) {
+    return this.post(`/managed-apps/${id}/stop`);
+  }
+
+  async deleteManagedApp(id: string) {
+    return this.delete(`/managed-apps/${id}`);
   }
 }
 

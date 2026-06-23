@@ -15,4 +15,7 @@ public static class TenantQueryExtensions
 
     public static IQueryable<ContainerEnvVar> ForRealm(this IQueryable<ContainerEnvVar> query, Guid realmId)
         => query.Where(e => e.Container.RealmId == realmId);
+
+    public static IQueryable<ManagedAppInstance> ForRealm(this IQueryable<ManagedAppInstance> query, Guid realmId)
+        => query.Where(i => i.RealmId == realmId);
 }

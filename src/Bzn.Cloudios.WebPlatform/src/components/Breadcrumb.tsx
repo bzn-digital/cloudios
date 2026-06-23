@@ -12,6 +12,7 @@ export function Breadcrumb() {
     'services-templates': 'Services Templates',
     realms: 'Realms',
     settings: 'Settings',
+    'managed-apps': 'Managed Apps',
   };
 
   const formatBreadcrumbName = (name: string) => {

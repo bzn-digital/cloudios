@@ -3,6 +3,7 @@ using System;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    partial class CloudiosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260617001723_AddManagedApps")]
+    partial class AddManagedApps
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -337,7 +340,7 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                         .IsRequired()
                         .ValueGeneratedOnAdd()
                         .HasColumnType("TEXT")
-                        .HasDefaultValue("Imaging");
+                        .HasDefaultValue("Provisioning");
 
                     b.Property<DateTime?>("StoppedAtUtc")
                         .HasColumnType("TEXT");
@@ -361,7 +364,7 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
 
                     b.ToTable("ManagedAppInstances", null, t =>
                         {
-                            t.HasCheckConstraint("CK_ManagedAppInstances_Status", "Status IN ('Imaging','Running','Stopped','Failed','Terminated')");
+                            t.HasCheckConstraint("CK_ManagedAppInstances_Status", "Status IN ('Provisioning','Running','Stopped','Failed','Terminated')");
                         });
                 });
 
@@ -401,11 +404,6 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
                     b.Property<string>("DockerImage")
                         .IsRequired()
                         .HasColumnType("TEXT");
-
-                    b.Property<int>("InternalPort")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER")
-                        .HasDefaultValue(80);
 
                     b.Property<string>("Name")
                         .IsRequired()
