@@ -1,6 +1,6 @@
 ---
 title: BZN Cloudios
-layout: home
+layout: default
 ---
 
 # 🌩️ BZN Cloudios

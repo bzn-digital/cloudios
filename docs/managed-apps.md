@@ -1,6 +1,6 @@
 ---
 title: Managed Apps
-layout: page
+layout: default
 ---
 
 # Managed Apps - Documentação
