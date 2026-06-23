@@ -1,8 +1,24 @@
+---
+title: Managed Apps
+layout: page
+---
+
 # Managed Apps - Documentação
 
-## Visão Geral
-
 Managed Apps são aplicações containerizadas gerenciadas automaticamente pelo Cloudios. Cada instância é um container Docker/Podman com isolamento de recursos, monitoramento e bilhetagem integrados.
+
+## Índice
+
+- [Padrões de Nomenclatura](#padrões-de-nomenclatura)
+- [Networks](#networks)
+- [Volume Paths](#volume-paths)
+- [Port Mapping](#port-mapping)
+- [Labels](#labels)
+- [Comunicação entre Containers](#comunicação-entre-containers)
+- [Ciclo de Vida](#ciclo-de-vida)
+- [Operações](#operações)
+- [Resource Limits](#resource-limits)
+- [Segurança](#segurança)
 
 ## Padrões de Nomenclatura
 
@@ -57,6 +73,13 @@ Os volumes de dados são armazenados em:
 - **Porta host**: Alocada automaticamente pelo Cloudios no range 2000-4500
 - **Mapeamento**: `{host_port}:{internal_port}/tcp`
 
+**Exemplo:**
+```
+0.0.0.0:2000->9000/tcp
+```
+
+Neste exemplo, a porta 9000 do container é acessível via porta 2000 no host.
+
 ## Labels
 
 Todos os containers de managed apps possuem labels para identificação:
@@ -69,9 +92,12 @@ Todos os containers de managed apps possuem labels para identificação:
 }
 ```
 
+Esses labels permitem filtrar e identificar containers gerenciados pelo Cloudios.
+
 ## Comunicação entre Containers
 
 ### Container-to-Container
+
 Containers na mesma rede se comunicam usando o nome do container como hostname:
 
 ```
@@ -79,11 +105,14 @@ http://cma-a1b2-portainer:9000
 ```
 
 ### Host-to-Container
+
 Acesso externo via host usando a porta mapeada:
 
 ```
 http://localhost:2000
 ```
+
+> **Importante:** Use sempre a porta interna (9000) para comunicação entre containers na mesma rede. Use a porta do host (2000) apenas para acesso externo.
 
 ## Ciclo de Vida
 
@@ -96,13 +125,22 @@ http://localhost:2000
 - **Failed**: Container falhou durante criação ou execução
 - **Terminated**: Container foi deletado
 
-### Operações
+## Operações
 
-- **Create**: Cria uma nova instância de managed app
-- **Start**: Inicia um container parado ou cria se não existir
-- **Stop**: Para um container em execução
-- **Restart**: Reinicia um container em execução
-- **Delete**: Remove o container e seus volumes
+### Create
+Cria uma nova instância de managed app. O sistema aloca automaticamente uma porta disponível e enfileira o deploy.
+
+### Start
+Inicia um container parado ou cria se não existir. Se o container não existe, ele é criado e iniciado.
+
+### Stop
+Para um container em execução. O container permanece no sistema e pode ser reiniciado posteriormente.
+
+### Restart
+Reinicia um container em execução. Útil para aplicar configurações ou recuperar de erros temporários.
+
+### Delete
+Remove o container e seus volumes. Esta operação é irreversível e todos os dados são perdidos.
 
 ## Resource Limits
 
@@ -112,9 +150,29 @@ Cada instância possui limites de recursos configurados pelo tamanho escolhido:
 - **Memory**: Limitado em bytes
 - **Cost**: Calculado por hora com base nos recursos alocados
 
+### Tamanhos Disponíveis
+
+| Tamanho | CPU | RAM |
+|---------|-----|-----|
+| Nano1s  | 0.1 | 128MB |
+| Nano2s  | 0.2 | 256MB |
+| Nano4s  | 0.4 | 512MB |
+| Micro1s | 0.5 | 1GB |
+| Micro2s | 1.0 | 2GB |
+| Small1s | 1.0 | 2GB |
+| Small2s | 2.0 | 4GB |
+| Medium1s| 2.0 | 4GB |
+| Medium2s| 4.0 | 8GB |
+| Large1s | 4.0 | 8GB |
+| Large2s | 8.0 | 16GB |
+
 ## Segurança
 
-- Isolamento por realm (multi-tenancy)
-- Limites estritos de recursos
-- Redes isoladas por realm
-- Volumes persistentes por instância
+O Cloudios implementa múltiplas camadas de segurança:
+
+- **Isolamento por realm**: Multi-tenancy com isolamento lógico completo
+- **Limites estritos de recursos**: CPU e RAM limitadas por instância
+- **Redes isoladas**: Cada realm possui sua própria rede Docker
+- **Volumes persistentes**: Dados isolados por instância
+- **Autenticação JWT**: Acesso à API via tokens JWT
+- **Authorization policies**: Controle de acesso por roles (RealmOwner, RealmAdmin, etc.)
