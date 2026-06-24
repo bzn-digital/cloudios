@@ -9,9 +9,9 @@ public static class RealmEndpoints
     {
         var group = app.MapGroup("/api/realms");
 
-        group.MapGet("/", async (RealmService service, int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default) =>
+        group.MapGet("/", async (RealmService service, int page = 1, int pageSize = 20, string? search = null, string? status = null, string? sortBy = null, CancellationToken ct = default) =>
         {
-            var result = await service.ListAsync(page, pageSize, search, ct);
+            var result = await service.ListAsync(page, pageSize, search, status, sortBy, ct);
             return Results.Ok(result);
         });
 

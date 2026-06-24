@@ -4,6 +4,7 @@ using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using IContainerService = Bzn.Cloudios.Application.Abstractions.IContainerService;
 
 namespace Bzn.Cloudios.Application.Services;
@@ -33,22 +34,37 @@ public sealed class RealmService
         _managedAppService = managedAppService;
     }
 
-    public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default)
+    public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, string? status = null, string? sortBy = null, CancellationToken ct = default)
     {
         var query = _context.Realms.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(r => r.Name.Contains(search));
+            query = query.Where(r => r.Name.Contains(search) || r.Slug.Contains(search));
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.ToLower() == "active")
+                query = query.Where(r => r.IsActive);
+            else if (status.ToLower() == "suspended")
+                query = query.Where(r => !r.IsActive);
+        }
+
+        query = sortBy?.ToLower() switch
+        {
+            "createdat" => query.OrderBy(r => r.CreatedAt),
+            "monthlycost" => query.OrderBy(r => r.Name), // Fallback to name for now, can be enhanced with actual cost
+            _ => query.OrderBy(r => r.Name)
+        };
 
         var total = await query.CountAsync(ct);
         var items = await query
-            .OrderBy(r => r.Name)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .Select(r => new RealmItem
             {
                 Id = r.Id,
                 Name = r.Name,
+                Slug = r.Slug,
                 IsActive = r.IsActive,
                 CreatedAt = r.CreatedAt,
                 UserCount = r.Users.Count,
@@ -95,10 +111,13 @@ public sealed class RealmService
         if (await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
+        var slug = Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-").Replace("--", "-").Trim('-');
+
         var realm = new Realm
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            Slug = slug,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };

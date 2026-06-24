@@ -5,6 +5,7 @@ import { Dashboard } from './pages/Dashboard';
 import { Services } from './pages/Services';
 import { ServiceDetail } from './pages/ServiceDetail';
 import { ManagedApps } from './pages/ManagedApps';
+import { Realms } from './pages/Realms';
 import { ProtectedRoute } from './components/ProtectedRoute';
 
 function App() {
@@ -42,6 +43,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <ManagedApps />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/realms"
+            element={
+              <ProtectedRoute>
+                <Realms />
               </ProtectedRoute>
             }
           />
