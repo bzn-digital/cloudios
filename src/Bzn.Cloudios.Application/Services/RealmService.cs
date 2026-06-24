@@ -120,7 +120,10 @@ public sealed class RealmService
         if (await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
-        var slug = Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-").Replace("--", "-").Trim('-');
+        var slug = Regex.Replace(Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+
+        if (await _context.Realms.AnyAsync(r => r.Slug == slug, ct))
+            return (null, "Realm slug already exists (name may produce duplicate slug)");
 
         var realm = new Realm
         {
@@ -154,10 +157,23 @@ public sealed class RealmService
         var realm = await _context.Realms.FindAsync([id], ct);
         if (realm is null) return (null, "Realm not found");
 
-        if (realm.Name != request.Name && await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
+        var originalName = realm.Name;
+        
+        if (originalName != request.Name && await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
         realm.Name = request.Name;
+        
+        if (originalName != request.Name)
+        {
+            var newSlug = Regex.Replace(Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+            
+            if (await _context.Realms.AnyAsync(r => r.Slug == newSlug && r.Id != id, ct))
+                return (null, "Realm slug already exists (name may produce duplicate slug)");
+            
+            realm.Slug = newSlug;
+        }
+        
         realm.IsActive = request.IsActive;
         await _context.SaveChangesAsync(ct);
 

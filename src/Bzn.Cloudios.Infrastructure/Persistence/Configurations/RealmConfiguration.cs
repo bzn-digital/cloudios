@@ -20,6 +20,11 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .HasMaxLength(100)
             .HasColumnType("TEXT");
 
+        builder.Property(r => r.Slug)
+            .IsRequired()
+            .HasMaxLength(100)
+            .HasColumnType("TEXT");
+
         builder.Property(r => r.IsActive)
             .IsRequired()
             .HasColumnType("INTEGER")
@@ -45,6 +50,7 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .HasColumnType("REAL");
 
         builder.HasIndex(r => r.Name).IsUnique();
+        builder.HasIndex(r => r.Slug).IsUnique();
 
         builder.HasMany(r => r.Users)
             .WithOne(u => u.Realm)
