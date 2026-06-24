@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
+import { CreateRealmModal } from '../components/CreateRealmModal';
 import { apiClient } from '../lib/api';
 import type { RealmItem } from '../types/realm';
 
@@ -15,8 +16,6 @@ export function Realms() {
   const [pageSize] = useState(20);
   const [totalCount, setTotalCount] = useState(0);
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newRealmName, setNewRealmName] = useState('');
-  const [creating, setCreating] = useState(false);
 
   useEffect(() => {
     loadRealms();
@@ -36,22 +35,6 @@ export function Realms() {
     }
   };
 
-  const handleCreateRealm = async () => {
-    if (!newRealmName.trim()) return;
-    
-    try {
-      setCreating(true);
-      await apiClient.post('/realms', { name: newRealmName });
-      setNewRealmName('');
-      setShowCreateModal(false);
-      await loadRealms();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create realm');
-      alert(err instanceof Error ? err.message : 'Failed to create realm');
-    } finally {
-      setCreating(false);
-    }
-  };
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
@@ -194,40 +177,11 @@ export function Realms() {
         )}
       </div>
 
-      {showCreateModal && (
-        <div className="modal-overlay" onClick={() => setShowCreateModal(false)}>
-          <div className="modal" onClick={(e) => e.stopPropagation()}>
-            <h2>Create New Realm</h2>
-            <div className="form-group">
-              <label htmlFor="realmName">Realm Name</label>
-              <input
-                id="realmName"
-                type="text"
-                value={newRealmName}
-                onChange={(e) => setNewRealmName(e.target.value)}
-                placeholder="Enter realm name..."
-                autoFocus
-              />
-            </div>
-            <div className="modal-actions">
-              <button
-                className="btn btn-secondary"
-                onClick={() => setShowCreateModal(false)}
-                disabled={creating}
-              >
-                Cancel
-              </button>
-              <button
-                className="btn btn-primary"
-                onClick={handleCreateRealm}
-                disabled={creating || !newRealmName.trim()}
-              >
-                {creating ? 'Creating...' : 'Create'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CreateRealmModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onSuccess={loadRealms}
+      />
     </Layout>
   );
 }
