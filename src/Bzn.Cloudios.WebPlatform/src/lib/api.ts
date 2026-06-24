@@ -1,6 +1,6 @@
 import type { AdminContainerListResponse, ContainerActionResponse, ContainerDetailResponse, ContainerLogsResponse } from '../types/container';
 import type { AdminManagedAppListResponse, ManagedAppActionResponse } from '../types/managedApp';
-import type { RealmListResponse as RealmListResponseTyped, RealmStatsResponse } from '../types/realm';
+import type { RealmListResponse as RealmListResponseTyped, RealmStatsResponse, RealmDetail } from '../types/realm';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -137,6 +137,14 @@ class ApiClient {
 
   async getRealmStats(id: string): Promise<RealmStatsResponse> {
     return this.get<RealmStatsResponse>(`/realms/${id}/stats`);
+  }
+
+  async getRealmDetail(id: string): Promise<RealmDetail> {
+    return this.get<RealmDetail>(`/realms/${id}`);
+  }
+
+  async updateRealm(id: string, data: { name?: string; isActive?: boolean; quotas?: Record<string, number> }): Promise<void> {
+    return this.put<void>(`/realms/${id}`, data);
   }
 
   async restartManagedApp(id: string): Promise<ManagedAppActionResponse> {

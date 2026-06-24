@@ -66,3 +66,42 @@ export interface RealmUsage {
   ramBytesUsed: number;
   cpuCoresUsed: number;
 }
+
+export interface RealmResource {
+  id: string;
+  name: string;
+  type: 'container' | 'database';
+  status: string;
+  costBRL: number;
+}
+
+export interface RealmUser {
+  id: string;
+  email: string;
+  role: string;
+  status: string;
+  createdAt: string;
+}
+
+export interface BillingHistoryItem {
+  month: string;
+  costBRL: number;
+}
+
+export interface RealmDetail {
+  id: string;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  createdAt: string;
+  stats: {
+    totalUsers: number;
+    activeContainers: number;
+    activeDatabases: number;
+    monthCost: number;
+  };
+  resources: RealmResource[];
+  users: RealmUser[];
+  billingHistory: BillingHistoryItem[];
+  quotas: RealmQuotas;
+}
