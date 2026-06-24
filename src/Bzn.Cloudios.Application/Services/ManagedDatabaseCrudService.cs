@@ -157,8 +157,15 @@ public sealed class ManagedDatabaseCrudService
 
         // Realm quota: cap the number of databases the realm may hold.
         var realmCount = await _db.ManagedDatabaseInstances.CountAsync(d => d.RealmId == realmId, ct);
-        if (realmCount >= MaxDatabasesPerRealm)
+        if (realm.MaxDatabases.HasValue)
+        {
+            if (realmCount >= realm.MaxDatabases.Value)
+                return (null, $"Realm has reached the maximum limit of {realm.MaxDatabases.Value} managed databases", StatusCodes.Status403Forbidden);
+        }
+        else if (realmCount >= MaxDatabasesPerRealm)
+        {
             return (null, $"Realm has reached the limit of {MaxDatabasesPerRealm} managed databases", StatusCodes.Status403Forbidden);
+        }
 
         if (await _db.ManagedDatabaseInstances.AnyAsync(d => d.RealmId == realmId && d.Name == request.Name, ct))
             return (null, "A managed database with this name already exists in this realm", StatusCodes.Status409Conflict);

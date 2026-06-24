@@ -60,6 +60,15 @@ public sealed class ManagedAppService : IManagedAppService
         if (!realm.IsActive)
             throw new InvalidOperationException("Realm is not allowed to provision resources");
 
+        if (realm.MaxManagedApps.HasValue)
+        {
+            var currentCount = await _context.ManagedAppInstances
+                .ForRealm(realmId)
+                .CountAsync(ct);
+            if (currentCount >= realm.MaxManagedApps.Value)
+                throw new InvalidOperationException($"Realm has reached the maximum limit of {realm.MaxManagedApps.Value} managed apps");
+        }
+
         // Check for duplicate name in the same realm
         var existing = await _context.ManagedAppInstances
             .ForRealm(realmId)
