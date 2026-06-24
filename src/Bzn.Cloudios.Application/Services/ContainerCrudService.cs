@@ -156,6 +156,20 @@ public sealed class ContainerCrudService
         if (await _context.Containers.ForRealm(realmId).AnyAsync(c => c.Name == request.Name, ct))
             return (null, "Container name already exists in this realm");
 
+        var realm = await _context.Realms.FirstOrDefaultAsync(r => r.Id == realmId, ct);
+        if (realm is null)
+            return (null, "Realm not found");
+
+        if (!realm.IsActive)
+            return (null, "Realm is not allowed to provision resources");
+
+        if (realm.MaxContainers.HasValue)
+        {
+            var currentCount = await _context.Containers.ForRealm(realmId).CountAsync(ct);
+            if (currentCount >= realm.MaxContainers.Value)
+                return (null, $"Realm has reached the maximum limit of {realm.MaxContainers.Value} containers");
+        }
+
         var container = new Container
         {
             Id = Guid.NewGuid(),

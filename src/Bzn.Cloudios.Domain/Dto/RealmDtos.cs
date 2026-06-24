@@ -46,3 +46,57 @@ public sealed class UpdateRealmRequest
     public string Name { get; set; } = string.Empty;
     public bool IsActive { get; set; }
 }
+
+public sealed class SuspendRealmResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+    public int ContainersStopped { get; set; }
+    public int BillingPeriodsClosed { get; set; }
+}
+
+public sealed class ReactivateRealmResponse
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public bool IsActive { get; set; }
+}
+
+public sealed class UpdateQuotasRequest
+{
+    public int? MaxContainers { get; init; }
+    public int? MaxDatabases { get; init; }
+    public int? MaxManagedApps { get; init; }
+    public long? MaxRamBytes { get; init; }
+    public double? MaxCpuCores { get; init; }
+}
+
+public sealed class RealmQuotas
+{
+    public int? MaxContainers { get; set; }
+    public int? MaxDatabases { get; set; }
+    public int? MaxManagedApps { get; set; }
+    public long? MaxRamBytes { get; set; }
+    public double? MaxCpuCores { get; set; }
+}
+
+public sealed class RealmUsage
+{
+    public int ContainersCount { get; set; }
+    public int DatabasesCount { get; set; }
+    public int ManagedAppsCount { get; set; }
+    public long RamBytesUsed { get; set; }
+    public double CpuCoresUsed { get; set; }
+}
+
+public sealed class RealmStatsResponse
+{
+    public int UsersCount { get; set; }
+    public int ContainersCount { get; set; }
+    public int DatabasesCount { get; set; }
+    public int ManagedAppsCount { get; set; }
+    public decimal MonthlyCostBRL { get; set; }
+    public RealmQuotas Quotas { get; set; } = new();
+    public RealmUsage Usage { get; set; } = new();
+}

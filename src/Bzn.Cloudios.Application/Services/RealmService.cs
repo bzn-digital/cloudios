@@ -4,6 +4,7 @@ using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using IContainerService = Bzn.Cloudios.Application.Abstractions.IContainerService;
 
 namespace Bzn.Cloudios.Application.Services;
 
@@ -12,12 +13,21 @@ public sealed class RealmService
     private readonly CloudiosDbContext _context;
     private readonly ILogger<RealmService> _logger;
     private readonly IDockerNetworkService _dockerNetworkService;
+    private readonly IContainerService _containerService;
+    private readonly IBillingService _billingService;
 
-    public RealmService(CloudiosDbContext context, ILogger<RealmService> logger, IDockerNetworkService dockerNetworkService)
+    public RealmService(
+        CloudiosDbContext context,
+        ILogger<RealmService> logger,
+        IDockerNetworkService dockerNetworkService,
+        IContainerService containerService,
+        IBillingService billingService)
     {
         _context = context;
         _logger = logger;
         _dockerNetworkService = dockerNetworkService;
+        _containerService = containerService;
+        _billingService = billingService;
     }
 
     public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default)
@@ -145,5 +155,200 @@ public sealed class RealmService
 
         _logger.LogInformation("Realm {Id} deleted", id);
         return (true, null);
+    }
+
+    public async Task<(SuspendRealmResponse? Response, string? Error)> SuspendAsync(Guid id, CancellationToken ct = default)
+    {
+        var realm = await _context.Realms
+            .Include(r => r.Containers)
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
+
+        if (realm is null)
+            return (null, "Realm not found");
+
+        if (!realm.IsActive)
+            return (null, "Realm is already suspended");
+
+        realm.IsActive = false;
+
+        var containersStopped = 0;
+        foreach (var container in realm.Containers)
+        {
+            if (container.DockerContainerId is not null)
+            {
+                try
+                {
+                    await _containerService.StopAsync(container.Id, ct);
+                    containersStopped++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to stop container {ContainerId} during realm suspension", container.Id);
+                }
+            }
+        }
+
+        var billingPeriodsClosed = await CloseOpenBillingPeriodsAsync(id, ct);
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Realm {Name} suspended. Containers stopped: {Count}, Billing periods closed: {BillingCount}",
+            realm.Name, containersStopped, billingPeriodsClosed);
+
+        return (new SuspendRealmResponse
+        {
+            Id = realm.Id,
+            Name = realm.Name,
+            IsActive = realm.IsActive,
+            ContainersStopped = containersStopped,
+            BillingPeriodsClosed = billingPeriodsClosed
+        }, null);
+    }
+
+    public async Task<(ReactivateRealmResponse? Response, string? Error)> ReactivateAsync(Guid id, CancellationToken ct = default)
+    {
+        var realm = await _context.Realms.FirstOrDefaultAsync(r => r.Id == id, ct);
+
+        if (realm is null)
+            return (null, "Realm not found");
+
+        if (realm.IsActive)
+            return (null, "Realm is already active");
+
+        realm.IsActive = true;
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Realm {Name} reactivated", realm.Name);
+
+        return (new ReactivateRealmResponse
+        {
+            Id = realm.Id,
+            Name = realm.Name,
+            IsActive = realm.IsActive
+        }, null);
+    }
+
+    public async Task<(RealmDetailResponse? Realm, string? Error)> UpdateQuotasAsync(Guid id, UpdateQuotasRequest request, CancellationToken ct = default)
+    {
+        var realm = await _context.Realms.FindAsync([id], ct);
+        if (realm is null) return (null, "Realm not found");
+
+        if (request.MaxContainers.HasValue)
+            realm.MaxContainers = request.MaxContainers.Value;
+        if (request.MaxDatabases.HasValue)
+            realm.MaxDatabases = request.MaxDatabases.Value;
+        if (request.MaxManagedApps.HasValue)
+            realm.MaxManagedApps = request.MaxManagedApps.Value;
+        if (request.MaxRamBytes.HasValue)
+            realm.MaxRamBytes = request.MaxRamBytes.Value;
+        if (request.MaxCpuCores.HasValue)
+            realm.MaxCpuCores = request.MaxCpuCores.Value;
+
+        await _context.SaveChangesAsync(ct);
+
+        _logger.LogInformation("Realm {Id} quotas updated", id);
+
+        return (new RealmDetailResponse
+        {
+            Id = realm.Id,
+            Name = realm.Name,
+            IsActive = realm.IsActive,
+            CreatedAt = realm.CreatedAt,
+            Users = []
+        }, null);
+    }
+
+    public async Task<RealmStatsResponse?> GetStatsAsync(Guid id, CancellationToken ct = default)
+    {
+        var realm = await _context.Realms
+            .Include(r => r.Users)
+            .Include(r => r.Containers)
+            .Include(r => r.ManagedDatabases)
+            .FirstOrDefaultAsync(r => r.Id == id, ct);
+
+        if (realm is null) return null;
+
+        var now = DateTime.UtcNow;
+        var currentMonthCost = await _billingService.GetRealmBillingAsync(id, now.Year, now.Month, ct);
+
+        var managedAppsCount = await _context.ManagedAppInstances
+            .Where(i => i.RealmId == id)
+            .CountAsync(ct);
+
+        var ramBytesUsed = realm.Containers.Sum(c => c.MemoryLimitBytes) +
+                          realm.ManagedDatabases.Sum(d => d.MemoryLimit);
+
+        var cpuCoresUsed = realm.Containers.Sum(c => c.CpuLimitCores) +
+                          realm.ManagedDatabases.Sum(d => d.CpuLimit);
+
+        return new RealmStatsResponse
+        {
+            UsersCount = realm.Users.Count,
+            ContainersCount = realm.Containers.Count,
+            DatabasesCount = realm.ManagedDatabases.Count,
+            ManagedAppsCount = managedAppsCount,
+            MonthlyCostBRL = currentMonthCost,
+            Quotas = new RealmQuotas
+            {
+                MaxContainers = realm.MaxContainers,
+                MaxDatabases = realm.MaxDatabases,
+                MaxManagedApps = realm.MaxManagedApps,
+                MaxRamBytes = realm.MaxRamBytes,
+                MaxCpuCores = realm.MaxCpuCores
+            },
+            Usage = new RealmUsage
+            {
+                ContainersCount = realm.Containers.Count,
+                DatabasesCount = realm.ManagedDatabases.Count,
+                ManagedAppsCount = managedAppsCount,
+                RamBytesUsed = ramBytesUsed,
+                CpuCoresUsed = cpuCoresUsed
+            }
+        };
+    }
+
+    private async Task<int> CloseOpenBillingPeriodsAsync(Guid realmId, CancellationToken ct)
+    {
+        var now = DateTime.UtcNow;
+
+        var containerIds = await _context.Containers
+            .Where(c => c.RealmId == realmId)
+            .Select(c => c.Id)
+            .ToListAsync(ct);
+
+        var databaseIds = await _context.ManagedDatabaseInstances
+            .Where(d => d.RealmId == realmId)
+            .Select(d => d.Id)
+            .ToListAsync(ct);
+
+        var closedCount = 0;
+
+        foreach (var containerId in containerIds)
+        {
+            var activePeriod = await _context.BillingPeriods
+                .Where(b => b.ContainerId == containerId && b.StoppedAtUtc == null)
+                .FirstOrDefaultAsync(ct);
+
+            if (activePeriod is not null)
+            {
+                await _billingService.RegisterStopAsync(containerId, now, ct);
+                closedCount++;
+            }
+        }
+
+        foreach (var databaseId in databaseIds)
+        {
+            var activePeriod = await _context.BillingPeriods
+                .Where(b => b.ManagedDatabaseId == databaseId && b.StoppedAtUtc == null)
+                .FirstOrDefaultAsync(ct);
+
+            if (activePeriod is not null)
+            {
+                await _billingService.RegisterDatabaseStopAsync(databaseId, now, ct);
+                closedCount++;
+            }
+        }
+
+        return closedCount;
     }
 }
