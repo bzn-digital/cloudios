@@ -43,7 +43,7 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
         maxContainers,
         maxDatabases,
         maxManagedApps,
-        maxRamBytes: Math.round(parseFloat(maxRamGB) * 1024 * 1024 * 1024),
+        maxRamBytes: Math.round((parseFloat(maxRamGB) || 0) * 1024 * 1024 * 1024),
         maxCpuCores,
       });
       onSuccess();
@@ -69,8 +69,9 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
         <form onSubmit={handleSubmit}>
           <div className="quota-section">
             <div className="form-group">
-              <label>Max Containers</label>
+              <label htmlFor="maxContainers">Max Containers</label>
               <input
+                id="maxContainers"
                 type="number"
                 min="0"
                 value={maxContainers}
@@ -90,8 +91,9 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
             </div>
 
             <div className="form-group">
-              <label>Max Databases</label>
+              <label htmlFor="maxDatabases">Max Databases</label>
               <input
+                id="maxDatabases"
                 type="number"
                 min="0"
                 value={maxDatabases}
@@ -111,8 +113,9 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
             </div>
 
             <div className="form-group">
-              <label>Max Managed Apps</label>
+              <label htmlFor="maxManagedApps">Max Managed Apps</label>
               <input
+                id="maxManagedApps"
                 type="number"
                 min="0"
                 value={maxManagedApps}
@@ -132,8 +135,9 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
             </div>
 
             <div className="form-group">
-              <label>Max RAM (GB)</label>
+              <label htmlFor="maxRamGB">Max RAM (GB)</label>
               <input
+                id="maxRamGB"
                 type="number"
                 min="0"
                 step="0.1"
@@ -154,8 +158,9 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
             </div>
 
             <div className="form-group">
-              <label>Max CPU Cores</label>
+              <label htmlFor="maxCpuCores">Max CPU Cores</label>
               <input
+                id="maxCpuCores"
                 type="number"
                 min="0"
                 step="0.5"

@@ -5,12 +5,13 @@ import { RealmQuotaEditor } from '../components/RealmQuotaEditor';
 import { SuspendConfirmDialog } from '../components/SuspendConfirmDialog';
 import { ReactivateConfirmDialog } from '../components/ReactivateConfirmDialog';
 import { apiClient } from '../lib/api';
-import type { RealmDetail } from '../types/realm';
+import type { RealmDetail, RealmStatsResponse } from '../types/realm';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function RealmDetail() {
   const { id } = useParams<{ id: string }>();
   const [realm, setRealm] = useState<RealmDetail | null>(null);
+  const [realmStats, setRealmStats] = useState<RealmStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'resources' | 'users' | 'billing' | 'settings'>('resources');
@@ -28,8 +29,12 @@ export function RealmDetail() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.getRealmDetail(id);
-      setRealm(data);
+      const [detailData, statsData] = await Promise.all([
+        apiClient.getRealmDetail(id),
+        apiClient.getRealmStats(id),
+      ]);
+      setRealm(detailData);
+      setRealmStats(statsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load realm details');
     } finally {
@@ -316,17 +321,11 @@ export function RealmDetail() {
         </div>
       </div>
 
-      {showQuotaEditor && realm && (
+      {showQuotaEditor && realm && realmStats && (
         <RealmQuotaEditor
           realmId={id!}
           quotas={realm.quotas}
-          usage={{
-            containersCount: realm.stats.activeContainers,
-            databasesCount: realm.stats.activeDatabases,
-            managedAppsCount: 0,
-            ramBytesUsed: 0,
-            cpuCoresUsed: 0,
-          }}
+          usage={realmStats.usage}
           isOpen={showQuotaEditor}
           onClose={() => setShowQuotaEditor(false)}
           onSuccess={loadRealmDetail}
