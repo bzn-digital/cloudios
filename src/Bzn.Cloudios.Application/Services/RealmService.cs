@@ -120,7 +120,10 @@ public sealed class RealmService
         if (await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
-        var slug = Regex.Replace(Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+        var slug = GenerateSlug(request.Name);
+
+        if (string.IsNullOrEmpty(slug))
+            return (null, "Realm name must contain at least one alphanumeric character");
 
         if (await _context.Realms.AnyAsync(r => r.Slug == slug, ct))
             return (null, "Realm slug already exists (name may produce duplicate slug)");
@@ -166,7 +169,10 @@ public sealed class RealmService
         
         if (originalName != request.Name)
         {
-            var newSlug = Regex.Replace(Regex.Replace(request.Name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+            var newSlug = GenerateSlug(request.Name);
+
+            if (string.IsNullOrEmpty(newSlug))
+                return (null, "Realm name must contain at least one alphanumeric character");
             
             if (await _context.Realms.AnyAsync(r => r.Slug == newSlug && r.Id != id, ct))
                 return (null, "Realm slug already exists (name may produce duplicate slug)");
@@ -416,5 +422,19 @@ public sealed class RealmService
         }
 
         return closedCount;
+    }
+
+    private static string GenerateSlug(string name)
+    {
+        // First attempt: generate slug from name
+        var slug = Regex.Replace(Regex.Replace(name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+
+        // Fallback: if slug is empty (non-Latin characters), use GUID-based slug
+        if (string.IsNullOrEmpty(slug))
+        {
+            slug = $"realm-{Guid.NewGuid():N}";
+        }
+
+        return slug;
     }
 }

@@ -41,7 +41,3 @@ export interface Realm {
   id: string;
   name: string;
 }
-
-export interface RealmListResponse {
-  items: Realm[];
-}
