@@ -18,6 +18,7 @@ public sealed class RealmItem
     public DateTime CreatedAt { get; set; }
     public int UserCount { get; set; }
     public int ContainerCount { get; set; }
+    public decimal MonthlyCostBRL { get; set; }
 }
 
 public sealed class RealmDetailResponse

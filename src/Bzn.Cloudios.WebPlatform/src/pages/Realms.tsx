@@ -156,9 +156,7 @@ export function Realms() {
                     <td>{realm.userCount}</td>
                     <td>{realm.containerCount}</td>
                     <td>
-                      {realm.monthlyCostBRL !== undefined 
-                        ? formatCurrency(realm.monthlyCostBRL)
-                        : 'N/A'}
+                      {formatCurrency(realm.monthlyCostBRL)}
                     </td>
                     <td>{new Date(realm.createdAt).toLocaleDateString()}</td>
                   </tr>

@@ -49,32 +49,41 @@ public sealed class RealmService
                 query = query.Where(r => !r.IsActive);
         }
 
-        query = sortBy?.ToLower() switch
-        {
-            "createdat" => query.OrderBy(r => r.CreatedAt),
-            "monthlycost" => query.OrderBy(r => r.Name), // Fallback to name for now, can be enhanced with actual cost
-            _ => query.OrderBy(r => r.Name)
-        };
-
         var total = await query.CountAsync(ct);
-        var items = await query
+        var realms = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new RealmItem
-            {
-                Id = r.Id,
-                Name = r.Name,
-                Slug = r.Slug,
-                IsActive = r.IsActive,
-                CreatedAt = r.CreatedAt,
-                UserCount = r.Users.Count,
-                ContainerCount = r.Containers.Count
-            })
             .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var items = new List<RealmItem>();
+
+        foreach (var realm in realms)
+        {
+            var monthlyCost = await _billingService.GetRealmBillingAsync(realm.Id, now.Year, now.Month, ct);
+            items.Add(new RealmItem
+            {
+                Id = realm.Id,
+                Name = realm.Name,
+                Slug = realm.Slug,
+                IsActive = realm.IsActive,
+                CreatedAt = realm.CreatedAt,
+                UserCount = realm.Users.Count,
+                ContainerCount = realm.Containers.Count,
+                MonthlyCostBRL = monthlyCost
+            });
+        }
+
+        var sortedItems = sortBy?.ToLower() switch
+        {
+            "createdat" => items.OrderBy(r => r.CreatedAt).ToList(),
+            "monthlycost" => items.OrderBy(r => r.MonthlyCostBRL).ToList(),
+            _ => items.OrderBy(r => r.Name).ToList()
+        };
 
         return new RealmListResponse
         {
-            Items = items,
+            Items = sortedItems,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,

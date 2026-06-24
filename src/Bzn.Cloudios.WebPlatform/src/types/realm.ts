@@ -14,7 +14,7 @@ export interface RealmItem {
   createdAt: string;
   userCount: number;
   containerCount: number;
-  monthlyCostBRL?: number;
+  monthlyCostBRL: number;
 }
 
 export interface RealmDetailResponse {
