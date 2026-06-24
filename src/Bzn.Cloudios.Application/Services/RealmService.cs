@@ -4,6 +4,7 @@ using Bzn.Cloudios.Domain.Entities;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using System.Text.RegularExpressions;
 using IContainerService = Bzn.Cloudios.Application.Abstractions.IContainerService;
 
 namespace Bzn.Cloudios.Application.Services;
@@ -33,32 +34,56 @@ public sealed class RealmService
         _managedAppService = managedAppService;
     }
 
-    public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default)
+    public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, string? status = null, string? sortBy = null, CancellationToken ct = default)
     {
         var query = _context.Realms.AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(r => r.Name.Contains(search));
+            query = query.Where(r => r.Name.Contains(search) || r.Slug.Contains(search));
+
+        if (!string.IsNullOrWhiteSpace(status))
+        {
+            if (status.ToLower() == "active")
+                query = query.Where(r => r.IsActive);
+            else if (status.ToLower() == "suspended")
+                query = query.Where(r => !r.IsActive);
+        }
 
         var total = await query.CountAsync(ct);
-        var items = await query
-            .OrderBy(r => r.Name)
+        var realms = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
-            .Select(r => new RealmItem
-            {
-                Id = r.Id,
-                Name = r.Name,
-                IsActive = r.IsActive,
-                CreatedAt = r.CreatedAt,
-                UserCount = r.Users.Count,
-                ContainerCount = r.Containers.Count
-            })
             .ToListAsync(ct);
+
+        var now = DateTime.UtcNow;
+        var items = new List<RealmItem>();
+
+        foreach (var realm in realms)
+        {
+            var monthlyCost = await _billingService.GetRealmBillingAsync(realm.Id, now.Year, now.Month, ct);
+            items.Add(new RealmItem
+            {
+                Id = realm.Id,
+                Name = realm.Name,
+                Slug = realm.Slug,
+                IsActive = realm.IsActive,
+                CreatedAt = realm.CreatedAt,
+                UserCount = realm.Users.Count,
+                ContainerCount = realm.Containers.Count,
+                MonthlyCostBRL = monthlyCost
+            });
+        }
+
+        var sortedItems = sortBy?.ToLower() switch
+        {
+            "createdat" => items.OrderBy(r => r.CreatedAt).ToList(),
+            "monthlycost" => items.OrderBy(r => r.MonthlyCostBRL).ToList(),
+            _ => items.OrderBy(r => r.Name).ToList()
+        };
 
         return new RealmListResponse
         {
-            Items = items,
+            Items = sortedItems,
             TotalCount = total,
             Page = page,
             PageSize = pageSize,
@@ -95,10 +120,19 @@ public sealed class RealmService
         if (await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
+        var slug = GenerateSlug(request.Name);
+
+        if (string.IsNullOrEmpty(slug))
+            return (null, "Realm name must contain at least one alphanumeric character");
+
+        if (await _context.Realms.AnyAsync(r => r.Slug == slug, ct))
+            return (null, "Realm slug already exists (name may produce duplicate slug)");
+
         var realm = new Realm
         {
             Id = Guid.NewGuid(),
             Name = request.Name,
+            Slug = slug,
             IsActive = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -126,10 +160,26 @@ public sealed class RealmService
         var realm = await _context.Realms.FindAsync([id], ct);
         if (realm is null) return (null, "Realm not found");
 
-        if (realm.Name != request.Name && await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
+        var originalName = realm.Name;
+        
+        if (originalName != request.Name && await _context.Realms.AnyAsync(r => r.Name == request.Name, ct))
             return (null, "Realm name already exists");
 
         realm.Name = request.Name;
+        
+        if (originalName != request.Name)
+        {
+            var newSlug = GenerateSlug(request.Name);
+
+            if (string.IsNullOrEmpty(newSlug))
+                return (null, "Realm name must contain at least one alphanumeric character");
+            
+            if (await _context.Realms.AnyAsync(r => r.Slug == newSlug && r.Id != id, ct))
+                return (null, "Realm slug already exists (name may produce duplicate slug)");
+            
+            realm.Slug = newSlug;
+        }
+        
         realm.IsActive = request.IsActive;
         await _context.SaveChangesAsync(ct);
 
@@ -372,5 +422,19 @@ public sealed class RealmService
         }
 
         return closedCount;
+    }
+
+    private static string GenerateSlug(string name)
+    {
+        // First attempt: generate slug from name
+        var slug = Regex.Replace(Regex.Replace(name.ToLower(), "[^a-z0-9-]", "-"), "-{2,}", "-").Trim('-');
+
+        // Fallback: if slug is empty (non-Latin characters), use GUID-based slug
+        if (string.IsNullOrEmpty(slug))
+        {
+            slug = $"realm-{Guid.NewGuid():N}";
+        }
+
+        return slug;
     }
 }
