@@ -358,10 +358,20 @@ public class RealmQuotaTests
         };
         db.Containers.Add(container);
 
+        var tier = new DatabaseTier
+        {
+            Id = Guid.NewGuid(),
+            Name = "test-tier",
+            CpuLimitCores = 0.5,
+            MemoryLimitBytes = 512 * 1024 * 1024
+        };
+        db.DatabaseTiers.Add(tier);
+
         var database = new ManagedDatabaseInstance
         {
             Id = Guid.NewGuid(),
             RealmId = realmId,
+            TierId = tier.Id,
             Name = "test-db",
             Type = Domain.Enums.ManagedDatabaseType.MySQL,
             Status = Domain.Enums.ManagedDatabaseStatus.Running,
