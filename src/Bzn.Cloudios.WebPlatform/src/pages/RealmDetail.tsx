@@ -1,19 +1,23 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
+import { RealmQuotaEditor } from '../components/RealmQuotaEditor';
+import { SuspendConfirmDialog } from '../components/SuspendConfirmDialog';
+import { ReactivateConfirmDialog } from '../components/ReactivateConfirmDialog';
 import { apiClient } from '../lib/api';
-import type { RealmDetail } from '../types/realm';
+import type { RealmDetail, RealmStatsResponse } from '../types/realm';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 export function RealmDetail() {
   const { id } = useParams<{ id: string }>();
   const [realm, setRealm] = useState<RealmDetail | null>(null);
+  const [realmStats, setRealmStats] = useState<RealmStatsResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'resources' | 'users' | 'billing' | 'settings'>('resources');
-  const [editingQuotas, setEditingQuotas] = useState(false);
-  const [quotas, setQuotas] = useState<Record<string, number>>({});
-  const [saving, setSaving] = useState(false);
+  const [showQuotaEditor, setShowQuotaEditor] = useState(false);
+  const [showSuspendDialog, setShowSuspendDialog] = useState(false);
+  const [showReactivateDialog, setShowReactivateDialog] = useState(false);
 
   useEffect(() => {
     loadRealmDetail();
@@ -25,15 +29,12 @@ export function RealmDetail() {
     try {
       setLoading(true);
       setError(null);
-      const data = await apiClient.getRealmDetail(id);
-      setRealm(data);
-      setQuotas({
-        maxContainers: data.quotas.maxContainers || 0,
-        maxDatabases: data.quotas.maxDatabases || 0,
-        maxManagedApps: data.quotas.maxManagedApps || 0,
-        maxRamBytes: data.quotas.maxRamBytes || 0,
-        maxCpuCores: data.quotas.maxCpuCores || 0,
-      });
+      const [detailData, statsData] = await Promise.all([
+        apiClient.getRealmDetail(id),
+        apiClient.getRealmStats(id),
+      ]);
+      setRealm(detailData);
+      setRealmStats(statsData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load realm details');
     } finally {
@@ -41,35 +42,12 @@ export function RealmDetail() {
     }
   };
 
-  const handleToggleStatus = async () => {
-    if (!realm || !id) return;
-    
-    try {
-      setSaving(true);
-      await apiClient.updateRealm(id, { isActive: !realm.isActive });
-      await loadRealmDetail();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update realm status');
-      alert(err instanceof Error ? err.message : 'Failed to update realm status');
-    } finally {
-      setSaving(false);
-    }
+  const handleSuspend = () => {
+    setShowSuspendDialog(true);
   };
 
-  const handleSaveQuotas = async () => {
-    if (!id) return;
-    
-    try {
-      setSaving(true);
-      await apiClient.updateRealm(id, { quotas });
-      setEditingQuotas(false);
-      await loadRealmDetail();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update quotas');
-      alert(err instanceof Error ? err.message : 'Failed to update quotas');
-    } finally {
-      setSaving(false);
-    }
+  const handleReactivate = () => {
+    setShowReactivateDialog(true);
   };
 
   const formatCurrency = (value: number) => {
@@ -287,87 +265,33 @@ export function RealmDetail() {
               <div className="settings-section">
                 <div className="settings-header">
                   <h3>Quotas</h3>
-                  {!editingQuotas ? (
-                    <button
-                      className="btn btn-sm btn-secondary"
-                      onClick={() => setEditingQuotas(true)}
-                    >
-                      Edit
-                    </button>
-                  ) : (
-                    <div className="settings-actions">
-                      <button
-                        className="btn btn-sm btn-secondary"
-                        onClick={() => {
-                          setEditingQuotas(false);
-                          setQuotas({
-                            maxContainers: realm.quotas.maxContainers || 0,
-                            maxDatabases: realm.quotas.maxDatabases || 0,
-                            maxManagedApps: realm.quotas.maxManagedApps || 0,
-                            maxRamBytes: realm.quotas.maxRamBytes || 0,
-                            maxCpuCores: realm.quotas.maxCpuCores || 0,
-                          });
-                        }}
-                        disabled={saving}
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        className="btn btn-sm btn-primary"
-                        onClick={handleSaveQuotas}
-                        disabled={saving}
-                      >
-                        {saving ? 'Saving...' : 'Save'}
-                      </button>
-                    </div>
-                  )}
+                  <button
+                    className="btn btn-sm btn-secondary"
+                    onClick={() => setShowQuotaEditor(true)}
+                  >
+                    Edit
+                  </button>
                 </div>
-                <div className="quota-form">
-                  <div className="form-group">
-                    <label>Max Containers</label>
-                    <input
-                      type="number"
-                      value={quotas.maxContainers ?? ''}
-                      onChange={(e) => setQuotas({ ...quotas, maxContainers: parseInt(e.target.value) || 0 })}
-                      disabled={!editingQuotas}
-                    />
+                <div className="quota-display">
+                  <div className="quota-item">
+                    <span>Max Containers:</span>
+                    <strong>{realm.quotas.maxContainers || 'Unlimited'}</strong>
                   </div>
-                  <div className="form-group">
-                    <label>Max Databases</label>
-                    <input
-                      type="number"
-                      value={quotas.maxDatabases ?? ''}
-                      onChange={(e) => setQuotas({ ...quotas, maxDatabases: parseInt(e.target.value) || 0 })}
-                      disabled={!editingQuotas}
-                    />
+                  <div className="quota-item">
+                    <span>Max Databases:</span>
+                    <strong>{realm.quotas.maxDatabases || 'Unlimited'}</strong>
                   </div>
-                  <div className="form-group">
-                    <label>Max Managed Apps</label>
-                    <input
-                      type="number"
-                      value={quotas.maxManagedApps ?? ''}
-                      onChange={(e) => setQuotas({ ...quotas, maxManagedApps: parseInt(e.target.value) || 0 })}
-                      disabled={!editingQuotas}
-                    />
+                  <div className="quota-item">
+                    <span>Max Managed Apps:</span>
+                    <strong>{realm.quotas.maxManagedApps || 'Unlimited'}</strong>
                   </div>
-                  <div className="form-group">
-                    <label>Max RAM (bytes)</label>
-                    <input
-                      type="number"
-                      value={quotas.maxRamBytes ?? ''}
-                      onChange={(e) => setQuotas({ ...quotas, maxRamBytes: parseInt(e.target.value) || 0 })}
-                      disabled={!editingQuotas}
-                    />
-                    <span className="field-hint">{formatBytes(quotas.maxRamBytes || 0)}</span>
+                  <div className="quota-item">
+                    <span>Max RAM:</span>
+                    <strong>{realm.quotas.maxRamBytes ? formatBytes(realm.quotas.maxRamBytes) : 'Unlimited'}</strong>
                   </div>
-                  <div className="form-group">
-                    <label>Max CPU Cores</label>
-                    <input
-                      type="number"
-                      value={quotas.maxCpuCores ?? ''}
-                      onChange={(e) => setQuotas({ ...quotas, maxCpuCores: parseInt(e.target.value) || 0 })}
-                      disabled={!editingQuotas}
-                    />
+                  <div className="quota-item">
+                    <span>Max CPU Cores:</span>
+                    <strong>{realm.quotas.maxCpuCores || 'Unlimited'}</strong>
                   </div>
                 </div>
               </div>
@@ -375,19 +299,58 @@ export function RealmDetail() {
               <div className="settings-section">
                 <h3>Realm Status</h3>
                 <div className="status-actions">
-                  <button
-                    className={`btn ${realm.isActive ? 'btn-danger' : 'btn-success'}`}
-                    onClick={handleToggleStatus}
-                    disabled={saving}
-                  >
-                    {saving ? 'Processing...' : realm.isActive ? 'Suspend Realm' : 'Reactivate Realm'}
-                  </button>
+                  {realm.isActive ? (
+                    <button
+                      className="btn btn-danger"
+                      onClick={handleSuspend}
+                    >
+                      Suspend Realm
+                    </button>
+                  ) : (
+                    <button
+                      className="btn btn-success"
+                      onClick={handleReactivate}
+                    >
+                      Reactivate Realm
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {showQuotaEditor && realm && realmStats && (
+        <RealmQuotaEditor
+          realmId={id!}
+          quotas={realm.quotas}
+          usage={realmStats.usage}
+          isOpen={showQuotaEditor}
+          onClose={() => setShowQuotaEditor(false)}
+          onSuccess={loadRealmDetail}
+        />
+      )}
+
+      {showSuspendDialog && realm && (
+        <SuspendConfirmDialog
+          isOpen={showSuspendDialog}
+          realmId={id!}
+          realmName={realm.name}
+          onClose={() => setShowSuspendDialog(false)}
+          onSuccess={loadRealmDetail}
+        />
+      )}
+
+      {showReactivateDialog && realm && (
+        <ReactivateConfirmDialog
+          isOpen={showReactivateDialog}
+          realmId={id!}
+          realmName={realm.name}
+          onClose={() => setShowReactivateDialog(false)}
+          onSuccess={loadRealmDetail}
+        />
+      )}
     </Layout>
   );
 }

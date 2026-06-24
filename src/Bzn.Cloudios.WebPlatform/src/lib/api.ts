@@ -147,6 +147,22 @@ class ApiClient {
     return this.put<void>(`/realms/${id}`, data);
   }
 
+  async createRealm(data: { name: string; slug: string; ownerEmail: string; ownerPassword: string }): Promise<void> {
+    return this.post<void>('/realms', data);
+  }
+
+  async updateQuotas(id: string, data: { maxContainers?: number; maxDatabases?: number; maxManagedApps?: number; maxRamBytes?: number; maxCpuCores?: number }): Promise<void> {
+    return this.put<void>(`/realms/${id}/quotas`, data);
+  }
+
+  async suspendRealm(id: string): Promise<void> {
+    return this.post<void>(`/realms/${id}/suspend`);
+  }
+
+  async reactivateRealm(id: string): Promise<void> {
+    return this.post<void>(`/realms/${id}/reactivate`);
+  }
+
   async restartManagedApp(id: string): Promise<ManagedAppActionResponse> {
     return this.post<ManagedAppActionResponse>(`/managed-apps/${id}/restart`);
   }
