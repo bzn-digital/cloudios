@@ -11,6 +11,7 @@ public sealed class Realm
     public List<User> Users { get; set; } = [];
     public List<Container> Containers { get; set; } = [];
     public List<ManagedDatabaseInstance> ManagedDatabases { get; set; } = [];
+    public List<ManagedAppInstance> ManagedApps { get; set; } = [];
 
     public int? MaxContainers { get; set; }
     public int? MaxDatabases { get; set; }

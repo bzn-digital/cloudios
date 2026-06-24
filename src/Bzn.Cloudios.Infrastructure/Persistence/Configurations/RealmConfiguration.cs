@@ -55,5 +55,15 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .WithOne(c => c.Realm)
             .HasForeignKey(c => c.RealmId)
             .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(r => r.ManagedDatabases)
+            .WithOne(d => d.Realm)
+            .HasForeignKey(d => d.RealmId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(r => r.ManagedApps)
+            .WithOne(a => a.Realm)
+            .HasForeignKey(a => a.RealmId)
+            .OnDelete(DeleteBehavior.Cascade);
     }
 }

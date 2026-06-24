@@ -15,19 +15,22 @@ public sealed class RealmService
     private readonly IDockerNetworkService _dockerNetworkService;
     private readonly IContainerService _containerService;
     private readonly IBillingService _billingService;
+    private readonly IManagedAppService _managedAppService;
 
     public RealmService(
         CloudiosDbContext context,
         ILogger<RealmService> logger,
         IDockerNetworkService dockerNetworkService,
         IContainerService containerService,
-        IBillingService billingService)
+        IBillingService billingService,
+        IManagedAppService managedAppService)
     {
         _context = context;
         _logger = logger;
         _dockerNetworkService = dockerNetworkService;
         _containerService = containerService;
         _billingService = billingService;
+        _managedAppService = managedAppService;
     }
 
     public async Task<RealmListResponse> ListAsync(int page = 1, int pageSize = 20, string? search = null, CancellationToken ct = default)
@@ -161,6 +164,8 @@ public sealed class RealmService
     {
         var realm = await _context.Realms
             .Include(r => r.Containers)
+            .Include(r => r.ManagedDatabases)
+            .Include(r => r.ManagedApps)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
 
         if (realm is null)
@@ -188,12 +193,29 @@ public sealed class RealmService
             }
         }
 
+        var managedAppsStopped = 0;
+        foreach (var app in realm.ManagedApps)
+        {
+            if (app.DockerContainerId is not null)
+            {
+                try
+                {
+                    await _managedAppService.StopInstanceAsync(realm.Id, app.Id, ct);
+                    managedAppsStopped++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to stop managed app {AppId} during realm suspension", app.Id);
+                }
+            }
+        }
+
         var billingPeriodsClosed = await CloseOpenBillingPeriodsAsync(id, ct);
 
         await _context.SaveChangesAsync(ct);
 
-        _logger.LogInformation("Realm {Name} suspended. Containers stopped: {Count}, Billing periods closed: {BillingCount}",
-            realm.Name, containersStopped, billingPeriodsClosed);
+        _logger.LogInformation("Realm {Name} suspended. Containers stopped: {Count}, Managed apps stopped: {AppsCount}, Billing periods closed: {BillingCount}",
+            realm.Name, containersStopped, managedAppsStopped, billingPeriodsClosed);
 
         return (new SuspendRealmResponse
         {

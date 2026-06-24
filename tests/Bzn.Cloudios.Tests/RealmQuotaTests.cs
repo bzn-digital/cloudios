@@ -186,8 +186,9 @@ public class RealmQuotaTests
         var dockerNetworkService = new Mock<IDockerNetworkService>();
         var containerService = new Mock<IContainerService>();
         var billingService = new Mock<IBillingService>();
+        var managedAppService = new Mock<IManagedAppService>();
 
-        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object);
+        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object, managedAppService.Object);
 
         var (response, error) = await service.SuspendAsync(realmId);
 
@@ -219,8 +220,9 @@ public class RealmQuotaTests
         var dockerNetworkService = new Mock<IDockerNetworkService>();
         var containerService = new Mock<IContainerService>();
         var billingService = new Mock<IBillingService>();
+        var managedAppService = new Mock<IManagedAppService>();
 
-        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object);
+        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object, managedAppService.Object);
 
         var (response, error) = await service.SuspendAsync(realmId);
 
@@ -251,8 +253,9 @@ public class RealmQuotaTests
         var dockerNetworkService = new Mock<IDockerNetworkService>();
         var containerService = new Mock<IContainerService>();
         var billingService = new Mock<IBillingService>();
+        var managedAppService = new Mock<IManagedAppService>();
 
-        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object);
+        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object, managedAppService.Object);
 
         var (response, error) = await service.ReactivateAsync(realmId);
 
@@ -284,8 +287,9 @@ public class RealmQuotaTests
         var dockerNetworkService = new Mock<IDockerNetworkService>();
         var containerService = new Mock<IContainerService>();
         var billingService = new Mock<IBillingService>();
+        var managedAppService = new Mock<IManagedAppService>();
 
-        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object);
+        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object, managedAppService.Object);
 
         var request = new UpdateQuotasRequest
         {
@@ -373,10 +377,11 @@ public class RealmQuotaTests
         var dockerNetworkService = new Mock<IDockerNetworkService>();
         var containerService = new Mock<IContainerService>();
         var billingService = new Mock<IBillingService>();
+        var managedAppService = new Mock<IManagedAppService>();
         billingService.Setup(b => b.GetRealmBillingAsync(realmId, It.IsAny<int>(), It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(100.0m);
 
-        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object);
+        var service = new RealmService(db, logger.Object, dockerNetworkService.Object, containerService.Object, billingService.Object, managedAppService.Object);
 
         var stats = await service.GetStatsAsync(realmId);
 
