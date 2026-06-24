@@ -29,6 +29,21 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .IsRequired()
             .HasColumnType("TEXT");
 
+        builder.Property(r => r.MaxContainers)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxDatabases)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxManagedApps)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxRamBytes)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxCpuCores)
+            .HasColumnType("REAL");
+
         builder.HasIndex(r => r.Name).IsUnique();
 
         builder.HasMany(r => r.Users)
