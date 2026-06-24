@@ -327,7 +327,7 @@ export function RealmDetail() {
                     <label>Max Containers</label>
                     <input
                       type="number"
-                      value={quotas.maxContainers || ''}
+                      value={quotas.maxContainers ?? ''}
                       onChange={(e) => setQuotas({ ...quotas, maxContainers: parseInt(e.target.value) || 0 })}
                       disabled={!editingQuotas}
                     />
@@ -336,7 +336,7 @@ export function RealmDetail() {
                     <label>Max Databases</label>
                     <input
                       type="number"
-                      value={quotas.maxDatabases || ''}
+                      value={quotas.maxDatabases ?? ''}
                       onChange={(e) => setQuotas({ ...quotas, maxDatabases: parseInt(e.target.value) || 0 })}
                       disabled={!editingQuotas}
                     />
@@ -345,7 +345,7 @@ export function RealmDetail() {
                     <label>Max Managed Apps</label>
                     <input
                       type="number"
-                      value={quotas.maxManagedApps || ''}
+                      value={quotas.maxManagedApps ?? ''}
                       onChange={(e) => setQuotas({ ...quotas, maxManagedApps: parseInt(e.target.value) || 0 })}
                       disabled={!editingQuotas}
                     />
@@ -354,7 +354,7 @@ export function RealmDetail() {
                     <label>Max RAM (bytes)</label>
                     <input
                       type="number"
-                      value={quotas.maxRamBytes || ''}
+                      value={quotas.maxRamBytes ?? ''}
                       onChange={(e) => setQuotas({ ...quotas, maxRamBytes: parseInt(e.target.value) || 0 })}
                       disabled={!editingQuotas}
                     />
@@ -364,7 +364,7 @@ export function RealmDetail() {
                     <label>Max CPU Cores</label>
                     <input
                       type="number"
-                      value={quotas.maxCpuCores || ''}
+                      value={quotas.maxCpuCores ?? ''}
                       onChange={(e) => setQuotas({ ...quotas, maxCpuCores: parseInt(e.target.value) || 0 })}
                       disabled={!editingQuotas}
                     />
