@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Layout } from '../components/Layout';
 import { apiClient } from '../lib/api';
 import type { RealmItem } from '../types/realm';
@@ -143,8 +144,12 @@ export function Realms() {
                 </tr>
               ) : (
                 realms.map((realm) => (
-                  <tr key={realm.id}>
-                    <td>{realm.name}</td>
+                  <tr key={realm.id} className="clickable-row">
+                    <td>
+                      <Link to={`/realms/${realm.id}`} className="row-link">
+                        {realm.name}
+                      </Link>
+                    </td>
                     <td>
                       <code className="slug-badge">{realm.slug}</code>
                     </td>
