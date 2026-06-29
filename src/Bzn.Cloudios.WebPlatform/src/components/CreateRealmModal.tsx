@@ -93,11 +93,18 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
 
     try {
       setCreating(true);
-      await apiClient.createRealm({
+      // Create realm first
+      const realm = await apiClient.createRealm({
         name: name.trim(),
         slug: slug.trim(),
         ownerEmail: ownerEmail.trim(),
         ownerPassword: ownerPassword,
+      });
+      // Then create owner user
+      await apiClient.createUser(realm.id, {
+        email: ownerEmail.trim(),
+        password: ownerPassword,
+        role: 'RealmOwner',
       });
       onSuccess();
       handleClose();

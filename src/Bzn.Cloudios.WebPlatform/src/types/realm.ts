@@ -79,7 +79,7 @@ export interface RealmUser {
   id: string;
   email: string;
   role: string;
-  status: string;
+  isBlocked: boolean;
   createdAt: string;
 }
 
@@ -94,14 +94,9 @@ export interface RealmDetail {
   slug: string;
   isActive: boolean;
   createdAt: string;
-  stats: {
-    totalUsers: number;
-    activeContainers: number;
-    activeDatabases: number;
-    monthCost: number;
-  };
-  resources: RealmResource[];
-  users: RealmUser[];
-  billingHistory: BillingHistoryItem[];
-  quotas: RealmQuotas;
+  ownerEmail?: string;
+  resources?: RealmResource[];
+  users?: RealmUser[];
+  billingHistory?: BillingHistoryItem[];
+  quotas?: RealmQuotas;
 }

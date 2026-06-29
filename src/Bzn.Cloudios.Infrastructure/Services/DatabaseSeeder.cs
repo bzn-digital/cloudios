@@ -68,12 +68,32 @@ public sealed class DatabaseSeeder
             adminUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword);
             adminUser.Role = UserRole.PlatformAdmin;
             adminUser.IsBlocked = false;
+            // Fix invalid CreatedAt (default DateTime value)
+            if (adminUser.CreatedAt.Year < 2000)
+            {
+                adminUser.CreatedAt = DateTime.UtcNow;
+            }
             _context.Users.Update(adminUser);
         }
 
         await _context.SaveChangesAsync(ct);
 
         _logger.LogInformation("Seeding complete: admin user ensured");
+
+        // Fix all users with invalid CreatedAt (default DateTime value)
+        var usersWithInvalidDate = await _context.Users
+            .Where(u => u.CreatedAt.Year < 2000)
+            .ToListAsync(ct);
+
+        if (usersWithInvalidDate.Count > 0)
+        {
+            _logger.LogInformation("Fixing {Count} users with invalid CreatedAt", usersWithInvalidDate.Count);
+            foreach (var user in usersWithInvalidDate)
+            {
+                user.CreatedAt = DateTime.UtcNow;
+            }
+            await _context.SaveChangesAsync(ct);
+        }
 
         await SeedManagedAppTemplatesAsync(ct);
     }

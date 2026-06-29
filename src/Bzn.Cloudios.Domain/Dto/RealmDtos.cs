@@ -25,8 +25,10 @@ public sealed class RealmDetailResponse
 {
     public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
+    public string Slug { get; set; } = string.Empty;
     public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
+    public string? OwnerEmail { get; set; }
     public List<RealmUserItem> Users { get; set; } = [];
 }
 
@@ -36,6 +38,7 @@ public sealed class RealmUserItem
     public string Email { get; set; } = string.Empty;
     public string Role { get; set; } = string.Empty;
     public bool IsBlocked { get; set; }
+    public DateTime CreatedAt { get; set; }
 }
 
 public sealed class CreateRealmRequest

@@ -78,7 +78,7 @@ export function Realms() {
               setSearchFilter(e.target.value);
               setPage(1);
             }}
-            className="search-filter"
+            className="search-input"
           />
           <select
             value={statusFilter}
@@ -86,7 +86,7 @@ export function Realms() {
               setStatusFilter(e.target.value);
               setPage(1);
             }}
-            className="status-filter"
+            className="filter-select"
           >
             <option value="">All Status</option>
             <option value="active">Active</option>
@@ -95,7 +95,7 @@ export function Realms() {
           <select
             value={sortBy}
             onChange={(e) => setSortBy(e.target.value)}
-            className="sort-filter"
+            className="filter-select"
           >
             <option value="name">Sort by Name</option>
             <option value="createdAt">Sort by Created Date</option>

@@ -25,7 +25,7 @@ export function RealmDetail() {
 
   const loadRealmDetail = async () => {
     if (!id) return;
-    
+
     try {
       setLoading(true);
       setError(null);
@@ -39,6 +39,17 @@ export function RealmDetail() {
       setError(err instanceof Error ? err.message : 'Failed to load realm details');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadRealmStats = async () => {
+    if (!id) return;
+
+    try {
+      const statsData = await apiClient.getRealmStats(id);
+      setRealmStats(statsData);
+    } catch (err) {
+      console.error('Failed to load realm stats:', err);
     }
   };
 
@@ -63,6 +74,17 @@ export function RealmDetail() {
     const sizes = ['B', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${Math.round((bytes / Math.pow(k, i)) * 100) / 100} ${sizes[i]}`;
+  };
+
+  const formatDate = (dateInput: string | Date) => {
+    try {
+      const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      // Check for invalid dates or default DateTime (0001-01-01)
+      if (isNaN(date.getTime()) || date.getFullYear() < 2000) return 'N/A';
+      return date.toLocaleDateString('pt-BR');
+    } catch {
+      return 'N/A';
+    }
   };
 
   if (loading) {
@@ -104,6 +126,11 @@ export function RealmDetail() {
               <span className="created-date">
                 Created: {new Date(realm.createdAt).toLocaleDateString()}
               </span>
+              {realm.ownerEmail && (
+                <span className="owner-email">
+                  Owner: {realm.ownerEmail}
+                </span>
+              )}
             </div>
           </div>
           <Link to="/realms" className="btn btn-secondary">
@@ -114,19 +141,19 @@ export function RealmDetail() {
         <div className="stats-cards">
           <div className="stat-card">
             <h3>Total Users</h3>
-            <p className="stat-value">{realm.stats.totalUsers}</p>
+            <p className="stat-value">{realmStats?.usersCount || 0}</p>
           </div>
           <div className="stat-card">
             <h3>Active Containers</h3>
-            <p className="stat-value">{realm.stats.activeContainers}</p>
+            <p className="stat-value">{realmStats?.containersCount || 0}</p>
           </div>
           <div className="stat-card">
             <h3>Active Databases</h3>
-            <p className="stat-value">{realm.stats.activeDatabases}</p>
+            <p className="stat-value">{realmStats?.databasesCount || 0}</p>
           </div>
           <div className="stat-card">
             <h3>Month Cost</h3>
-            <p className="stat-value">{formatCurrency(realm.stats.monthCost)}</p>
+            <p className="stat-value">{formatCurrency(realmStats?.monthlyCostBRL || 0)}</p>
           </div>
         </div>
 
@@ -172,7 +199,7 @@ export function RealmDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {realm.resources.length === 0 ? (
+                    {(!realm.resources || realm.resources.length === 0) ? (
                       <tr>
                         <td colSpan={4}>
                           <p className="empty-state">No resources found.</p>
@@ -216,7 +243,7 @@ export function RealmDetail() {
                     </tr>
                   </thead>
                   <tbody>
-                    {realm.users.length === 0 ? (
+                    {(!realm.users || realm.users.length === 0) ? (
                       <tr>
                         <td colSpan={4}>
                           <p className="empty-state">No users found.</p>
@@ -228,11 +255,11 @@ export function RealmDetail() {
                           <td>{user.email}</td>
                           <td>{user.role}</td>
                           <td>
-                            <span className={`status-badge status-${user.status.toLowerCase()}`}>
-                              {user.status}
+                            <span className={`status-badge status-${user.isBlocked ? 'suspended' : 'active'}`}>
+                              {user.isBlocked ? 'Blocked' : 'Active'}
                             </span>
                           </td>
-                          <td>{new Date(user.createdAt).toLocaleDateString()}</td>
+                          <td>{formatDate(user.createdAt)}</td>
                         </tr>
                       ))
                     )}
@@ -247,7 +274,7 @@ export function RealmDetail() {
               <h2>Billing History (Last 6 Months)</h2>
               <div className="billing-chart">
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={realm.billingHistory}>
+                  <BarChart data={realm.billingHistory || []}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis dataKey="month" />
                     <YAxis />
@@ -275,23 +302,23 @@ export function RealmDetail() {
                 <div className="quota-display">
                   <div className="quota-item">
                     <span>Max Containers:</span>
-                    <strong>{realm.quotas.maxContainers || 'Unlimited'}</strong>
+                    <strong>{realmStats?.quotas?.maxContainers ?? 'Unlimited'}</strong>
                   </div>
                   <div className="quota-item">
                     <span>Max Databases:</span>
-                    <strong>{realm.quotas.maxDatabases || 'Unlimited'}</strong>
+                    <strong>{realmStats?.quotas?.maxDatabases ?? 'Unlimited'}</strong>
                   </div>
                   <div className="quota-item">
                     <span>Max Managed Apps:</span>
-                    <strong>{realm.quotas.maxManagedApps || 'Unlimited'}</strong>
+                    <strong>{realmStats?.quotas?.maxManagedApps ?? 'Unlimited'}</strong>
                   </div>
                   <div className="quota-item">
                     <span>Max RAM:</span>
-                    <strong>{realm.quotas.maxRamBytes ? formatBytes(realm.quotas.maxRamBytes) : 'Unlimited'}</strong>
+                    <strong>{realmStats?.quotas?.maxRamBytes ? formatBytes(realmStats.quotas.maxRamBytes) : 'Unlimited'}</strong>
                   </div>
                   <div className="quota-item">
                     <span>Max CPU Cores:</span>
-                    <strong>{realm.quotas.maxCpuCores || 'Unlimited'}</strong>
+                    <strong>{realmStats?.quotas?.maxCpuCores ?? 'Unlimited'}</strong>
                   </div>
                 </div>
               </div>
@@ -321,14 +348,14 @@ export function RealmDetail() {
         </div>
       </div>
 
-      {showQuotaEditor && realm && realmStats && (
+      {showQuotaEditor && realmStats && (
         <RealmQuotaEditor
           realmId={id!}
-          quotas={realm.quotas}
+          quotas={realmStats.quotas}
           usage={realmStats.usage}
           isOpen={showQuotaEditor}
           onClose={() => setShowQuotaEditor(false)}
-          onSuccess={loadRealmDetail}
+          onSuccess={loadRealmStats}
         />
       )}
 

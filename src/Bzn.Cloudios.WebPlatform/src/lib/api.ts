@@ -147,8 +147,12 @@ class ApiClient {
     return this.put<void>(`/realms/${id}`, data);
   }
 
-  async createRealm(data: { name: string; slug: string; ownerEmail: string; ownerPassword: string }): Promise<void> {
-    return this.post<void>('/realms', data);
+  async createRealm(data: { name: string; slug: string; ownerEmail: string; ownerPassword: string }): Promise<{ id: string; slug: string }> {
+    return this.post<{ id: string; slug: string }>('/realms', { name: data.name });
+  }
+
+  async createUser(realmId: string, data: { email: string; password: string; role: string }): Promise<void> {
+    return this.post<void>(`/realms/${realmId}/users`, data);
   }
 
   async updateQuotas(id: string, data: { maxContainers?: number; maxDatabases?: number; maxManagedApps?: number; maxRamBytes?: number; maxCpuCores?: number }): Promise<void> {

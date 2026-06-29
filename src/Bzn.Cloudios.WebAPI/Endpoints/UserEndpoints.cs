@@ -20,7 +20,7 @@ public static class UserEndpoints
             var (user, error) = await service.CreateAsync(realmId, request, ct);
             if (error is not null) return Results.Conflict(new { error });
             return Results.Created($"/api/realms/{realmId}/users/{user!.Id}", user);
-        });
+        }).RequireAuthorization();
 
         group.MapPut("/{id:guid}", async (Guid realmId, Guid id, UpdateUserRequest request, UserService service, CancellationToken ct) =>
         {

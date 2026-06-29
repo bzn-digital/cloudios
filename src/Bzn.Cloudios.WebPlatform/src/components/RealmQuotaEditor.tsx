@@ -4,19 +4,19 @@ import type { RealmQuotas, RealmUsage } from '../types/realm';
 
 interface RealmQuotaEditorProps {
   realmId: string;
-  quotas: RealmQuotas;
-  usage: RealmUsage;
+  quotas?: RealmQuotas;
+  usage?: RealmUsage;
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
 }
 
 export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSuccess }: RealmQuotaEditorProps) {
-  const [maxContainers, setMaxContainers] = useState(quotas.maxContainers || 0);
-  const [maxDatabases, setMaxDatabases] = useState(quotas.maxDatabases || 0);
-  const [maxManagedApps, setMaxManagedApps] = useState(quotas.maxManagedApps || 0);
-  const [maxRamGB, setMaxRamGB] = useState(((quotas.maxRamBytes || 0) / (1024 * 1024 * 1024)).toFixed(2));
-  const [maxCpuCores, setMaxCpuCores] = useState(quotas.maxCpuCores || 0);
+  const [maxContainers, setMaxContainers] = useState(quotas?.maxContainers || 0);
+  const [maxDatabases, setMaxDatabases] = useState(quotas?.maxDatabases || 0);
+  const [maxManagedApps, setMaxManagedApps] = useState(quotas?.maxManagedApps || 0);
+  const [maxRamGB, setMaxRamGB] = useState(((quotas?.maxRamBytes || 0) / (1024 * 1024 * 1024)).toFixed(2));
+  const [maxCpuCores, setMaxCpuCores] = useState(quotas?.maxCpuCores || 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,12 +39,13 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
 
     try {
       setSaving(true);
+      const ramBytes = Math.round((parseFloat(maxRamGB) || 0) * 1024 * 1024 * 1024);
       await apiClient.updateQuotas(realmId, {
-        maxContainers,
-        maxDatabases,
-        maxManagedApps,
-        maxRamBytes: Math.round((parseFloat(maxRamGB) || 0) * 1024 * 1024 * 1024),
-        maxCpuCores,
+        maxContainers: maxContainers,
+        maxDatabases: maxDatabases,
+        maxManagedApps: maxManagedApps,
+        maxRamBytes: ramBytes,
+        maxCpuCores: maxCpuCores,
       });
       onSuccess();
       onClose();
@@ -81,11 +82,11 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
-                    style={{ width: `${getProgressPercent(usage.containersCount, maxContainers)}%` }}
+                    style={{ width: `${getProgressPercent(usage?.containersCount || 0, maxContainers)}%` }}
                   />
                 </div>
                 <span className="progress-text">
-                  {usage.containersCount} / {maxContainers}
+                  {usage?.containersCount || 0} / {maxContainers}
                 </span>
               </div>
             </div>
@@ -103,11 +104,11 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
-                    style={{ width: `${getProgressPercent(usage.databasesCount, maxDatabases)}%` }}
+                    style={{ width: `${getProgressPercent(usage?.databasesCount || 0, maxDatabases)}%` }}
                   />
                 </div>
                 <span className="progress-text">
-                  {usage.databasesCount} / {maxDatabases}
+                  {usage?.databasesCount || 0} / {maxDatabases}
                 </span>
               </div>
             </div>
@@ -125,11 +126,11 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
-                    style={{ width: `${getProgressPercent(usage.managedAppsCount, maxManagedApps)}%` }}
+                    style={{ width: `${getProgressPercent(usage?.managedAppsCount || 0, maxManagedApps)}%` }}
                   />
                 </div>
                 <span className="progress-text">
-                  {usage.managedAppsCount} / {maxManagedApps}
+                  {usage?.managedAppsCount || 0} / {maxManagedApps}
                 </span>
               </div>
             </div>
@@ -148,11 +149,11 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
-                    style={{ width: `${getProgressPercent(usage.ramBytesUsed, Math.round(parseFloat(maxRamGB) * 1024 * 1024 * 1024))}%` }}
+                    style={{ width: `${getProgressPercent(usage?.ramBytesUsed || 0, Math.round(parseFloat(maxRamGB) * 1024 * 1024 * 1024))}%` }}
                   />
                 </div>
                 <span className="progress-text">
-                  {formatBytes(usage.ramBytesUsed)} / {maxRamGB} GB
+                  {formatBytes(usage?.ramBytesUsed || 0)} / {maxRamGB} GB
                 </span>
               </div>
             </div>
@@ -171,11 +172,11 @@ export function RealmQuotaEditor({ realmId, quotas, usage, isOpen, onClose, onSu
                 <div className="progress-bar">
                   <div
                     className="progress-fill"
-                    style={{ width: `${getProgressPercent(usage.cpuCoresUsed, maxCpuCores)}%` }}
+                    style={{ width: `${getProgressPercent(usage?.cpuCoresUsed || 0, maxCpuCores)}%` }}
                   />
                 </div>
                 <span className="progress-text">
-                  {usage.cpuCoresUsed} / {maxCpuCores}
+                  {usage?.cpuCoresUsed || 0} / {maxCpuCores}
                 </span>
               </div>
             </div>

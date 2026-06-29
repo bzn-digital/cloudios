@@ -1,5 +1,7 @@
 using Bzn.Cloudios.Application.Services;
 using Bzn.Cloudios.Domain.Dto;
+using Bzn.Cloudios.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
 
 namespace Bzn.Cloudios.WebAPI.Endpoints;
 

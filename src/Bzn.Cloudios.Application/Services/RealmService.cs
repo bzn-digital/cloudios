@@ -99,18 +99,30 @@ public sealed class RealmService
 
         if (realm is null) return null;
 
+        _logger.LogInformation("Realm {RealmName} has {UserCount} users", realm.Name, realm.Users.Count);
+        foreach (var user in realm.Users)
+        {
+            _logger.LogInformation("User: {Email}, Role: {Role}", user.Email, user.Role);
+        }
+
+        var owner = realm.Users.FirstOrDefault(u => u.Role == Domain.Enums.UserRole.RealmOwner);
+        _logger.LogInformation("Owner found: {OwnerEmail}", owner?.Email ?? "null");
+
         return new RealmDetailResponse
         {
             Id = realm.Id,
             Name = realm.Name,
+            Slug = realm.Slug,
             IsActive = realm.IsActive,
             CreatedAt = realm.CreatedAt,
+            OwnerEmail = owner?.Email,
             Users = realm.Users.Select(u => new RealmUserItem
             {
                 Id = u.Id,
                 Email = u.Email,
                 Role = u.Role.ToString(),
-                IsBlocked = u.IsBlocked
+                IsBlocked = u.IsBlocked,
+                CreatedAt = u.CreatedAt
             }).ToList()
         };
     }
@@ -149,6 +161,7 @@ public sealed class RealmService
         {
             Id = realm.Id,
             Name = realm.Name,
+            Slug = realm.Slug,
             IsActive = realm.IsActive,
             CreatedAt = realm.CreatedAt,
             Users = []
