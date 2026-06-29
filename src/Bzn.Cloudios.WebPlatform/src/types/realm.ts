@@ -70,7 +70,7 @@ export interface RealmUsage {
 export interface RealmResource {
   id: string;
   name: string;
-  type: 'container' | 'database';
+  type: 'container' | 'database' | 'managedapp';
   status: string;
   costBRL: number;
 }

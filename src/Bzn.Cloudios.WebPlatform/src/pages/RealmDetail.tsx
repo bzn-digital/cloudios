@@ -4,6 +4,7 @@ import { Layout } from '../components/Layout';
 import { RealmQuotaEditor } from '../components/RealmQuotaEditor';
 import { SuspendConfirmDialog } from '../components/SuspendConfirmDialog';
 import { ReactivateConfirmDialog } from '../components/ReactivateConfirmDialog';
+import { CreateUserModal } from '../components/CreateUserModal';
 import { apiClient } from '../lib/api';
 import type { RealmDetail, RealmStatsResponse } from '../types/realm';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
@@ -18,6 +19,7 @@ export function RealmDetail() {
   const [showQuotaEditor, setShowQuotaEditor] = useState(false);
   const [showSuspendDialog, setShowSuspendDialog] = useState(false);
   const [showReactivateDialog, setShowReactivateDialog] = useState(false);
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
 
   useEffect(() => {
     loadRealmDetail();
@@ -59,6 +61,17 @@ export function RealmDetail() {
 
   const handleReactivate = () => {
     setShowReactivateDialog(true);
+  };
+
+  const handleToggleUserBlock = async (userId: string, currentBlocked: boolean) => {
+    if (!id) return;
+
+    try {
+      await apiClient.updateUser(id, userId, { isBlocked: !currentBlocked });
+      await loadRealmDetail();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update user status');
+    }
   };
 
   const formatCurrency = (value: number) => {
@@ -188,6 +201,26 @@ export function RealmDetail() {
           {activeTab === 'resources' && (
             <div className="tab-panel">
               <h2>Resources</h2>
+              {realm.resources && realm.resources.length > 0 && (
+                <div className="resource-stats">
+                  <div className="resource-stat-item">
+                    <div className="resource-stat-label">Total Resources</div>
+                    <div className="resource-stat-value">{realm.resources.length}</div>
+                  </div>
+                  <div className="resource-stat-item">
+                    <div className="resource-stat-label">Containers</div>
+                    <div className="resource-stat-value">{realm.resources.filter(r => r.type === 'container').length}</div>
+                  </div>
+                  <div className="resource-stat-item">
+                    <div className="resource-stat-label">Databases</div>
+                    <div className="resource-stat-value">{realm.resources.filter(r => r.type === 'database').length}</div>
+                  </div>
+                  <div className="resource-stat-item">
+                    <div className="resource-stat-label">Managed Apps</div>
+                    <div className="resource-stat-value">{realm.resources.filter(r => r.type === 'managedapp').length}</div>
+                  </div>
+                </div>
+              )}
               <div className="services-table">
                 <table>
                   <thead>
@@ -231,7 +264,15 @@ export function RealmDetail() {
 
           {activeTab === 'users' && (
             <div className="tab-panel">
-              <h2>Users</h2>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h2>Users</h2>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowCreateUserModal(true)}
+                >
+                  Add User
+                </button>
+              </div>
               <div className="services-table">
                 <table>
                   <thead>
@@ -240,12 +281,13 @@ export function RealmDetail() {
                       <th>Role</th>
                       <th>Status</th>
                       <th>Created</th>
+                      <th>Actions</th>
                     </tr>
                   </thead>
                   <tbody>
                     {(!realm.users || realm.users.length === 0) ? (
                       <tr>
-                        <td colSpan={4}>
+                        <td colSpan={5}>
                           <p className="empty-state">No users found.</p>
                         </td>
                       </tr>
@@ -260,6 +302,14 @@ export function RealmDetail() {
                             </span>
                           </td>
                           <td>{formatDate(user.createdAt)}</td>
+                          <td>
+                            <button
+                              className={`btn btn-sm ${user.isBlocked ? 'btn-success' : 'btn-danger'}`}
+                              onClick={() => handleToggleUserBlock(user.id, user.isBlocked)}
+                            >
+                              {user.isBlocked ? 'Unblock' : 'Block'}
+                            </button>
+                          </td>
                         </tr>
                       ))
                     )}
@@ -375,6 +425,15 @@ export function RealmDetail() {
           realmId={id!}
           realmName={realm.name}
           onClose={() => setShowReactivateDialog(false)}
+          onSuccess={loadRealmDetail}
+        />
+      )}
+
+      {showCreateUserModal && (
+        <CreateUserModal
+          realmId={id!}
+          isOpen={showCreateUserModal}
+          onClose={() => setShowCreateUserModal(false)}
           onSuccess={loadRealmDetail}
         />
       )}

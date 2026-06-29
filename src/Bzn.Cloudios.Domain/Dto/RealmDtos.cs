@@ -30,6 +30,16 @@ public sealed class RealmDetailResponse
     public DateTime CreatedAt { get; set; }
     public string? OwnerEmail { get; set; }
     public List<RealmUserItem> Users { get; set; } = [];
+    public List<RealmResourceItem> Resources { get; set; } = [];
+}
+
+public sealed class RealmResourceItem
+{
+    public Guid Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Status { get; set; } = string.Empty;
+    public decimal CostBRL { get; set; }
 }
 
 public sealed class RealmUserItem

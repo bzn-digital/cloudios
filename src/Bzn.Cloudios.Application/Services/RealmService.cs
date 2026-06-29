@@ -51,6 +51,8 @@ public sealed class RealmService
 
         var total = await query.CountAsync(ct);
         var realms = await query
+            .Include(r => r.Users)
+            .Include(r => r.Containers)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(ct);
@@ -108,6 +110,50 @@ public sealed class RealmService
         var owner = realm.Users.FirstOrDefault(u => u.Role == Domain.Enums.UserRole.RealmOwner);
         _logger.LogInformation("Owner found: {OwnerEmail}", owner?.Email ?? "null");
 
+        // Fetch containers for this realm
+        var containers = await _context.Containers
+            .Where(c => c.RealmId == id)
+            .Select(c => new RealmResourceItem
+            {
+                Id = c.Id,
+                Name = c.Name,
+                Type = "container",
+                Status = c.Status.ToString(),
+                CostBRL = 0 // TODO: Calculate actual cost
+            })
+            .ToListAsync(ct);
+
+        // Fetch managed databases for this realm
+        var databases = await _context.ManagedDatabaseInstances
+            .Where(d => d.RealmId == id)
+            .Select(d => new RealmResourceItem
+            {
+                Id = d.Id,
+                Name = d.Name,
+                Type = "database",
+                Status = d.Status.ToString(),
+                CostBRL = 0 // TODO: Calculate actual cost from tier
+            })
+            .ToListAsync(ct);
+
+        // Fetch managed apps for this realm
+        var managedApps = await _context.ManagedAppInstances
+            .Where(m => m.RealmId == id)
+            .Select(m => new RealmResourceItem
+            {
+                Id = m.Id,
+                Name = m.Name,
+                Type = "managedapp",
+                Status = m.Status.ToString(),
+                CostBRL = 0 // TODO: Calculate actual cost from template
+            })
+            .ToListAsync(ct);
+
+        var resources = new List<RealmResourceItem>();
+        resources.AddRange(containers);
+        resources.AddRange(databases);
+        resources.AddRange(managedApps);
+
         return new RealmDetailResponse
         {
             Id = realm.Id,
@@ -123,7 +169,8 @@ public sealed class RealmService
                 Role = u.Role.ToString(),
                 IsBlocked = u.IsBlocked,
                 CreatedAt = u.CreatedAt
-            }).ToList()
+            }).ToList(),
+            Resources = resources
         };
     }
 

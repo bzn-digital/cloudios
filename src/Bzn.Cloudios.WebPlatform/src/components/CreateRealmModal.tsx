@@ -13,7 +13,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
   const [isSlugUnique, setIsSlugUnique] = useState<boolean | null>(null);
-  const [isEmailUnique, setIsEmailUnique] = useState<boolean | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,29 +47,8 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
     }
   }, [slug, isOpen]);
 
-  // Validate email uniqueness
-  useEffect(() => {
-    if (ownerEmail && isOpen) {
-      const debounceTimer = setTimeout(async () => {
-        try {
-          const realms = await apiClient.getRealms(1, 100);
-          // Check if email exists in any realm's users
-          let emailExists = false;
-          for (const realm of realms.items) {
-            const detail = await apiClient.getRealmDetail(realm.id);
-            if (detail.users.some(u => u.email === ownerEmail)) {
-              emailExists = true;
-              break;
-            }
-          }
-          setIsEmailUnique(!emailExists);
-        } catch (err) {
-          setIsEmailUnique(null);
-        }
-      }, 500);
-      return () => clearTimeout(debounceTimer);
-    }
-  }, [ownerEmail, isOpen]);
+  // Email uniqueness is validated on the backend (per realm)
+  // No need to validate here since the same email can exist in different realms
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,11 +61,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
 
     if (isSlugUnique === false) {
       setError('Slug must be unique');
-      return;
-    }
-
-    if (isEmailUnique === false) {
-      setError('Email already exists');
       return;
     }
 
@@ -121,7 +94,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
     setOwnerEmail('');
     setOwnerPassword('');
     setIsSlugUnique(null);
-    setIsEmailUnique(null);
     setError(null);
     onClose();
   };
@@ -172,12 +144,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
               placeholder="owner@example.com"
               required
             />
-            {isEmailUnique === false && (
-              <span className="field-error">Email already exists</span>
-            )}
-            {isEmailUnique === true && (
-              <span className="field-success">Email is available</span>
-            )}
           </div>
           <div className="form-group">
             <label htmlFor="ownerPassword">Owner Password</label>
@@ -203,7 +169,7 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={creating || isSlugUnique === false || isEmailUnique === false}
+              disabled={creating || isSlugUnique === false}
             >
               {creating ? 'Creating...' : 'Create'}
             </button>

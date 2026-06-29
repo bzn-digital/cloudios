@@ -155,6 +155,10 @@ class ApiClient {
     return this.post<void>(`/realms/${realmId}/users`, data);
   }
 
+  async updateUser(realmId: string, userId: string, data: { role?: string; isBlocked?: boolean }): Promise<void> {
+    return this.put<void>(`/realms/${realmId}/users/${userId}`, data);
+  }
+
   async updateQuotas(id: string, data: { maxContainers?: number; maxDatabases?: number; maxManagedApps?: number; maxRamBytes?: number; maxCpuCores?: number }): Promise<void> {
     return this.put<void>(`/realms/${id}/quotas`, data);
   }
