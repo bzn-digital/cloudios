@@ -1,0 +1,8 @@
+title: BZN Cloudios Documentation
+description: Documentação oficial do BZN Cloudios - Plataforma como Serviço privada
+theme: minima
+markdown: kramdown
+highlighter: rouge
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge

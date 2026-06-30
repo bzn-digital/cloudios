@@ -3,6 +3,7 @@ using System;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    partial class CloudiosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624140827_AddRealmQuotas")]
+    partial class AddRealmQuotas
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -526,15 +529,11 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
 
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasMaxLength(100)
                         .HasColumnType("TEXT");
 
                     b.HasKey("Id");
 
                     b.HasIndex("Name")
-                        .IsUnique();
-
-                    b.HasIndex("Slug")
                         .IsUnique();
 
                     b.ToTable("Realms", (string)null);
@@ -572,10 +571,10 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RealmId");
-
-                    b.HasIndex("RealmId", "Email")
+                    b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("RealmId");
 
                     b.HasIndex("RealmId", "Role");
 
@@ -621,7 +620,7 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
             modelBuilder.Entity("Bzn.Cloudios.Domain.Entities.ManagedAppInstance", b =>
                 {
                     b.HasOne("Bzn.Cloudios.Domain.Entities.Realm", "Realm")
-                        .WithMany("ManagedApps")
+                        .WithMany()
                         .HasForeignKey("RealmId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -682,8 +681,6 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
             modelBuilder.Entity("Bzn.Cloudios.Domain.Entities.Realm", b =>
                 {
                     b.Navigation("Containers");
-
-                    b.Navigation("ManagedApps");
 
                     b.Navigation("ManagedDatabases");
 

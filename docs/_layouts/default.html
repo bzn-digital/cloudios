@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ site.title }} | {{ page.title }}</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            display: flex;
+            min-height: 100vh;
+        }
+        .sidebar {
+            width: 280px;
+            background: #1e293b;
+            color: white;
+            padding: 2rem 1rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+        .sidebar h1 {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            color: #3b82f6;
+        }
+        .sidebar .tagline {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 2rem;
+        }
+        .sidebar nav a {
+            display: block;
+            color: #cbd5e1;
+            text-decoration: none;
+            padding: 0.75rem 1rem;
+            border-radius: 0.5rem;
+            margin-bottom: 0.25rem;
+            transition: all 0.2s;
+        }
+        .sidebar nav a:hover,
+        .sidebar nav a.active {
+            background: #3b82f6;
+            color: white;
+        }
+        .sidebar nav a.active {
+            font-weight: 500;
+        }
+        .sidebar .section-title {
+            color: #94a3b8;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin: 1.5rem 0 0.5rem 1rem;
+        }
+        .main-content {
+            margin-left: 280px;
+            padding: 2rem 3rem;
+            flex: 1;
+            max-width: 1000px;
+        }
+        .main-content h1 {
+            color: #1e293b;
+            border-bottom: 2px solid #e2e8f0;
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .main-content h2 {
+            color: #334155;
+            margin-top: 2rem;
+            margin-bottom: 1rem;
+        }
+        .main-content h3 {
+            color: #475569;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        .main-content p {
+            color: #64748b;
+            line-height: 1.7;
+        }
+        .main-content ul {
+            color: #64748b;
+        }
+        .main-content li {
+            margin-bottom: 0.5rem;
+        }
+        .main-content code {
+            background: #f1f5f9;
+            padding: 0.2rem 0.4rem;
+            border-radius: 0.25rem;
+            font-size: 0.9em;
+        }
+        .main-content pre {
+            background: #1e293b;
+            color: #e2e8f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+        .main-content pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        .main-content a {
+            color: #3b82f6;
+            text-decoration: none;
+        }
+        .main-content a:hover {
+            text-decoration: underline;
+        }
+        .main-content table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 1rem 0;
+        }
+        .main-content th,
+        .main-content td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .main-content th {
+            background: #f8fafc;
+            font-weight: 600;
+        }
+        .main-content blockquote {
+            border-left: 4px solid #3b82f6;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            color: #64748b;
+            background: #f8fafc;
+            padding: 1rem;
+            border-radius: 0 0.5rem 0.5rem 0;
+        }
+        @media (max-width: 768px) {
+            .sidebar {
+                position: relative;
+                width: 100%;
+                height: auto;
+            }
+            .main-content {
+                margin-left: 0;
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <h1>🌩️ Cloudios</h1>
+        <p class="tagline">The self-hosted native cloud engine</p>
+        
+        <div class="section-title">Documentação</div>
+        <nav>
+            <a href="{{ site.baseurl }}/" class="{% if page.url == '/' %}active{% endif %}">Visão Geral</a>
+            <a href="{{ site.baseurl }}/managed-apps.html" class="{% if page.url == '/managed-apps.html' %}active{% endif %}">Managed Apps</a>
+        </nav>
+
+        <div class="section-title">Links</div>
+        <nav>
+            <a href="https://github.com/bzn-digital/cloudios" target="_blank">GitHub Repository</a>
+            <a href="https://github.com/bzn-digital/cloudios/blob/main/RULES.md" target="_blank">Git Workflow</a>
+            <a href="https://github.com/bzn-digital/cloudios/blob/main/CHANGELOG.md" target="_blank">Changelog</a>
+        </nav>
+    </aside>
+
+    <main class="main-content">
+        {{ content }}
+    </main>
+</body>
+</html>

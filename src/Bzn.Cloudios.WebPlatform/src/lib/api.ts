@@ -1,5 +1,6 @@
 import type { AdminContainerListResponse, ContainerActionResponse, ContainerDetailResponse, ContainerLogsResponse } from '../types/container';
-import type { AdminManagedAppListResponse, ManagedAppActionResponse, RealmListResponse } from '../types/managedApp';
+import type { AdminManagedAppListResponse, ManagedAppActionResponse } from '../types/managedApp';
+import type { RealmListResponse as RealmListResponseTyped, RealmStatsResponse, RealmDetail } from '../types/realm';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -124,8 +125,50 @@ class ApiClient {
     return this.get<AdminManagedAppListResponse>(`/managed-apps/all?${params.toString()}`);
   }
 
-  async getRealms(): Promise<RealmListResponse> {
-    return this.get<RealmListResponse>('/realms');
+  async getRealms(page = 1, pageSize = 20, search?: string, status?: string, sortBy?: string): Promise<RealmListResponseTyped> {
+    const params = new URLSearchParams();
+    params.append('page', page.toString());
+    params.append('pageSize', pageSize.toString());
+    if (search) params.append('search', search);
+    if (status) params.append('status', status);
+    if (sortBy) params.append('sortBy', sortBy);
+    return this.get<RealmListResponseTyped>(`/realms?${params.toString()}`);
+  }
+
+  async getRealmStats(id: string): Promise<RealmStatsResponse> {
+    return this.get<RealmStatsResponse>(`/realms/${id}/stats`);
+  }
+
+  async getRealmDetail(id: string): Promise<RealmDetail> {
+    return this.get<RealmDetail>(`/realms/${id}`);
+  }
+
+  async updateRealm(id: string, data: { name?: string; isActive?: boolean; quotas?: Record<string, number> }): Promise<void> {
+    return this.put<void>(`/realms/${id}`, data);
+  }
+
+  async createRealm(data: { name: string; slug: string; ownerEmail: string; ownerPassword: string }): Promise<{ id: string; slug: string }> {
+    return this.post<{ id: string; slug: string }>('/realms', { name: data.name });
+  }
+
+  async createUser(realmId: string, data: { email: string; password: string; role: string }): Promise<void> {
+    return this.post<void>(`/realms/${realmId}/users`, data);
+  }
+
+  async updateUser(realmId: string, userId: string, data: { role?: string; isBlocked?: boolean }): Promise<void> {
+    return this.put<void>(`/realms/${realmId}/users/${userId}`, data);
+  }
+
+  async updateQuotas(id: string, data: { maxContainers?: number; maxDatabases?: number; maxManagedApps?: number; maxRamBytes?: number; maxCpuCores?: number }): Promise<void> {
+    return this.put<void>(`/realms/${id}/quotas`, data);
+  }
+
+  async suspendRealm(id: string): Promise<void> {
+    return this.post<void>(`/realms/${id}/suspend`);
+  }
+
+  async reactivateRealm(id: string): Promise<void> {
+    return this.post<void>(`/realms/${id}/reactivate`);
   }
 
   async restartManagedApp(id: string): Promise<ManagedAppActionResponse> {

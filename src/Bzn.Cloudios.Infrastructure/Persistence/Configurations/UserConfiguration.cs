@@ -46,7 +46,7 @@ public sealed class UserConfiguration : IEntityTypeConfiguration<User>
             .IsRequired()
             .HasColumnType("TEXT");
 
-        builder.HasIndex(u => u.Email).IsUnique();
+        builder.HasIndex(u => new { u.RealmId, u.Email }).IsUnique();
         builder.HasIndex(u => u.RealmId);
         builder.HasIndex(u => new { u.RealmId, u.Role });
     }

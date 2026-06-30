@@ -3,6 +3,7 @@ using System;
 using Bzn.Cloudios.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -10,9 +11,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Bzn.Cloudios.Infrastructure.Migrations
 {
     [DbContext(typeof(CloudiosDbContext))]
-    partial class CloudiosDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260624185439_AddRealmSlugUniqueIndex")]
+    partial class AddRealmSlugUniqueIndex
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.7");
@@ -572,10 +575,10 @@ namespace Bzn.Cloudios.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RealmId");
-
-                    b.HasIndex("RealmId", "Email")
+                    b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("RealmId");
 
                     b.HasIndex("RealmId", "Role");
 

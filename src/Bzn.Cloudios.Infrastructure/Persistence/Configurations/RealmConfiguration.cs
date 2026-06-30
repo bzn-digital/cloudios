@@ -20,6 +20,11 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .HasMaxLength(100)
             .HasColumnType("TEXT");
 
+        builder.Property(r => r.Slug)
+            .IsRequired()
+            .HasMaxLength(100)
+            .HasColumnType("TEXT");
+
         builder.Property(r => r.IsActive)
             .IsRequired()
             .HasColumnType("INTEGER")
@@ -29,7 +34,23 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
             .IsRequired()
             .HasColumnType("TEXT");
 
+        builder.Property(r => r.MaxContainers)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxDatabases)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxManagedApps)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxRamBytes)
+            .HasColumnType("INTEGER");
+
+        builder.Property(r => r.MaxCpuCores)
+            .HasColumnType("REAL");
+
         builder.HasIndex(r => r.Name).IsUnique();
+        builder.HasIndex(r => r.Slug).IsUnique();
 
         builder.HasMany(r => r.Users)
             .WithOne(u => u.Realm)
@@ -39,6 +60,16 @@ public sealed class RealmConfiguration : IEntityTypeConfiguration<Realm>
         builder.HasMany(r => r.Containers)
             .WithOne(c => c.Realm)
             .HasForeignKey(c => c.RealmId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(r => r.ManagedDatabases)
+            .WithOne(d => d.Realm)
+            .HasForeignKey(d => d.RealmId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        builder.HasMany(r => r.ManagedApps)
+            .WithOne(a => a.Realm)
+            .HasForeignKey(a => a.RealmId)
             .OnDelete(DeleteBehavior.Cascade);
     }
 }

@@ -53,8 +53,8 @@ public sealed class UserService
 
     public async Task<(UserItem? User, string? Error)> CreateAsync(Guid realmId, CreateUserRequest request, CancellationToken ct = default)
     {
-        if (await _context.Users.AnyAsync(u => u.Email == request.Email, ct))
-            return (null, "Email already exists");
+        if (await _context.Users.AnyAsync(u => u.Email == request.Email && u.RealmId == realmId, ct))
+            return (null, "Email already exists in this realm");
 
         if (!await _context.Realms.AnyAsync(r => r.Id == realmId, ct))
             return (null, "Realm not found");
