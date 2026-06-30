@@ -12,7 +12,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
   const [slug, setSlug] = useState('');
   const [ownerEmail, setOwnerEmail] = useState('');
   const [ownerPassword, setOwnerPassword] = useState('');
-  const [isSlugUnique, setIsSlugUnique] = useState<boolean | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -25,27 +24,10 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
         .trim()
         .replace(/\s+/g, '-');
       setSlug(generatedSlug);
-      setIsSlugUnique(null);
     } else {
       setSlug('');
     }
   }, [name]);
-
-  // Validate slug uniqueness
-  useEffect(() => {
-    if (slug && isOpen) {
-      const debounceTimer = setTimeout(async () => {
-        try {
-          const realms = await apiClient.getRealms(1, 100);
-          const exists = realms.items.some(r => r.slug === slug);
-          setIsSlugUnique(!exists);
-        } catch (err) {
-          setIsSlugUnique(null);
-        }
-      }, 500);
-      return () => clearTimeout(debounceTimer);
-    }
-  }, [slug, isOpen]);
 
   // Email uniqueness is validated on the backend (per realm)
   // No need to validate here since the same email can exist in different realms
@@ -56,11 +38,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
 
     if (!name.trim() || !slug.trim() || !ownerEmail.trim() || !ownerPassword.trim()) {
       setError('All fields are required');
-      return;
-    }
-
-    if (isSlugUnique === false) {
-      setError('Slug must be unique');
       return;
     }
 
@@ -93,7 +70,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
     setSlug('');
     setOwnerEmail('');
     setOwnerPassword('');
-    setIsSlugUnique(null);
     setError(null);
     onClose();
   };
@@ -127,12 +103,6 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
               placeholder="Auto-generated from name"
               required
             />
-            {isSlugUnique === false && (
-              <span className="field-error">Slug already exists</span>
-            )}
-            {isSlugUnique === true && (
-              <span className="field-success">Slug is available</span>
-            )}
           </div>
           <div className="form-group">
             <label htmlFor="ownerEmail">Owner Email</label>
@@ -169,7 +139,7 @@ export function CreateRealmModal({ isOpen, onClose, onSuccess }: CreateRealmModa
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={creating || isSlugUnique === false}
+              disabled={creating}
             >
               {creating ? 'Creating...' : 'Create'}
             </button>

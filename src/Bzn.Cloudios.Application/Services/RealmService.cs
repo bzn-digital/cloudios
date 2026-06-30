@@ -49,8 +49,16 @@ public sealed class RealmService
                 query = query.Where(r => !r.IsActive);
         }
 
-        var total = await query.CountAsync(ct);
-        var realms = await query
+        // Apply database-level ordering for deterministic pagination
+        // For 'monthlycost' sort, we still use default ordering since billing is computed per-item
+        var orderedQuery = sortBy?.ToLower() switch
+        {
+            "createdat" => query.OrderBy(r => r.CreatedAt),
+            _ => query.OrderBy(r => r.Name)
+        };
+
+        var total = await orderedQuery.CountAsync(ct);
+        var realms = await orderedQuery
             .Include(r => r.Users)
             .Include(r => r.Containers)
             .Skip((page - 1) * pageSize)
@@ -76,11 +84,12 @@ public sealed class RealmService
             });
         }
 
+        // For 'monthlycost' sort, apply in-memory sorting since billing is computed per-item
+        // Note: monthlycost sorting only works within the current page
         var sortedItems = sortBy?.ToLower() switch
         {
-            "createdat" => items.OrderBy(r => r.CreatedAt).ToList(),
             "monthlycost" => items.OrderBy(r => r.MonthlyCostBRL).ToList(),
-            _ => items.OrderBy(r => r.Name).ToList()
+            _ => items // Already sorted at database level
         };
 
         return new RealmListResponse
@@ -102,13 +111,9 @@ public sealed class RealmService
         if (realm is null) return null;
 
         _logger.LogInformation("Realm {RealmName} has {UserCount} users", realm.Name, realm.Users.Count);
-        foreach (var user in realm.Users)
-        {
-            _logger.LogInformation("User: {Email}, Role: {Role}", user.Email, user.Role);
-        }
 
         var owner = realm.Users.FirstOrDefault(u => u.Role == Domain.Enums.UserRole.RealmOwner);
-        _logger.LogInformation("Owner found: {OwnerEmail}", owner?.Email ?? "null");
+        _logger.LogDebug("Owner found for realm {RealmId}", realm.Id);
 
         // Fetch containers for this realm
         var containers = await _context.Containers
@@ -396,6 +401,7 @@ public sealed class RealmService
             .Include(r => r.Users)
             .Include(r => r.Containers)
             .Include(r => r.ManagedDatabases)
+            .Include(r => r.ManagedApps)
             .FirstOrDefaultAsync(r => r.Id == id, ct);
 
         if (realm is null) return null;
@@ -403,22 +409,20 @@ public sealed class RealmService
         var now = DateTime.UtcNow;
         var currentMonthCost = await _billingService.GetRealmBillingAsync(id, now.Year, now.Month, ct);
 
-        var managedAppsCount = await _context.ManagedAppInstances
-            .Where(i => i.RealmId == id)
-            .CountAsync(ct);
-
         var ramBytesUsed = realm.Containers.Sum(c => c.MemoryLimitBytes) +
-                          realm.ManagedDatabases.Sum(d => d.MemoryLimit);
+                          realm.ManagedDatabases.Sum(d => d.MemoryLimit) +
+                          realm.ManagedApps.Sum(a => a.MemoryLimitBytes);
 
         var cpuCoresUsed = realm.Containers.Sum(c => c.CpuLimitCores) +
-                          realm.ManagedDatabases.Sum(d => d.CpuLimit);
+                          realm.ManagedDatabases.Sum(d => d.CpuLimit) +
+                          realm.ManagedApps.Sum(a => a.CpuLimitCores);
 
         return new RealmStatsResponse
         {
             UsersCount = realm.Users.Count,
             ContainersCount = realm.Containers.Count,
             DatabasesCount = realm.ManagedDatabases.Count,
-            ManagedAppsCount = managedAppsCount,
+            ManagedAppsCount = realm.ManagedApps.Count,
             MonthlyCostBRL = currentMonthCost,
             Quotas = new RealmQuotas
             {
@@ -432,7 +436,7 @@ public sealed class RealmService
             {
                 ContainersCount = realm.Containers.Count,
                 DatabasesCount = realm.ManagedDatabases.Count,
-                ManagedAppsCount = managedAppsCount,
+                ManagedAppsCount = realm.ManagedApps.Count,
                 RamBytesUsed = ramBytesUsed,
                 CpuCoresUsed = cpuCoresUsed
             }

@@ -49,26 +49,26 @@ public static class RealmEndpoints
             var (response, error) = await service.SuspendAsync(id, ct);
             if (error is not null) return error == "Realm not found" ? Results.NotFound() : Results.Conflict(new { error });
             return Results.Ok(response);
-        });
+        }).RequireAuthorization("PlatformAdmin");
 
         group.MapPost("/{id:guid}/reactivate", async (Guid id, RealmService service, CancellationToken ct) =>
         {
             var (response, error) = await service.ReactivateAsync(id, ct);
             if (error is not null) return error == "Realm not found" ? Results.NotFound() : Results.Conflict(new { error });
             return Results.Ok(response);
-        });
+        }).RequireAuthorization("PlatformAdmin");
 
         group.MapPut("/{id:guid}/quotas", async (Guid id, UpdateQuotasRequest request, RealmService service, CancellationToken ct) =>
         {
             var (realm, error) = await service.UpdateQuotasAsync(id, request, ct);
             if (error is not null) return error == "Realm not found" ? Results.NotFound() : Results.Conflict(new { error });
             return Results.Ok(realm);
-        });
+        }).RequireAuthorization("PlatformAdmin");
 
         group.MapGet("/{id:guid}/stats", async (Guid id, RealmService service, CancellationToken ct) =>
         {
             var result = await service.GetStatsAsync(id, ct);
             return result is null ? Results.NotFound() : Results.Ok(result);
-        });
+        }).RequireAuthorization();
     }
 }
